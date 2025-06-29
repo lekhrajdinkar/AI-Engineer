@@ -56,6 +56,9 @@ st.markdown("Ask any investment-related question below:")
 st.sidebar.header("🔧 Model Settings")
 st.sidebar.markdown(f"**Model ID:** `{MODEL_ID}`")
 st.sidebar.markdown(f"**Version:** `{MODEL_VERSION}`")
+st.sidebar.markdown("---")
+st.sidebar.header("🔗 Useful Links")
+st.sidebar.markdown("[Personal Website](https://lekhrajdinkar.netlify.app/)")
 
 question = st.text_input("Your Question")
 
