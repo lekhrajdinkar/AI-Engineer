@@ -1,5 +1,6 @@
 import boto3
 import json
+import os
 
 import streamlit as st
 MODEL_ID = "anthropic.claude-3-sonnet-20240229-v1:0"
@@ -12,6 +13,10 @@ Explain the following investment concept in a way that's easy for a beginner to 
 Question: {question}
 Explain clearly, without jargon. Use examples if helpful.
 """
+
+os.environ["AWS_ACCESS_KEY_ID"] = st.secrets["AWS_ACCESS_KEY_ID"]
+os.environ["AWS_SECRET_ACCESS_KEY"] = st.secrets["AWS_SECRET_ACCESS_KEY"]
+region = st.secrets.get("AWS_DEFAULT_REGION", "us-east-1")
 
 def call_claude(question: str, max_tokens: int = 400, temperature: float = 0.7) -> str:
     messages = [
