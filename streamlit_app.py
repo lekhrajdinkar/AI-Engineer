@@ -66,9 +66,11 @@ col1, col2 = st.columns(2)
 max_tokens = col1.number_input("Max Tokens", min_value=10, max_value=1000, value=100, step=10)
 temperature = col2.slider("Temperature", min_value=0.0, max_value=1.0, value=0.7, step=0.1)
 
-st.markdown("---")
-st.subheader("📄 Prompt Template Being Used")
-st.code(education_prompt_1, language="text")
+with st.expander("📘 prompt engineering Details"):
+    #st.subheader("✅ context being Used")
+    #st.markdown(context)
+    st.subheader("✅ Prompt Template being Used")
+    st.code(education_prompt_1, language="text")
 
 if question:
     with st.spinner("Thinking..."):
