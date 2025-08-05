@@ -55,9 +55,9 @@ src/AIModule/poc_2_rag/
 ---
 ## Screenshot
 
-![img.png](../../99_img/genai/02/poc2/img.png)
+![img.png](../99_img/genai/02/poc2/img.png)
 
-![img_1.png](../../99_img/genai/02/poc2/img_1.png)
+![img_1.png](../99_img/genai/02/poc2/img_1.png)
 
-![img.png](../../99_img/genai/02/img11.png)
+![img.png](../99_img/genai/02/img11.png)
 

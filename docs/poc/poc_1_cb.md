@@ -86,4 +86,4 @@ C:\Users\lekhrajdinkar\Documents\GitHub\idea\02-etl-pyspark\
 
 ---
 ## Overview
-![overview.png](../../99_img/genai/01/poc1.png)
+![overview.png](../99_img/genai/01/poc1.png)
