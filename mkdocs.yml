@@ -1,34 +1,30 @@
-site_name: System Engineering -  Notes
-site_description: System Engineering -  Notes
-site_author: Lekhraj
+site_name: AI Engineer 2025
+site_description: AI Engineer 2025
+site_author: Lekhraj Dinkar
 docs_dir: docs
-
-extra_javascript:
-  - mkdocs.js
-
-# Navigation based on your Notes folder
 nav:
-    - Traditional AI + theory:
-        - 🔰2025:
-            - Start: 00_gen_ai/00_temp/00_start.md
-            - Generative AI: 00_gen_ai/00_temp/00_GenAI.md
-            - ML Machine learning: 00_gen_ai/00_temp/04_AI_ML.md
-            - AI challenges: 00_gen_ai/00_temp/05_AI_challenges.md
-    - New AI (genAI):
-        - 🔰2025:
-            - Prompting: 00_gen_ai/00_temp/03_prompt_engineering.md
-            - Agentic AI:
-              - Introduction : 00_gen_ai/02_agentic_ai/00_start.md
-              - AI Tools encountered : 00_gen_ai/02_agentic_ai/03_tried.md
-              - MCP protocol 🔸 : 00_gen_ai/02_agentic_ai/01_MCP.md
-              - A2A protocol 🔸: 00_gen_ai/02_agentic_ai/02_A2A.md
-            - POCs:
-              - 01 chatbot: 00_gen_ai/poc/poc_1_cb.md
-              - 02 RAG with dynamoDB: 00_gen_ai/poc/poc_2_rag.md
-    - AWS:
-        - 🔰2025:
-          - 01_bedrock: 00_gen_ai/01_aws/01_bedrock.md
-          - 02_sageMaker: 00_gen_ai/01_aws/02_sageMaker.md
+    - Home :
+        - Start: 00_temp/00_start.md
+        - Generative AI: 00_temp/00_GenAI.md
+        - Machine learning: 00_temp/04_AI_ML.md
+        - Deep learning: 00_temp/04_AI_ML.md
+        - AI challenges: 00_temp/05_AI_challenges.md
+        - Prompt Engineering: 00_temp/03_prompt_engineering.md
+
+    - Agentic AI:
+        - Introduction : 02_agentic_ai/00_start.md
+        - AI Tools encountered : 02_agentic_ai/03_tried.md
+        - MCP protocol 🔸 : 02_agentic_ai/01_MCP.md
+        - A2A protocol 🔸: 02_agentic_ai/02_A2A.md
+        - context Engineering: 02_agentic_ai/04_context_engineering.md
+
+    - AWS GenAI:
+          - 01_bedrock: 01_aws/01_bedrock.md
+          - 02_sageMaker: 01_aws/02_sageMaker.md
+
+    - POCs:
+        - 01 chatbot: poc/poc_1_cb.md
+        - 02 RAG with dynamoDB: poc/poc_2_rag.md
 
 theme:
   name: material
