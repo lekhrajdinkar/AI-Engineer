@@ -21,8 +21,8 @@ nav:
         - Prompt Engineering: 00_temp/03_prompt_engineering.md
 
     - POCs:
-        - 01 chatbot: poc/poc_1_cb.md
-        - 02 RAG with dynamoDB: poc/poc_2_rag.md
+        - 01 chatbot: 98_poc/poc_1_cb.md
+        - 02 RAG with dynamoDB: 98_poc/poc_2_rag.md
 
 theme:
   name: material

@@ -35,7 +35,7 @@ src/AIModule/poc_2_rag/
 
 🔸 Step 2 :: infra setup  
 
-1. IAM Role/User Permissions
+[poc_2_rag.md](poc_2_rag.md)1. IAM Role/User Permissions
     ✅ Bedrock full access (bedrock:* or specific InvokeModel)
     ✅ DynamoDB access:dynamodb:PutItem, GetItem, Query, BatchWriteItem
     ✅ S3 access:s3:PutObject, GetObject, ListBucket
