@@ -4,23 +4,21 @@ site_author: Lekhraj Dinkar
 docs_dir: docs
 nav:
     - Agentic AI:
-        - Introduction : 02_agentic_ai/00_start.md
+        - Introduction : 02_agentic_ai/00_agentic-ai-start.md
         - MCP protocol 🔸 : 02_agentic_ai/01_MCP.md
         - A2A protocol 🔸: 02_agentic_ai/02_A2A.md
         - context Engineering: 02_agentic_ai/04_context_engineering.md
 
     - AWS Certification Note:
 
-        - Generative AI: 00_temp/00_GenAI.md
+        - Generative AI(1): 00_temp/01_GenAI.md
+        - Generative AI(2): 00_temp/02_start.md
         - 01_bedrock: 01_aws/01_bedrock.md
         - 02_sageMaker: 01_aws/02_sageMaker.md
         - Machine learning: 00_temp/04_AI_ML.md
         - Deep learning: 00_temp/04_Deep-learning.md
         - AI challenges: 00_temp/05_AI_challenges.md
         - Prompt Engineering: 00_temp/03_prompt_engineering.md
-        - Side Notes✔️:
-            - 01 : 00_temp/00_start.md
-        #- AI Tools : 02_agentic_ai/03_tried.md
 
     - POCs:
         - 01 chatbot: poc/poc_1_cb.md
