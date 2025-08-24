@@ -26,9 +26,8 @@ Tech Stack:
 
 ------------
 
-C:\Users\lekhrajdinkar\Documents\GitHub\idea\02-etl-pyspark\
 ├── src\
-│   └── poc_1\
+│   └── 01_chatbots\src\
 │       ├── app.py                # FastAPI main app
 │       ├── bedrock_client.py     # Handles AWS Bedrock calls
 │       ├── prompt_template.py    # Prompt engineering
@@ -37,6 +36,8 @@ C:\Users\lekhrajdinkar\Documents\GitHub\idea\02-etl-pyspark\
 │       └── topics\               # Optional: Static content for fallback
 │           └── target_date_funds.md
 ├── requirements.txt
+├── readme.md
+├── streamlit_app.py (deploymnet version)
 ```
 
 ## FM Model :: anthropic.claude-3-sonnet
@@ -86,4 +87,4 @@ C:\Users\lekhrajdinkar\Documents\GitHub\idea\02-etl-pyspark\
 
 ---
 ## Overview
-![overview.png](../99_img/genai/01/poc1.png)
+![overview.png](../../docs/99_img/genai/01/poc1.png)

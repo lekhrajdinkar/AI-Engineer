@@ -13,7 +13,7 @@
 ## project structure
 -  [reference chatgpt 🗨️](https://chatgpt.com/c/6861ffef-7224-800d-a81b-1fe26b66e9b4)
 ```
-src/AIModule/poc_2_rag/
+
 ├── embedder.py           # Call Bedrock embedding model
 ├── rag_ingest.py         # Load files, chunk, embed, and store to DynamoDB/S3
 ├── dynamo_client.py      # DynamoDB helper for saving & querying
@@ -55,9 +55,9 @@ src/AIModule/poc_2_rag/
 ---
 ## Screenshot
 
-![img.png](../99_img/genai/02/poc2/img.png)
+![img.png](../../../docs/99_img/genai/02/poc2/img.png)
 
-![img_1.png](../99_img/genai/02/poc2/img_1.png)
+![img_1.png](../../../docs/99_img/genai/02/poc2/img_1.png)
 
-![img.png](../99_img/genai/02/img11.png)
+![img.png](../../../docs/99_img/genai/02/img11.png)
 
