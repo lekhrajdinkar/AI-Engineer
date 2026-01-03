@@ -17,3 +17,12 @@
 
 ## online Course
 - Ultimate AWS Certified AI Practitioner AIF-C01 | https://www.udemy.com/course/aws-ai-practitioner-certified/?couponCode=25BBPMXINACTIVE
+  - [Similar course from AWS skill builder](https://skillbuilder.aws/learning-plan/G8ENMJ5QBE/aws-artificial-intelligence-practitioner-learning-plan/SU2A1EJM1A)
+  
+## IDE and Plugins
+- Visual studio code | IntelliJ IDEA
+  - add : GitHub copilot plugin
+  - add : Claude code plugin (cli based usage) | https://claude.ai/code
+- More:
+  - **Kiro** (AWS) | https://kiro.ai/
+  - **Cursor** (vscode) | https://www.cursor.so/
