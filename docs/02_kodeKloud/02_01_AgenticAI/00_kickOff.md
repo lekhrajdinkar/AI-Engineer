@@ -1,0 +1,15 @@
+## Build Agents workflows:
+- **Retool** workflow: [https://lekhrajdinkar.retool.com/guided-tour](https://lekhrajdinkar.retool.com/guided-tour)
+- **google's** 
+    - [https://google.github.io/adk-docs/](https://google.github.io/adk-docs/) | ADK - agent dev kit
+    - https://ai.google.dev/gemini-api/docs
+    - `pip install google-adk`
+- **OpenAI** ✔️
+    - [https://openai.github.io/openai-agents-python/](https://openai.github.io/openai-agents-python/) | Py SDK
+    - openAI's FM models are the best LLM to build agent. 🔸
+    - `pip install openai-agents`
+- **Anthropic**   ✔️
+    - claude Sonat
+    - [https://docs.anthropic.com/en/docs/claude-code/sdk ](https://docs.anthropic.com/en/docs/claude-code/sdk)
+- **llamaIndex**
+    - [https://www.llamaindex.ai/](https://www.llamaindex.ai/)
