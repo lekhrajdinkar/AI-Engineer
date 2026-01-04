@@ -87,4 +87,4 @@ Tech Stack:
 
 ---
 ## Overview
-![overview.png](../../docs/99_img/genai/01/poc1.png)
+![overview.png](../../../docs/99_img/genai/01/poc1.png)

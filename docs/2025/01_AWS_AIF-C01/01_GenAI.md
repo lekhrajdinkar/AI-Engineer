@@ -49,7 +49,7 @@
 - AWS : run Small Language Model (SLM) on the edge device
 - genAI generates new data/content (ext, images, audio, code, or video) that is similar to the **data it was trained on**.
 - rely on DL model and ML model 
-- ![img_2.png](../99_img/genai/03/img_2.png)
+- ![img_2.png](../../99_img/genai/03/img_2.png)
 
 ---
 ## C. genAI Models
@@ -199,7 +199,7 @@ Describes how well your model captures the patterns in training data.
     ✳️balanced fit    : Balances bias and variance, performs well on both train and test data
 ```
 
-![img_1.png](../99_img/genai/03/img_1.png)
+![img_1.png](../../99_img/genai/03/img_1.png)
 
 ### Bias and Variance
 - **bias** : Difference between **value** - predicted vs actual 
@@ -235,7 +235,7 @@ Describes how well your model captures the patterns in training data.
 
 ### ML algo : learning types
 - **supervised** (label by humans)
-![img_1.png](../99_img/genai/02/img_1.png)
+![img_1.png](../../99_img/genai/02/img_1.png)
 - ✳️**unsupervised** : ML algo discover inherent patterns, structures,  or relationships within the **input data**
     - **clustering** : eg: create customer group based on buying pattern + market analysis
     - **Rule Learning Technique** : eg rule-1: keep frequently buy item items together
@@ -255,7 +255,7 @@ Describes how well your model captures the patterns in training data.
     - **agent** learns by performing **actions** in **env** to maximize **award**
     - used in gaming/chess, car driving self, finance  for strategic decision ,etc
     - https://www.youtube.com/@aiwarehouse
-    - ![img.png](../99_img/genai/03/img.png)
+    - ![img.png](../../99_img/genai/03/img.png)
 - ✳️**RLHF / reinforcement learning by human feedback** 
     - reward fn in RL --> replace with human rewards
     - Model1 learns by response/human feedbacks ⬅️
@@ -325,13 +325,13 @@ Describes how well your model captures the patterns in training data.
 - **tokenization** / embedding model / create vectors
 - capturing semantic relationship
 
-![img.png](../99_img/genai/01/01/img.png)
+![img.png](../../99_img/genai/01/01/img.png)
 
-![img_1.png](../99_img/genai/01/01/img_1.png)
+![img_1.png](../../99_img/genai/01/01/img_1.png)
 
 ---
 ## G. genAI Project
-![img_3.png](../99_img/genai/03/img_3.png)
+![img_3.png](../../99_img/genai/03/img_3.png)
 ```
 🔸Define business goals
 • Stakeholders define the value, budget and success criteria

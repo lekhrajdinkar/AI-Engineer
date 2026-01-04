@@ -24,6 +24,8 @@
 - **ByteByteGo**
   - YT: https://www.youtube.com/@TeamByteByteAI
   - Daily YT blogs: https://github.com/lekhrajdinkar/solution-engineer/blob/main/docs/10_System_Design/blogs_01_byteByteGo.md#%EF%B8%8Fagentic-ai
+- **ByteMonk**
+  - YT (LLM playlist): https://www.youtube.com/watch?v=iQ9arr3TTMA&list=PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU
 - **Officials**:
     - https://www.youtube.com/@anthropic-ai/videos
     - https://www.youtube.com/@OpenAI

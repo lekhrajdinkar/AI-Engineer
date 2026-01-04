@@ -4,7 +4,6 @@ site_author: Lekhraj Dinkar
 docs_dir: docs
 nav:
         - Artifacts : 00_Artifact.md
-        - POCS : 00_pocs.md
 
 theme:
   name: material
@@ -22,9 +21,6 @@ theme:
       primary: blue grey
       accent: pink
   custom_dir: .
-
-extra_css:
-  - mkdocs.css
 
 repo_url: https://github.com/lekhrajdinkar/genai
 repo_name: GitHub

@@ -2,7 +2,7 @@
 - fully managed service
 - build, train, tune, and deploy ML models at scale
 
-![img.png](../99_img/genai/01/02/img.png)
+![img.png](../../99_img/genai/01/02/img.png)
 
   | **Phase**   | **Service Feature**                               |
   | ----------- | ------------------------------------------------- |
@@ -47,9 +47,9 @@
 | **Serverless Inference** | Spiky traffic, cost-sensitive                   | Deploy without provisioning instances          |
 | **Multi-model Endpoint** | Multiple models behind one endpoint             | Efficient for hundreds of lightweight models   |
 
-![img_1.png](../99_img/genai/01/02/img_1.png)
+![img_1.png](../../99_img/genai/01/02/img_1.png)
 
-![img_2.png](../99_img/genai/01/02/img_2.png)
+![img_2.png](../../99_img/genai/01/02/img_2.png)
 
 ## Sage maker Studio
 - SageMaker Studio is a **web-based IDE** for all ML tasks: data prep, training, tuning, deployment, monitoring.

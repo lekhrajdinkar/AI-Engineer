@@ -44,7 +44,7 @@
     Lab: Building an MCP Client
     Lab: Kubernetes MCP Server
 ```
-- [flight-booking-server](../../../src/02_mcp-pocs/flight-booking-server)
+- [flight-booking-server](../../../src/2025/04_MCP_flightTicketAgent)
   - lab-1: https://kodekloud.com/studio/labs/artificial-intelligence/mcp-introductory-lab
   - lab-2:
 - IDE: VS code with **cline** and **Roo-code** plugins

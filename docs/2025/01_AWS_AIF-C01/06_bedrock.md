@@ -98,8 +98,8 @@ To handle chat-style applications - Customer support bots, etc
 - Bedrock takes care of creating **Vector Embeddings** (dynamoDB, aurora, RDS, ElasticSearch, Neptune)
 - **Source** : s3, saleforce, confluence, website, sharpoint, etc
 - on console : knowledge base
-- ![img_1.png](../99_img/genai/01/img_1.png)
-- ![img.png](../99_img/genai/01/img.png)
+- ![img_1.png](../../99_img/genai/01/img_1.png)
+- ![img.png](../../99_img/genai/01/img.png)
 
 ---
 ## 4. guardrails
@@ -130,9 +130,9 @@ aws console:
 - can trace/debug agent actions
 - hands on (pending...)❓
 
-![img_2.png](../99_img/genai/01/01/img_2.png)
+![img_2.png](../../99_img/genai/01/01/img_2.png)
 
-![img_3.png](../99_img/genai/01/01/img_3.png)
+![img_3.png](../../99_img/genai/01/01/img_3.png)
 
 ---
 ## 6. CW integration
@@ -150,7 +150,7 @@ aws console:
 - **Model size** – usually a smaller model will be cheaper (varies based on providers)
 - **Number of Input and Output Tokens** – main driver of cost
 
-![img_4.png](../99_img/genai/01/01/img_4.png)
+![img_4.png](../../99_img/genai/01/01/img_4.png)
 
 ---
 ## Amazon Q
