@@ -1,22 +1,41 @@
 # MCP
-### Overview 
-- MCP standardizes how this context is provided, making it easier to build complex AI applications.
-- developed by Anthropic, the creators of the Claude family of AI models.
+## Overview 
+- MCP standardizes how **Structured context** is provided from 3rd party services, making it easier to build complex AI applications.
+- developed by **Anthropic**, the creators of the Claude family of AI models.
 - MCP is designed to be **model-agnostic**, meaning it can work with different AI models and platforms.
 - enables developers to create **AI applications** that can:
     - manage context effectively, to do intelligent reasoning and decision-making.
     - integrate with external tools,
-    - handle multi-turn conversations seamlessly.
+    - handle **multi-turn conversations** seamlessly.
+- AI agents empowered by MCP can **take actions** 👈🏻
+  - LLM only send response 
+- **Architecture** (client/server) 
+  - **Components**:
+    - MCP Server - has: Tools, resources, Prompts | hosted:  locally, cloud, k8s,  3rd-party vendors
+    - MCP Client ( AI agents, act as clients connecting to MCP servers)
+    - MCP SDK
 
 ## reference:
 - https://www.youtube.com/watch?v=RhTiAOGwbYE
-- [MCP lab](https://learn.kodekloud.com/user/courses/youtube-labs-mcp?utm_source=youtube&utm_medium=video&utm_campaign=mcpcrashcourse_part1&utm_id=mcpcrashcourse_p1&utm_term=&utm_content=)
+- [MCP lab-1](https://learn.kodekloud.com/user/courses/youtube-labs-mcp?utm_source=youtube&utm_medium=video&utm_campaign=mcpcrashcourse_part1&utm_id=mcpcrashcourse_p1&utm_term=&utm_content=)
 - [https://kode.wiki/4lFwf5p](https://kode.wiki/4lFwf5p)
 - [https://www.perplexity.ai/search/mcp-introduction-explained-in-_WiQ4FksREuKr5HJlKqznw](https://www.perplexity.ai/search/mcp-introduction-explained-in-_WiQ4FksREuKr5HJlKqznw)
+- [https://docs.anthropic.com/en/docs/mcp](https://docs.anthropic.com/en/docs/mcp)
+- [bbgo links](https://github.com/lekhrajdinkar/solution-engineer/blob/main/docs/10_System_Design/blogs_01_byteByteGo.md#%EF%B8%8Fagentic-ai)
 
 ---
-## POC
-### ✔️flight-booking-server
+## POC/s
+### ✔️POC-1: flight-booking-server (Built own)
+```
+    Lab: Using an MCP Server
+    Lab: Building an MCP Server
+    Lab: Building an MCP Client
+    Lab: Kubernetes MCP Server
+```
+- [flight-booking-server](../../../src/02_mcp-pocs/flight-booking-server)
+- Note: labs is locked now, cant access my project files now.
+- **Status**: `once completed`
+
 ```bash
 uv init  flight-booking-server
 cd flight-booking-server
@@ -41,9 +60,12 @@ uv add mcp[cli]
 }
 ```
 
-### ✔️k8s-mcp-server
+### ✔️POC-2: k8s-mcp-server (vendor provided)
 - docs: https://github.com/reza-gholizade/k8s-mcp-server
 - manage cluster with natural language
+- Just Run it inside Kubernetes cluster.
+- **Status**: `in-progress`
+
 ```
 docker pull ginnux/k8s-mcp-server:latest
 docker images | grep k8s-mcp-server
@@ -109,16 +131,11 @@ Check pod details and logs if needed
 Create a pod with an incorrect image: "Create a pod named test-pod with image BUSYYBOX"
 Ask Roo-Code to identify the root cause of the issue
 Use natural language to troubleshoot: "Why is my test-pod not starting?"
-
-🎯 Learning Objectives:
-
-Practice creating Kubernetes resources with AI
-Learn to verify resource creation
-Experience AI-powered troubleshooting
-Understand how to ask for help with broken resources
 ```
 
----
-## Reference/s
-- [https://docs.anthropic.com/en/docs/mcp](https://docs.anthropic.com/en/docs/mcp)
-- [bbgo links](https://github.com/lekhrajdinkar/solution-engineer/blob/main/docs/10_System_Design/blogs_01_byteByteGo.md#%EF%B8%8Fagentic-ai)
+🎯 Learning Objectives:
+- **creating** Kubernetes resources with AI
+- Learn to **verify** resource creation
+- Experience AI-powered **troubleshooting**
+
+
