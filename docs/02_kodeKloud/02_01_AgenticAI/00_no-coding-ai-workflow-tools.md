@@ -1,14 +1,21 @@
 ## Agentic workflows ✔️
-### no code
-- Zapier
-- n8n
-- retool
-### code / lib
-- langChain
-- langGraph
-- AutoGen
-- CrewAI
-- ...
+- non-coding based:  Zapier, n8n, retool, etc
+- coding: 
+  - MCP protocol - custome, vendors
+  - LLM SDK/ADK - openAI agents, google ADK, etc
+  - langChain langGraph
+  - AutoGen
+  - CrewAI
+  - ...
+- **More topics to explore**:
+  - agentic-ai
+  - agentic-design-patterns
+  - agentic-security
+  - agentic-mlops
+  - agentic-workflow-types: single-agent, multi-agent, human-in-the-loop, routing, parallelism, evaluator-optimizer, orchestrator, Truly Autonomous, etc
+  - ...
+- **Architecture**:
+  - Model/LLM, MCP, KB/RAG, memory (user session), gaurdrails, orchestration (monitoring, logging, RT insights, etc), Audio/text.
 
 ---
 ## vibe-code / AI assistant IDE

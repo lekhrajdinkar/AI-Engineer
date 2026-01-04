@@ -1,20 +1,32 @@
-# MCP
+# MCP (**Anthropic**)
 ## Overview 
-- MCP standardizes how **Structured context** is provided from 3rd party services, making it easier to build complex AI applications.
-- developed by **Anthropic**, the creators of the Claude family of AI models.
-- MCP is designed to be **model-agnostic**, meaning it can work with different AI models and platforms.
+- An MCP server (Model Context Protocol server) 
+  - acts as a bridge between "AI models" and "external tools or data sources". 
+  - It enables AI to access information and perform actions beyond its built-in knowledge. 
+  - In simple terms, an MCP server translates requests from an AI model into commands that a specific tool or data source can understand and execute
+- **model-agnostic**:  meaning it can work with different AI models and platforms.
 - enables developers to create **AI applications** that can:
     - manage context effectively, to do intelligent reasoning and decision-making.
     - integrate with external tools,
     - handle **multi-turn conversations** seamlessly.
 - AI agents empowered by MCP can **take actions** 👈🏻
   - LLM only send response 
-- **Architecture** (client/server) 
+- **Architecture** (client/server + http/stdio/rpc) 
   - **Components**:
-    - MCP Server - has: Tools, resources, Prompts | hosted:  locally, cloud, k8s,  3rd-party vendors
-    - MCP Client ( AI agents, act as clients connecting to MCP servers)
-    - MCP SDK
-
+    - **MCP Server** | hosted:  locally, cloud, k8s,  3rd-party vendors
+      - 🔸Tools : actions that AI can perform (e.g., database queries, API calls, file operations)
+      - 🔸resources: data sources that AI can access (e.g., documents, databases, web pages)
+      - 🔸Prompts: predefined instructions/templates to guide AI interactions
+    - **MCP Client** ( AI agents, act as clients connecting to MCP servers)
+      - 🔸Sampling:
+      - 🔸Elicitation: 
+      - 🔸Root: FileSystem, DB | eg: keep user preference
+    - **MCP SDK**
+- **purpose**:
+  - MCP makes it easy to build agents and complex workflows, powered by large language models
+  - LLMs often need to connect with data and tools. And MCP provides a standard way to do that.
+  - Best practices for securing your data within your own infrastructure
+  
 ## reference:
 - https://www.youtube.com/watch?v=RhTiAOGwbYE
 - [MCP lab-1](https://learn.kodekloud.com/user/courses/youtube-labs-mcp?utm_source=youtube&utm_medium=video&utm_campaign=mcpcrashcourse_part1&utm_id=mcpcrashcourse_p1&utm_term=&utm_content=)
@@ -33,8 +45,10 @@
     Lab: Kubernetes MCP Server
 ```
 - [flight-booking-server](../../../src/02_mcp-pocs/flight-booking-server)
-- Note: labs is locked now, cant access my project files now.
-- **Status**: `once completed`
+  - lab-1: https://kodekloud.com/studio/labs/artificial-intelligence/mcp-introductory-lab
+  - lab-2:
+- IDE: VS code with **cline** and **Roo-code** plugins
+- $OPENAI_API_KEY : Sk-kkAI-5c8e136101e552a31ef9d0635ac9ba53798e25409d021f2540ae02b7a246bda6kk_omx7pfoeunlapw4o-kkf5d9ee88
 
 ```bash
 uv init  flight-booking-server
