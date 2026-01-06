@@ -1,10 +1,16 @@
 # RAG POC
+## Overview
+![img.png](../../../../docs/99_img/genai/rag/01/img.png)
+
 ## ✔️RAG component
 - Knowledge base: 
   - AWS S3 [arn](https://us-east-1.console.aws.amazon.com/s3/buckets/genai-rag-demo-lekhrajdinkar-bucket?region=us-east-1&bucketType=general)
   - kept here for local run:  [sample_docs](sample_docs)
 - vector DB: DynamoDB table (name=rag_chunks) [arn](https://us-east-1.console.aws.amazon.com/dynamodbv2/home?region=us-east-1#table?name=rag_chunks)
-- LLM model: anthropic.claude-3-sonnet-20240229-v1:0
+- LLM model: **anthropic.claude-3-sonnet-20240229-v1:0** 👈🏻
+
+![img_2.png](../../../../docs/99_img/genai/rag/01/img_2.png)
+
 
 ## ✔️Setup
 ### ▶️Terraform-iac
@@ -24,10 +30,11 @@
 
 ### ▶️prepare embedding and store in vector DB
 - `python -m src.AIModule.poc_2_rag.rag_ingest (ONCE) -> to store chunks in dynomaoDB from AWS S3/local files`
-- embedding model: bedrock.titan-embed-text-v1
+- embedding model: **bedrock.titan-embed-text-v1** 👈🏻
 
-![img_1.png](../../../../docs/99_img/genai/02/poc2/img_1.png)
+![img_1.png](../../../../docs/99_img/genai/02/poc2/img_1.png) 
 
+![img_1.png](../../../../docs/99_img/genai/rag/01/img_1.png)
 ---
 ## ✔️Codebase
 ### ▶️framework
@@ -37,6 +44,7 @@
 
 ### ▶️run from UI
 - `streamlit run .\src\AIModule\poc_2_rag\ui_streamlit.py`
+- [query_engine.py](query_engine.py)
 - k8s : [deployment](deployment)
 
 ![img.png](../../../../docs/99_img/genai/02/img11.png)
