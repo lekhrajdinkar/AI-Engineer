@@ -83,7 +83,9 @@
 ### 5. AI tool
 - **notebookLM**
 - **vibe code** - lovable, google firebase studio, useless for me
-- **non-coding based agent** :  Zapier, n8n, retool
+- **non-coding based agent** :  
+  - Zapier, n8n, retool, 
+  - agents in MicroSoft 365, https://www.microsoft.com/en-us/microsoft-agent-365#get-started
 - **AWS service/s**
 
 ### 6. IDE and Plugins

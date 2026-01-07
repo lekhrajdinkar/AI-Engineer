@@ -116,6 +116,11 @@ Describes how well your model captures the patterns in training data.
 
 ---
 ### ▶️Embeddings, Vectors, RAG
+
+![img.png](../../99_img/genai/01/01/img.png)
+
+![img_1.png](../../99_img/genai/01/01/img_1.png)
+
 #### ➖ embedding
 - numerical representations of data (text, images, etc.) in a high-dimensional space.
 - algo: FastText, Word2Vec
