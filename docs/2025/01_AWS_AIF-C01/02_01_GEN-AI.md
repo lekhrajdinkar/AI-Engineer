@@ -41,26 +41,26 @@
 
 ![img_3.png](../../99_img/genai/03/img_3.png)
 
-### Training Data
+### ▶️training
+#### ➖ Training Data
 - **Structure data** - csv,rdbms, timeseries data, etc
 - **un-Structure data** - image(pixel),object, comments etc | have specific type of ML alog to deal with these.
 - **label Data** - input+label | added by human/auto, use to define mapping x1 --> o1 | **supervised leaning**
 - **un-label Data** - input | model itself tries to find pattern -inheritance,relationship, etc | **un-supervised leaning**
 
-### training
-#### Pretraining
+#### ➖ Pretraining
 - the initial phase where FM learns general patterns from diverse data
 
-#### Fine-tuning
+#### ➖ Fine-tuning
 - subsequent phase where FM is adapted to **specific tasks**,
 - using datasets/trainingData (smaller & task-specific)
 - unfreeze some layers and train both new and selected old layers
 
-#### Transfer Learning
+#### ➖ Transfer Learning
 - Freeze pretrained layer
 - Add new Layer for our specific task and train only this layer
 
-#### Retraining
+#### ➖ Retraining
 - Train all layers from scratch (no pre-learned knowledge)
 
 ```
@@ -69,17 +69,16 @@ Analogy:
     Transfer learning = Student already knows basics, you teach just the last chapter 📘
     Fine-tuning = Student knows a lot, but you adjust what they’ve learned to your topic ✏️
 ```
-#### parameter
-- **Parameters** :
-    - tuning knobs
-    - internal to the model and learned from training data (weights, biases)
-        - weight - how word is expressed.
-        - baise - how to shift the word.
-    - Type:
-        - **model parameters** : learned during training (weights, biases)
-        - **prompt parameters** : context-specific adjustments during inference (temperature, max tokens)
+#### ➖ parameter
+- tuning knobs
+- internal to the model and learned from training data (`weights`, `biases`)
+    - weight - how word is expressed.
+    - baise - how to shift the word.
+- Type:
+    - **model parameters** : learned during training (weights, biases)
+    - **prompt parameters** : context-specific adjustments during inference (temperature, max tokens)
 
-#### Hyperparameters
+#### ➖ Hyperparameters
 - set before training and control the learning algorithm and process
 - tuning hyperparameters can significantly impact model performance and training efficiency.
 - Example:
@@ -89,16 +88,16 @@ Analogy:
     - **regularization** : to adjust over/under fitting
     - **number of layers**
 
-#### Bias and Variance
+#### ➖ Bias and Variance
 - **bias** : Difference between - predicted vs actual **value**
 - **Variance (sensitive)** : How much the **performance** of a model, on changes of similar training datasSet.
     - eg: worked well/overfited in dev, but underfit/prod in prod data.
 
-#### Confusion Matrix 
+#### ➖ Confusion Matrix 
 
-#### Regression Matrix 
+#### ➖ Regression Matrix 
 
-#### Evaluation
+#### ➖ Evaluation
 ```
 Describes how well your model captures the patterns in training data.
 
@@ -116,12 +115,12 @@ Describes how well your model captures the patterns in training data.
 ![img_1.png](../../99_img/genai/03/img_1.png)
 
 ---
-### Embeddings, Vectors, RAG
-#### embeddings
+### ▶️Embeddings, Vectors, RAG
+#### ➖ embedding
 - numerical representations of data (text, images, etc.) in a high-dimensional space.
 - algo: FastText, Word2Vec
 
-#### Vectors 
+#### ➖ Vector
 - the actual multi-dimension arrays of numbers that represent these embeddings.
 - Capture semantic relationships between data points.
 - Used in similarity search, clustering, and as input to ML models.
@@ -136,7 +135,7 @@ Describes how well your model captures the patterns in training data.
   - [udemy demo 1](https://www.udemy.com/course/aws-ai-practitioner-certified/learn/lecture/44886393#overview)
   - [udemy demo 2](https://www.udemy.com/course/aws-ai-practitioner-certified/learn/lecture/44901525#overview)
 
-#### RAG (Retrieval Augmented Generation)
+#### ➖ RAG (Retrieval Augmented Generation)
 - RAG combines LLMs with vector search to provide more accurate and context-aware responses.
 - eg: LangChain, LlamaIndex
 - Popular libraries: `sentence-transformers`, `transformers`, `faiss`, `chromadb`
