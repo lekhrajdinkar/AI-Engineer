@@ -80,10 +80,11 @@
         - Build a chatbot + FastAPI
         - Try Hugging Face demos
 
-### 5. General AI tool
-- whisper (transcribe)
-- notebookLM
-- vibe code - lovable, google firebase studio, useless for me
+### 5. AI tool
+- **notebookLM**
+- **vibe code** - lovable, google firebase studio, useless for me
+- **non-coding based agent** :  Zapier, n8n, retool
+- **AWS service/s**
 
 ### 6. IDE and Plugins
 - Visual studio code | IntelliJ IDEA
