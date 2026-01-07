@@ -36,10 +36,22 @@
 --- 
 ## Certification
 - AWS Certified AI Practitioner | AIF-C01 
-  - https://www.udemy.com/course/aws-ai-practitioner-certified/?couponCode=25BBPMXINACTIVE
-  - [AWS skill builder](https://skillbuilder.aws/learning-plan/G8ENMJ5QBE/aws-artificial-intelligence-practitioner-learning-plan/SU2A1EJM1A)
+  - https://www.udemy.com/course/aws-ai-practitioner-certified/?couponCode=25BBPMXINACTIVE | [slide](https://courses.datacumulus.com/downloads/certified-ai-practitioner-9u8/)
   - https://notes.kodekloud.com/docs/AWS-Certified-AI-Practitioner/Introduction/Introduction
-
+  - [AWS skill builder](https://skillbuilder.aws/learning-plan/G8ENMJ5QBE/aws-artificial-intelligence-practitioner-learning-plan/SU2A1EJM1A)
+    - [AWS demo - agents](https://aistylist.awsplayer.com/)
+    ```
+        --- 8 sections ---
+        Fundamentals of AI and ML
+        Exploring AI :: Use Cases and Applications
+        Responsible AI Practices
+        Developing ML Solutions
+      
+        Developing GenAI Solutions
+        Optimizing FM
+        Security, Compliance, and Governance for AI Solutions
+        Essentials of Prompt Engineering
+    ```
 ---   
 ## IDE and Plugins
 - Visual studio code | IntelliJ IDEA
@@ -48,3 +60,24 @@
 - More:
   - **Kiro** (AWS) | https://kiro.ai/
   - **Cursor** (vscode) | https://www.cursor.so/
+
+## More
+- [🗨️ chapgpt - gen ai 1](https://chatgpt.com/c/685dfae8-a808-800d-bc8c-4d992926601d)
+- [🗨️ chapgpt - gen ai 2](https://chatgpt.com/c/685e3233-8420-800d-a08a-2cd8b933dad6)
+
+## GenAI tools and frameworks
+- **streamlit UI**
+- **Jupyter Notebooks** for experimentation
+- `diffusers`
+- `TensorFlow`
+- `pytorch`
+- `LangChain`
+    - Python/JavaScript framework for building applications with LLM
+    - integrate LLMs with real-world data (APIs, SQL, docs)
+    - prg:
+        - Document Q&A system (e.g., chat with PDF, DB, storage)
+        - Chatbot with memory
+        - Enterprise search engine (RAG pattern)
+        - Connect your GenAI app to a document set
+        - Build a chatbot + FastAPI
+        - Try Hugging Face demos

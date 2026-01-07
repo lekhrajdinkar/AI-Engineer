@@ -1,3 +1,4 @@
+# prompt Engineering
 ## prompt
 - input text or instruction you give to a foundation model FM
 - prompt = user **input** + instruction (task description itself) + context + output format
@@ -7,23 +8,27 @@
 - Used heavily in RAG, chatbots, agent-based tools
 
 ```json
-
 {
   "model": "anthropic.claude-v2",
   "prompt": "Summarize the AWS Bedrock architecture in 3 bullet points.",
   "temperature": 0.7,
   "max_tokens": 200
 }
-
-
 ```
+| **Temperature Value** | **Effect on Output**                                            |
+| --------------------- | --------------------------------------------------------------- |
+| `0.0`                 | Very **deterministic**, always picks the most likely next word. |
+| `~0.7`                | **Balanced** output — some randomness, still coherent.          |
+| `1.0`                 | **Creative**, more diverse outputs, may take risks.             |
+| `>1.0`                | **Highly random**, can become incoherent or off-topic.          |
 
-  | **Component**     | **Example**                                      |
+| **Component**     | **Example**                                      |
   |-------------------| ------------------------------------------------ |
-  | **Instruction**   | “Summarize the following text.”                  |
-  | **Input Context** | “The quick brown fox jumps over the lazy dog...” |
-  | **Output Format** | “Return bullet points.”                          |
-  | **context**       | “”     |
+| **Instruction**   | “Summarize the following text.”                  |
+| **Input Context** | “The quick brown fox jumps over the lazy dog...” |
+| **Output Format** | “Return bullet points.”                          |
+| **context**       | “”     |
+
 
 ## prompt parameters
 - prompt : “Write a short description of a sunset.”
@@ -65,11 +70,3 @@
 | **Few-shot**                              | Provide a few examples, then ask for new output.                                     | “Translate:\n- Hello → Bonjour\n- Thank you → Merci\n- Goodbye →”                                 | Pattern learning without training   |
 | **Chain-of-Thought (CoT)**                | Ask the model to reason step-by-step before answering.                               | “If Sarah has 3 apples and buys 2 more, how many apples does she have? Let’s think step by step.” | Math, logic, reasoning              |
 | **RAG (Retrieval-Augmented Generation)**  | Retrieve external data (e.g., from documents or a DB) and inject it into the prompt. | “Context: \[doc chunk]\nQuestion: What is investment strategy?”                      | Internal search, domain-specific QA |
-
-
-## check more ❓
-```
-Python examples using LangChain or Bedrock
-RAG implementation flow (with vector store + prompt)
-Practice questions
-```
