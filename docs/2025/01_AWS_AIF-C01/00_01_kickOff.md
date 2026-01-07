@@ -44,12 +44,14 @@
 | ✅ Retrieval Models                      | BM25, Dense Passage Retrieval (DPR), FAISS, ColBERT | RAG & semantic search                   | Used in Bedrock RAG, LangChain                 | `faiss`, `chromadb`, `sentence-transformers`         |
 
 ### 4. Key Python Libraries to Work with These Models
+- **streamlit UI**
+- **Jupyter Notebooks** for experimentation
+
 | **Library**                      | **Use Case**                                              |
 | -------------------------------- | --------------------------------------------------------- |
 | `transformers` (HuggingFace)     | NLP, LLMs, vision-language, BERT/GPT/etc.                 |
 | `diffusers`                      | Diffusion-based image generation (e.g., Stable Diffusion) |
 | `torch`, `tensorflow`            | Low-level DL model building                               |
-| `LangChain`                      | Orchestration of LLMs, agents, tools, memory              |
 | `llama-index`                    | RAG pipelines, document ingestion, vector integration     |
 | `faiss`, `chromadb`              | Vector storage and semantic search                        |
 | `sentence-transformers`          | Sentence embeddings, semantic similarity                  |
@@ -60,3 +62,38 @@
 
 - `datasets`
 - `Trainer`
+- `langGraph`
+- `AutoGen`
+- `CrewAI`
+- `diffusers`
+- `TensorFlow`
+- `pytorch`
+- `LangChain`
+    - Python/JavaScript framework for building applications with LLM
+    - integrate LLMs with real-world data (APIs, SQL, docs)
+    - Orchestration of LLMs, agents, tools, memory
+    - prg ideas:
+        - Document Q&A system (e.g., chat with PDF, DB, storage)
+        - Chatbot with memory
+        - Enterprise search engine (RAG pattern)
+        - Connect your GenAI app to a document set
+        - Build a chatbot + FastAPI
+        - Try Hugging Face demos
+
+### 5. General AI tool
+- whisper (transcribe)
+- notebookLM
+- vibe code - lovable, google firebase studio, useless for me
+
+### 6. IDE and Plugins
+- Visual studio code | IntelliJ IDEA
+    - add plugIns : `GitHub-copilot`, or `Roo-Code`, or  `Cline` or `AmazonQ`
+    - add : Claude code plugin (cli based usage) | https://claude.ai/code
+- More:
+    - **Kiro** (AWS) | https://kiro.ai/
+    - **Cursor** (vscode) | https://www.cursor.so/
+
+### 7. More
+- [🗨️ chapgpt - gen ai 1](https://chatgpt.com/c/685dfae8-a808-800d-bc8c-4d992926601d)
+- [🗨️ chapgpt - gen ai 2](https://chatgpt.com/c/685e3233-8420-800d-a08a-2cd8b933dad6)
+- [00_Artifact.md](../../00_Artifact.md)

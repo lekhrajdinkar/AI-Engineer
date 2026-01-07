@@ -13,3 +13,8 @@
     - [https://docs.anthropic.com/en/docs/claude-code/sdk ](https://docs.anthropic.com/en/docs/claude-code/sdk)
 - **llamaIndex**
     - [https://www.llamaindex.ai/](https://www.llamaindex.ai/)
+- **GitHub Model**
+  - https://github.com/marketplace?type=models
+- **hugging face openSource Model** 
+  - https://huggingface.co/models
+  - can host on local and aws
