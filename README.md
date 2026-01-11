@@ -3,7 +3,7 @@
 ## 🔰 2025
 ### ✔️leaning/s
 - [📚Notes - AWS AIF-C01](docs/2025/01_AWS_AIF-C01)
-- [📚Notes - AgenticAI](docs/2025/02_KK_AgenticAI)
+- [📚Notes - AgenticAI](docs/2025/02_AgenticAI)
 - [▶️LLM Fundamnetals](https://www.youtube.com/watch?v=MlhZPTfOJBo&list=PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU&index=7)
 - 🔗[AI-Artifact.md](docs/00_Artifact.md)
 - 🧾Took paper Notes.

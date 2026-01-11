@@ -56,7 +56,8 @@
 - `Amazon Q` (AWS)  https://aws.amazon.com/amazon-q/ - plugin + cli
 - IDE:`Kiro` (AWS) | https://kiro.ai/
 - IDE:`Cursor` (vscode) | https://www.cursor.so/
-
+- MCP
+  - Security with **teleport** | https://bit.ly/45YwXVS
 
 --- 
 ## Certification
