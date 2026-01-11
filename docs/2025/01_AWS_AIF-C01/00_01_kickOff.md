@@ -87,6 +87,9 @@
   - Zapier, n8n, retool, 
   - agents in MicroSoft 365, https://www.microsoft.com/en-us/microsoft-agent-365#get-started
 - **AWS service/s**
+- **chatLLM** - like chatGPT, switched to best model based on domain
+- **DeepAgent** - like copilot Studio, but agent by text.
+- **MegaGPT** - complete Software engineering Agent
 
 ### 6. IDE and Plugins
 - Visual studio code | IntelliJ IDEA
