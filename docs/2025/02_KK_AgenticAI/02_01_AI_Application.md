@@ -5,13 +5,15 @@
 - doest not take action - like running command, etc
 - zero shot
 
+---
 ## ✔️LAM
 - https://youtu.be/JYN6O5Gbxlc?si=pG2wePL8GwZind57
 - ![img.png](../../99_img/bm/llm/11/img.png)
 - can switch to multiple roles === think of **general purpose agent**
 - can to more complex task than agent but **less autonomous** ( need human instruction, feedback, etc.)
 - can learn from UI interactions.
-  
+
+---  
 ## ✔️Autonomous AI Agent  👈🏻👈🏻
 ### Overview 1 (2024)
 - https://www.youtube.com/watch?v=SYHqSAWQ4NY&list=PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU&index=11
@@ -42,6 +44,7 @@
     - https://github.com/TransformerOptimus
     - https://github.com/microsoft/autogen
 
+---
 ### Overview 2 (Agentic 2025) ✅
 - https://youtu.be/Jj1-zb38Yfw?si=IbIOuVXidY1t0Qgg
 - agents solve multi-actions problem by calling multiple tools and understand the full context in structured way
@@ -74,6 +77,7 @@ closing the feedback loop.
   - ![img_3.png](../../99_img/genai/agent/01/29/img_3.png)
   - ![img_5.png](../../99_img/genai/agent/01/29/img_5.png)
 
+---
 ### Architecture of AI Agent
 ![img_4.png](../../99_img/genai/agent/01/29/img_4.png)
 - **Component**:
@@ -85,7 +89,7 @@ closing the feedback loop.
     - orchestration (monitoring, logging, RT insights, etc)
       - `Langchain, OpenAI SDK, CrewAI, AutoGen (MST)`
       - basically define the workflow of agent
-
+---
 ### agentic-workflow-types
 - single-agent,
 - multi-agent,
@@ -96,10 +100,13 @@ closing the feedback loop.
 - orchestrator,
 - Truly Autonomous
 
+---
 ### agentic-design-patterns
 
+---
 ### agentic-security
 
+---
 ### agentic-mlops
 
 
