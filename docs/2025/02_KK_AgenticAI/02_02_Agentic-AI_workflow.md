@@ -39,6 +39,7 @@
 
 ---
 ### ➖ Overview 2 (Agentic 2025) ✅
+- Trend: MCP aware agent
 - https://youtu.be/Jj1-zb38Yfw?si=IbIOuVXidY1t0Qgg
 - agents solve multi-actions problem by calling multiple tools and understand the full context in structured way
 - `Agentic AI is framed as AI,`

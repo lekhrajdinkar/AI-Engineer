@@ -26,13 +26,38 @@
   - Daily YT blogs: https://github.com/lekhrajdinkar/solution-engineer/blob/main/docs/10_System_Design/blogs_01_byteByteGo.md#%EF%B8%8Fagentic-ai
 - **ByteMonk**
   - YT (LLM playlist): https://www.youtube.com/watch?v=iQ9arr3TTMA&list=PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU
+  - perplexity Notes: https://www.perplexity.ai/spaces/bytemonk-llm-playlist-OrEHPnMCQ3yCzSsjQ3CnRw
 - **Officials**:
     - https://www.youtube.com/@anthropic-ai/videos
     - https://www.youtube.com/@OpenAI
 - **more**:
   - https://www.youtube.com/@TinaHuang1
   - https://www.youtube.com/@Java.Brains/playlists (membership)
- 
+
+## AI tool tried
+- **notebookLM**
+- **vibe code** - lovable, google firebase studio, useless for me
+- **non-coding based agent** :
+    - Zapier, n8n, retool,
+    - agents in MicroSoft 365, https://www.microsoft.com/en-us/microsoft-agent-365#get-started
+- **AWS service/s**
+- **chatLLM** - like chatGPT, switched to best model based on domain
+- **DeepAgent** - like copilot Studio, but agent by text.
+- **MegaGPT** - complete Software engineering Agent | https://youtu.be/SZ4PRZ8UbFU?si=F5gmR7-pVwq0XVeX
+
+## Coding Agent for IDE
+- `GitHub-copilot` ✅
+- `Roo-Code` 
+- `Cline` 
+- `Claude code` 
+  - https://claude.ai/code claude code
+  - https://claude.com/download Desktop app
+  - plugin https://plugins.jetbrains.com/plugin/27310-claude-code-beta-
+- `Amazon Q` (AWS)  https://aws.amazon.com/amazon-q/ - plugin + cli
+- IDE:`Kiro` (AWS) | https://kiro.ai/
+- IDE:`Cursor` (vscode) | https://www.cursor.so/
+
+
 --- 
 ## Certification
 - AWS Certified AI Practitioner | AIF-C01 
@@ -52,6 +77,11 @@
         Security, Compliance, and Governance for AI Solutions
         Essentials of Prompt Engineering
     ```
----   
+--- 
+
+## More
+- [🗨️ chapgpt - gen ai 1](https://chatgpt.com/c/685dfae8-a808-800d-bc8c-4d992926601d)
+- [🗨️ chapgpt - gen ai 2](https://chatgpt.com/c/685e3233-8420-800d-a08a-2cd8b933dad6)
+- [00_Artifact.md](../../00_Artifact.md) 
 
 
