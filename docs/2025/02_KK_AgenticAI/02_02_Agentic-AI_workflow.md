@@ -1,21 +1,14 @@
 # AI application
-## ✔️AI assistant
-- eg: ChatGPT
-- just answers Questions.
-- doest not take action - like running command, etc
-- zero shot
+## ✔️1. AI Assistant
 
 ---
-## ✔️LAM
-- https://youtu.be/JYN6O5Gbxlc?si=pG2wePL8GwZind57
-- ![img.png](../../99_img/bm/llm/11/img.png)
-- can switch to multiple roles === think of **general purpose agent**
-- can to more complex task than agent but **less autonomous** ( need human instruction, feedback, etc.)
-- can learn from UI interactions.
+## ✔️2. LAM
+[02_01_LAM_workflow.md](02_01_LAM_workflow.md)
 
----  
-## ✔️Autonomous AI Agent  👈🏻👈🏻
-### Overview 1 (2024)
+---
+## ✔️3. Autonomous AI Agent  👈🏻👈🏻
+
+### ➖ Overview 1 (2024)
 - https://www.youtube.com/watch?v=SYHqSAWQ4NY&list=PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU&index=11
   - Analyze Surrounding
     - **Adapt** to changing market conditions
@@ -45,7 +38,7 @@
     - https://github.com/microsoft/autogen
 
 ---
-### Overview 2 (Agentic 2025) ✅
+### ➖ Overview 2 (Agentic 2025) ✅
 - https://youtu.be/Jj1-zb38Yfw?si=IbIOuVXidY1t0Qgg
 - agents solve multi-actions problem by calling multiple tools and understand the full context in structured way
 - `Agentic AI is framed as AI,`
@@ -78,7 +71,7 @@ closing the feedback loop.
   - ![img_5.png](../../99_img/genai/agent/01/29/img_5.png)
 
 ---
-### Architecture of AI Agent
+### ➖ Architecture of AI Agent
 ![img_4.png](../../99_img/genai/agent/01/29/img_4.png)
 - **Component**:
     - LLM
@@ -90,7 +83,7 @@ closing the feedback loop.
       - `Langchain, OpenAI SDK, CrewAI, AutoGen (MST)`
       - basically define the workflow of agent
 ---
-### agentic-workflow-types
+### ➖ agentic-workflow-types
 - single-agent,
 - multi-agent,
 - human-in-the-loop,
@@ -101,13 +94,13 @@ closing the feedback loop.
 - Truly Autonomous
 
 ---
-### agentic-design-patterns
+### ➖ agentic-design-patterns
 
 ---
-### agentic-security
+### ➖ agentic-security
 
 ---
-### agentic-mlops
+### ➖ agentic-mlops
 
 
 

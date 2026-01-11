@@ -89,7 +89,7 @@
 - **AWS service/s**
 - **chatLLM** - like chatGPT, switched to best model based on domain
 - **DeepAgent** - like copilot Studio, but agent by text.
-- **MegaGPT** - complete Software engineering Agent
+- **MegaGPT** - complete Software engineering Agent | https://youtu.be/SZ4PRZ8UbFU?si=F5gmR7-pVwq0XVeX
 
 ### 6. IDE and Plugins
 - Visual studio code | IntelliJ IDEA

@@ -1,4 +1,6 @@
 # prompt Engineering
+- https://youtu.be/8RWfE9eDWXI?si=N52hqzSHowQNicmd
+- https://www.perplexity.ai/search/30-prompt-gpt-history-https-yo-21Nh.hcVTjCH0ndunc3vIw
 ## Overview
 ![img_2.png](../../99_img/genai/01/03/img_2.png)
 - Input token (prompt) --> LLM (not thinking) --> completion/output (by **predict** next token)
