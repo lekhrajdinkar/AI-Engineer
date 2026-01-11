@@ -1,5 +1,9 @@
 # AI application
 ## ✔️AI assistant
+- eg: ChatGPT
+- just answers Questions.
+- doest not take action - like running command, etc
+- zero shot
 
 ## ✔️LAM
 - https://youtu.be/JYN6O5Gbxlc?si=pG2wePL8GwZind57
