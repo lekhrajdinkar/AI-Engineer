@@ -1,23 +1,18 @@
-# MCP POC
-### ✔️POC-1: flight-booking-server (Built own)
-```
-    Lab: Using an MCP Server
-    Lab: Building an MCP Server
-    Lab: Building an MCP Client
-    Lab: Kubernetes MCP Server
-```
-- [flight-booking-server](../../../src/2025/04_MCP_flightTicketAgent)
-    - lab-1: https://kodekloud.com/studio/labs/artificial-intelligence/mcp-introductory-lab
-    - lab-2:
+# MCP Kodekloud labs
+## ✔️Lab-1 : Using an MCP Server
+- Free: https://kodekloud.com/studio/labs/artificial-intelligence/mcp-introductory-lab
+
+## ✔️Lab-2/3 : Building an MCP-Server/ MCP-Client
+- lab link : cannot access now
 - IDE: VS code with **cline** and **Roo-code** plugins
 - $OPENAI_API_KEY :
+- [agent-1: flight-booking-server](../../../src/2025/04_MCP_flightTicketAgent)
 
 ```bash
 uv init  flight-booking-server
 cd flight-booking-server
 uv add mcp[cli]
 ```
-
 - `mcp[cli]` --> both sdk + mcp tools (mcp inspector)
     - mcp = FastMCP()
     - @mcp.resource("file://abc") # provide `read-only` data access to AI systems
@@ -36,7 +31,7 @@ uv add mcp[cli]
 }
 ```
 
-### ✔️POC-2: k8s-mcp-server (vendor provided)
+## ✔️Lab-4 : Kubernetes MCP Server
 - docs: https://github.com/reza-gholizade/k8s-mcp-server
 - manage cluster with natural language
 - Just Run it inside Kubernetes cluster.
