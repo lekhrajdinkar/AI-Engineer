@@ -75,13 +75,22 @@ Analogy:
   - ![img_6.png](../../99_img/genai/2025/llm/01/img_5.png)
 - Has two main components:
   - **weight** - word meaning (how word is expressed in multi-dimension space)
-  - **bais** - add final tone , humor, etc
+  - **bais** - add final tone , humor, etc.
   - ![img_5.png](../../99_img/genai/2025/llm/01/img_6.png)
 - think of internal setting of neural network.
   - ![img_7.png](../../99_img/genai/2025/llm/01/img_7.png)
 - **Type**:
-    - model parameters : learned during training (weights, biases)
-    - prompt parameters : context-specific adjustments during inference (temperature, max tokens)
+    - model parameters : 
+      - learned during training (weights, biases). 
+      - changing these requires retraining or fine-tuning.
+      - computationally expensive.
+    - prompt parameters : 
+      - context-specific adjustments during inference (temperature, max tokens)
+      - prompting as fine-tuning without changing model weights. ◀️
+      - **Prompt engineer** filling gap b/w human intention and machine capability.◀️
+      - prompting type: zero-shot, few-shot, chain-of-thought
+      - ![img.png](../../99_img/genai/2025/llm/02/img.png)
+      - ![img_1.png](../../99_img/genai/2025/llm/02/img_1.png)
 
 #### ➖ Hyperparameters
 - set before training and control the learning algorithm and process
