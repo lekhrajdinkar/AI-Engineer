@@ -9,12 +9,16 @@
     - openAI's FM models are the best LLM to build agent. 🔸
     - `pip install openai-agents`
 - **Anthropic**   ✔️
-    - claude Sonat
-    - [https://docs.anthropic.com/en/docs/claude-code/sdk ](https://docs.anthropic.com/en/docs/claude-code/sdk)
+    - model: claude Sonat
+    - doc: [https://docs.anthropic.com/en/docs/claude-code/sdk ](https://docs.anthropic.com/en/docs/claude-code/sdk)
+    - claude code desktop + cli + ide-plugin
+    - developer plateform api : https://console.anthropic.com/settings/keys 👈🏻👈🏻
+    - chat : https://claude.ai/new
 - **llamaIndex**
     - [https://www.llamaindex.ai/](https://www.llamaindex.ai/)
-- **GitHub Model**
+- **GitHub Model**  ◀️
   - https://github.com/marketplace?type=models
-- **hugging face openSource Model** 
+- **hugging face` openSource Model`** ◀️
   - https://huggingface.co/models
   - can host on local and aws
+  - mistral, ollama, etc

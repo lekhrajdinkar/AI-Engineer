@@ -3,8 +3,9 @@
 - AI Artificial Intelligence
   ├── ML Machine Learning
   │   └── DL Deep Learning (Neural n/w, stacker layer)
-  │       └── GenAI Generative AI (CSE)
-
+  │       └── GenAI Generative AI (CSE) === NLP, LLM, Diffusion model
+- Computer vision
+- Robotics
 ```
 | Term       | Full Form               | What It Means                                                                     | Examples                                              |
 | ---------- | ----------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------- |
@@ -13,6 +14,7 @@
 | **DL**     | Deep Learning           | A subset of ML using deep neural networks for complex tasks                       | Face recognition, speech-to-text, GPT models          |
 | **Gen AI** | Generative AI           | A type of AI (often using DL) that generates new content (text, image, etc.)      | ChatGPT, DALL·E, GitHub Copilot, Sora                 |
 
+![img_1.png](../../99_img/genai/2025/llm/01/img_1.png)
 
 ## ✔️Common Questions
 ### 1. When to Use Service/API

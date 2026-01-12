@@ -6,6 +6,7 @@
 
 ## ✔️Models
 ### FM
+- https://youtu.be/zg7nJrDQZ5s?si=EztmeLIgCiWlZU4u
 - pretrained on **internet-scale data**
     - images, video, text, code, audio, website, article, books, etc.
 - **backed by NN neural network/s** that can be adapted to many tasks.
@@ -37,7 +38,7 @@
 
 
 ---
-## ✔️Concepts
+## ✔️ Concepts for LLM
 
 ![img_3.png](../../99_img/genai/03/img_3.png)
 
@@ -70,13 +71,17 @@ Analogy:
     Fine-tuning = Student knows a lot, but you adjust what they’ve learned to your topic ✏️
 ```
 #### ➖ parameter
-- tuning knobs
-- internal to the model and learned from training data (`weights`, `biases`)
-    - weight - how word is expressed.
-    - baise - how to shift the word.
-- Type:
-    - **model parameters** : learned during training (weights, biases)
-    - **prompt parameters** : context-specific adjustments during inference (temperature, max tokens)
+- **tuning knobs for meaningful embedding**
+  - ![img_6.png](../../99_img/genai/2025/llm/01/img_5.png)
+- Has two main components:
+  - **weight** - word meaning (how word is expressed in multi-dimension space)
+  - **bais** - add final tone , humor, etc
+  - ![img_5.png](../../99_img/genai/2025/llm/01/img_6.png)
+- think of internal setting of neural network.
+  - ![img_7.png](../../99_img/genai/2025/llm/01/img_7.png)
+- **Type**:
+    - model parameters : learned during training (weights, biases)
+    - prompt parameters : context-specific adjustments during inference (temperature, max tokens)
 
 #### ➖ Hyperparameters
 - set before training and control the learning algorithm and process
@@ -115,7 +120,7 @@ Describes how well your model captures the patterns in training data.
 ![img_1.png](../../99_img/genai/03/img_1.png)
 
 ---
-### ▶️Embeddings, Vectors, RAG
+### ▶️Token, Embeddings, Vectors, RAG
 
 ![img.png](../../99_img/genai/01/01/img.png)
 
@@ -123,7 +128,12 @@ Describes how well your model captures the patterns in training data.
 
 #### ➖ embedding
 - numerical representations of data (text, images, etc.) in a high-dimensional space.
-- algo: FastText, Word2Vec
+- algo: `FastText`, `Word2Vec`, `ElMo`
+- purpose: capture semantic meaning and relationships between data points.
+- application:
+  - similarity analysis, semantic search, clustering & categorization, recommendation systems, 
+- ![img_3.png](../../99_img/genai/2025/llm/01/img_3.png)
+- ![img_4.png](../../99_img/genai/2025/llm/01/img_4.png)
 
 #### ➖ Vector
 - the actual multi-dimension arrays of numbers that represent these embeddings.
