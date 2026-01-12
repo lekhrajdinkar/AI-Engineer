@@ -1,6 +1,5 @@
 # AI fundamentals
-- https://www.youtube.com/watch?v=ZaPbP9DwBOE&list=PL2We04F3Y_43f3x3n9pawcEuAwru7bcMG
-## 1. pass context to outdate-dated LLM model. how ?
+## ✔️1. pass context to outdate-dated LLM model. how ?
 ### way-1 Context window (limited)
 - ![img_1.png](../../99_img/2026/01/02/img_1.png)
 - ![img_3.png](../../99_img/2026/01/02/img_3.png)
@@ -8,8 +7,8 @@
 ### way-2 Embedding
 - ![img_2.png](../../99_img/2026/01/02/img_2.png)
 
-
-## 2. langchain
+---
+## ✔️2. langchain
 - Enterprise AI Application
 - ![img_4.png](../../99_img/2026/01/02/img_4.png)
 - static brain (LLm) vs LLM warpped with tools
