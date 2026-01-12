@@ -70,6 +70,11 @@ closing the feedback loop.
 - example: **Code-deployment agent**
   - ![img_3.png](../../99_img/genai/agent/01/29/img_3.png)
   - ![img_5.png](../../99_img/genai/agent/01/29/img_5.png)
+  - **Github copilot coding agent**
+    - AI Coding Agents Keep Breaking on Your Laptop
+    - traditional: 1 laptop, 1 IDE, 1 developer
+    - agentic: 1 laptop, 1 IDE, 1 developer + n agents  (crashing resource)
+    - solution : use cloud workspace for agents
 
 ---
 ### ➖ Architecture of AI Agent

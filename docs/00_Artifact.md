@@ -35,6 +35,7 @@
   - https://www.youtube.com/@Java.Brains/playlists (membership)
 
 ## AI tool tried
+- AI browser - perplexity comet
 - **notebookLM**
 - **vibe code** - lovable, google firebase studio, useless for me
 - **non-coding based agent** :
@@ -42,9 +43,12 @@
     - agents in MicroSoft 365, https://www.microsoft.com/en-us/microsoft-agent-365#get-started
 - **AWS service/s**
 - **chatLLM** - like chatGPT, switched to best model based on domain
-- **DeepAgent** - like copilot Studio, but agent by text.
-- **MegaGPT** - complete Software engineering Agent | https://youtu.be/SZ4PRZ8UbFU?si=F5gmR7-pVwq0XVeX
-- https://empromptu.ai/ - unified platform to build, optimize and scale enterprise AI Applications
+- **Coding**:
+  - DeepAgent : like copilot Studio, but agent by text.
+  - MegaGPT : complete Software engineering Agent | https://youtu.be/SZ4PRZ8UbFU?si=F5gmR7-pVwq0XVeX
+  - goose: https://fandf.co/3J5f6UI
+  - empromptu :https://empromptu.ai/ - unified platform to build, optimize and scale enterprise AI Applications
+- **typeSense** - event-driven-search tool. not keyword search (lexical search)
 
 ## Coding Agent for IDE
 - `GitHub-copilot` ✅

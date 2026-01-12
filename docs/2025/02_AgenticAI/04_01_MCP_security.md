@@ -1,14 +1,12 @@
-# Security Problem with MCP 
-- https://youtu.be/x4XjSRUSRrg?si=PCrcTI9asX6oiocu
-
----
-## Best practice for MCP security
+# Security with MCP 
+## Best practice
 ![img_2.png](../../99_img/genai/agent/38/img_2.png)
 
 ---
-## guardrail:: Teleport
+## guardrail:: `Teleport`
 ### Overview
 - https://bit.ly/45YwXVS
+- https://youtu.be/x4XjSRUSRrg?si=PCrcTI9asX6oiocu
 - provides secure access to infrastructure for engineers and developers. 
 - acts as the **control plane for MCP**
 - offers -  (RBAC), session recording, and audit logging.

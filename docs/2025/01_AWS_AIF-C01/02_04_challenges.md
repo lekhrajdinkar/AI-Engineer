@@ -8,4 +8,8 @@
   - ability to **mimic** the structure of human thought
   - not actual understanding
   - grounded in smart pattern-matching rather than authentic, scalable logic 
+  
 ---
+## prompt injection
+- https://youtu.be/ys7Vcdv4GKw?si=k_2d6Pg_Xj7GgDI4
+- AI Browsers Are Stealing Your Data
