@@ -9,14 +9,14 @@
 - 🧾Took paper Notes.
 
 ### ✔️POC projects
-- [01_chatbot](src/2025/01_chatbot/readme.md)
-- [02_AWS_LLM - Titan nova etc](src/2025/02_AWS_LLM)
-- [03 RAG :: Porject-1](src/2025/03_RAG/rag_poc_1/readme.md)
-- [04_MCP :: project-1 - flightTicketAgent](src/2025/04_MCP_flightTicketAgent)
+- [01_LLM :: project - chatbot ](src/2025/01_chatbot/readme.md)
+- [02 RAG :: Project - vector embedding and context search](src/2025/02_RAG/rag_poc_1/readme.md)
+- [03_MCP :: project - flightTicketAgent](src/2025/03_MCP_flightTicketAgent)
 
 ---
 ## 🔰 2026
 ### Learning/s
+- [01_Generative_UI](docs/2026/01_Generative_UI)
 
 ### POC projects
 - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule

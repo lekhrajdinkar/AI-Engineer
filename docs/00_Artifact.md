@@ -12,7 +12,8 @@
 --- 
 ## YouTube / blogs
 - **KodeKloud** [🔎Free Labs](https://kodekloud.com/studio/labs/artificial-intelligence)
-    - YT:  https://www.youtube.com/@KodeKloud/playlists
+    - YT:  
+      - https://www.youtube.com/watch?v=ZaPbP9DwBOE&list=PL2We04F3Y_43f3x3n9pawcEuAwru7bcMG
     - 📚 Note: https://notes.kodekloud.com/docs/AI-Assisted-Development/Course-Introduction/Course-Overview
       - AI-Assisted-Development https://notes.kodekloud.com/docs/AI-Assisted-Development/Course-Introduction/Course-Overview
       - Cursor AI https://notes.kodekloud.com/docs/Cursor-AI/Introduction-to-Cursor/Course-Introduction
