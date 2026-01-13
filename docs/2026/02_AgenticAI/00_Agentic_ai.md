@@ -1,5 +1,5 @@
 # Agentic AI Application
-- ![img_4.png](../../99_img/2026/01/02/img_4.png)
+- ![img_4.png](../../99_img/2026/01/02/img_6.png)
 - Notice multiple component
 - Application using:
     - "static brain (LLm)" vs
