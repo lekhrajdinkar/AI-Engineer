@@ -1,11 +1,10 @@
-# Agentic AI | GenAI | etc
+# Agentic AI | GenAI | etc 
+🔗[AI-Artifact.md](docs/00_Artifact.md)
 
 ## 🔰 2025
 ### ✔️leaning/s
-- [📚Notes - AWS AIF-C01](docs/2025/01_AWS_AIF-C01)
-- [📚Notes - AgenticAI 2025](docs/2025/02_AgenticAI)
-- 🔗[AI-Artifact.md](docs/00_Artifact.md)
-- 🧾Took paper Notes.
+- 01_AWS Certification - AIF-C01 [📚Notes](docs/2025/01_AWS_AIF-C01)
+- 02_AgenticAI 2025 [📚Notes](docs/2025/02_AgenticAI)
 
 ### ✔️POC projects
 - [01_LLM :: project - chatbot ](src/2025/01_chatbot/readme.md)
