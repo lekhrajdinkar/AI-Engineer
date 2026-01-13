@@ -4,7 +4,6 @@
 ### ✔️leaning/s
 - [📚Notes - AWS AIF-C01](docs/2025/01_AWS_AIF-C01)
 - [📚Notes - AgenticAI 2025](docs/2025/02_AgenticAI)
-- [▶️LLM Fundamnetals](https://www.youtube.com/watch?v=MlhZPTfOJBo&list=PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU&index=7)
 - 🔗[AI-Artifact.md](docs/00_Artifact.md)
 - 🧾Took paper Notes.
 
@@ -17,8 +16,8 @@
 ## 🔰 2026
 ### Learning/s
 - [01_Generative_UI - overview](docs/2026/01_Generative_UI)
-- [kk-ai-labs-2026](src/2026/kk-ai-labs-2026/README.md)
-- [📚Notes - 02_AgenticAI 2026](docs/2026/02_AgenticAI)
+- [02_📚Notes -AgenticAI 2026](docs/2026/02_AgenticAI)
 
 ### POC projects
 - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule
+- [AI-labs-2026](src/2026/kk-ai-labs-2026/README.md)

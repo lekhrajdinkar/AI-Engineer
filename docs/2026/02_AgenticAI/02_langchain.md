@@ -1,4 +1,6 @@
 # langchain
+- [02_01_lanchain.py](../../../src/2026/kk-ai-labs-2026/02_01_lanchain.py)
+
 ## ✔️Overview
 - **Scenario-1**:
     - Your startup built everything using the OpenAI SDK.

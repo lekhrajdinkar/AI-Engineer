@@ -11,23 +11,27 @@
 
 --- 
 ## YouTube / blogs
-- **KodeKloud** [🔎Free Labs](https://kodekloud.com/studio/labs/artificial-intelligence)
-    - YT:  
-      - https://www.youtube.com/watch?v=ZaPbP9DwBOE&list=PL2We04F3Y_43f3x3n9pawcEuAwru7bcMG
-    - 📚 Note: https://notes.kodekloud.com/docs/AI-Assisted-Development/Course-Introduction/Course-Overview
-      - AI-Assisted-Development https://notes.kodekloud.com/docs/AI-Assisted-Development/Course-Introduction/Course-Overview
-      - Cursor AI https://notes.kodekloud.com/docs/Cursor-AI/Introduction-to-Cursor/Course-Introduction
-      - LangChain https://notes.kodekloud.com/docs/LangChain/Introduction/Course-Introduction
-      - Generative-AI https://notes.kodekloud.com/docs/Generative-AI-in-Practice-Advanced-Insights-and-Operations/Course-Introduction/Introduction
-      - OpenAI https://notes.kodekloud.com/docs/Introduction-to-OpenAI/Pre-Requisites/Introduction-to-Course
-      - Mastering-Generative-AI-with-OpenAI https://notes.kodekloud.com/docs/Mastering-Generative-AI-with-OpenAI/Introduction/Introduction-to-Course
+- **ByteMonk**
+    - YT (LLM playlist): https://www.youtube.com/watch?v=iQ9arr3TTMA&list=PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU 👈🏻👈🏻
+    - perplexity Notes: https://www.perplexity.ai/spaces/bytemonk-llm-playlist-OrEHPnMCQ3yCzSsjQ3CnRw
+- **KodeKloud** 
+  - labs:
+    - [All Labs](https://kodekloud.com/studio/labs/artificial-intelligence)
+    - https://kode.wiki/3Wh4DZ6
+  - YT:  https://www.youtube.com/watch?v=ZaPbP9DwBOE&list=PL2We04F3Y_43f3x3n9pawcEuAwru7bcMG 👈🏻👈🏻
+  - Note: 
+    - https://notes.kodekloud.com/docs/AI-Assisted-Development/Course-Introduction/Course-Overview
+    - AI-Assisted-Development https://notes.kodekloud.com/docs/AI-Assisted-Development/Course-Introduction/Course-Overview
+    - Cursor AI https://notes.kodekloud.com/docs/Cursor-AI/Introduction-to-Cursor/Course-Introduction
+    - LangChain https://notes.kodekloud.com/docs/LangChain/Introduction/Course-Introduction
+    - Generative-AI https://notes.kodekloud.com/docs/Generative-AI-in-Practice-Advanced-Insights-and-Operations/Course-Introduction/Introduction
+    - OpenAI https://notes.kodekloud.com/docs/Introduction-to-OpenAI/Pre-Requisites/Introduction-to-Course
+    - Mastering-Generative-AI-with-OpenAI https://notes.kodekloud.com/docs/Mastering-Generative-AI-with-OpenAI/Introduction/Introduction-to-Course
       
 - **ByteByteGo**
   - YT: https://www.youtube.com/@TeamByteByteAI
   - Daily YT blogs: https://github.com/lekhrajdinkar/solution-engineer/blob/main/docs/10_System_Design/blogs_01_byteByteGo.md#%EF%B8%8Fagentic-ai
-- **ByteMonk**
-  - YT (LLM playlist): https://www.youtube.com/watch?v=iQ9arr3TTMA&list=PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU
-  - perplexity Notes: https://www.perplexity.ai/spaces/bytemonk-llm-playlist-OrEHPnMCQ3yCzSsjQ3CnRw
+
 - **Officials**:
     - https://www.youtube.com/@anthropic-ai/videos
     - https://www.youtube.com/@OpenAI

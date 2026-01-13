@@ -16,6 +16,7 @@
 ## 🧪Lab-3: Prompt Engineering with LangChain
 
 ## 🧪Lab-4: Vector Databases - Build TechDocs Semantic Search Engine
+- [README.md](04_vectors/README.md)
 
 ## 🧪Lab-5: The RAG Revolution
 
