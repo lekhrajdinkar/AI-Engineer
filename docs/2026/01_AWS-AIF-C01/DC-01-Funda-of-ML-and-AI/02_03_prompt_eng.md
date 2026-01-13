@@ -2,13 +2,13 @@
 - https://youtu.be/8RWfE9eDWXI?si=N52hqzSHowQNicmd
 - https://www.perplexity.ai/search/30-prompt-gpt-history-https-yo-21Nh.hcVTjCH0ndunc3vIw
 ## Overview
-![img_2.png](../../99_img/genai/01/03/img_2.png)
+![img_2.png](../../../99_img/genai/01/03/img_2.png)
 - Input token (prompt) --> LLM (not thinking) --> completion/output (by **predict** next token)
 - It's not actually "thinking", **just predicting next word** based on patterns learned during training.
 - therefore, how you **structure the prompt** greatly influences the quality and relevance of the output
 - **Prompt Engineering** is the practice of designing prompts to get accurate, useful, and reliable model outputs.
-  - ![img_3.png](../../99_img/genai/01/03/img_3.png)
-  - ![img_4.png](../../99_img/genai/01/03/img_4.png)
+  - ![img_3.png](../../../99_img/genai/01/03/img_3.png)
+  - ![img_4.png](../../../99_img/genai/01/03/img_4.png)
 
 ```
                     ┌────────────────────────┐
@@ -35,7 +35,7 @@
 
 ## prediction logic (history) 
   - **seq2seq with RNN** 
-    - ![img.png](../../99_img/genai/01/03/img.png)
+    - ![img.png](../../../99_img/genai/01/03/img.png)
   - attention-mechanism/transformer (parallel processing)
     - Still has fixed context window in transformer
     - Didn't fix transformer, but scaled the model by trained with 2x data --> **GPT-1 came** 😵
@@ -43,7 +43,7 @@
     - GPT-3 few shot learning
     - GPT-3.5 (added UI) -> chatGPT
     - GPT-4 (multi-modal)
-    - ![img_1.png](../../99_img/genai/01/03/img_1.png)
+    - ![img_1.png](../../../99_img/genai/01/03/img_1.png)
 
 ---
 ## prompt

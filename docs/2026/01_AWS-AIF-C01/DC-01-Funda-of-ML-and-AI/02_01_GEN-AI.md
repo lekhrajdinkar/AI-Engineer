@@ -2,7 +2,7 @@
 - genAI generates new data/content (ext, images, audio, code, or video) that is similar to the **data it was trained on**.
 - **Inference** is the process of using  FM to make predictions or generate **new** outputs
 
-![img_2.png](../../99_img/genai/03/img_2.png)
+![img_2.png](../../../99_img/genai/03/img_2.png)
 
 ## ✔️Models
 ### FM
@@ -40,7 +40,7 @@
 ---
 ## ✔️ Concepts for LLM
 
-![img_3.png](../../99_img/genai/03/img_3.png)
+![img_3.png](../../../99_img/genai/03/img_3.png)
 
 ### ▶️training
 #### ➖ Training Data
@@ -72,13 +72,13 @@ Analogy:
 ```
 #### ➖ parameter
 - **tuning knobs for meaningful embedding**
-  - ![img_6.png](../../99_img/genai/2025/llm/01/img_5.png)
+  - ![img_6.png](../../../99_img/genai/2025/llm/01/img_5.png)
 - Has two main components:
   - **weight** - word meaning (how word is expressed in multi-dimension space)
   - **bais** - add final tone , humor, etc.
-  - ![img_5.png](../../99_img/genai/2025/llm/01/img_6.png)
+  - ![img_5.png](../../../99_img/genai/2025/llm/01/img_6.png)
 - think of internal setting of neural network.
-  - ![img_7.png](../../99_img/genai/2025/llm/01/img_7.png)
+  - ![img_7.png](../../../99_img/genai/2025/llm/01/img_7.png)
 - **Type**:
     - model parameters : 
       - learned during training (weights, biases). 
@@ -89,8 +89,8 @@ Analogy:
       - prompting as fine-tuning without changing model weights. ◀️
       - **Prompt engineer** filling gap b/w human intention and machine capability.◀️
       - prompting type: zero-shot, few-shot, chain-of-thought
-      - ![img.png](../../99_img/genai/2025/llm/02/img.png)
-      - ![img_1.png](../../99_img/genai/2025/llm/02/img_1.png)
+      - ![img.png](../../../99_img/genai/2025/llm/02/img.png)
+      - ![img_1.png](../../../99_img/genai/2025/llm/02/img_1.png)
 
 #### ➖ Hyperparameters
 - set before training and control the learning algorithm and process
@@ -126,14 +126,14 @@ Describes how well your model captures the patterns in training data.
         
     ✳️balanced fit    : Balances bias and variance, performs well on both train and test data
 ```
-![img_1.png](../../99_img/genai/03/img_1.png)
+![img_1.png](../../../99_img/genai/03/img_1.png)
 
 ---
 ### ▶️Token, Embeddings, Vectors, RAG
 
-![img.png](../../99_img/genai/01/01/img.png)
+![img.png](../../../99_img/genai/01/01/img.png)
 
-![img_1.png](../../99_img/genai/01/01/img_1.png)
+![img_1.png](../../../99_img/genai/01/01/img_1.png)
 
 #### ➖ embedding
 - numerical representations of data (text, images, etc.) in a high-dimensional space.
@@ -141,8 +141,8 @@ Describes how well your model captures the patterns in training data.
 - purpose: capture semantic meaning and relationships between data points.
 - application:
   - similarity analysis, semantic search, clustering & categorization, recommendation systems, 
-- ![img_3.png](../../99_img/genai/2025/llm/01/img_3.png)
-- ![img_4.png](../../99_img/genai/2025/llm/01/img_4.png)
+- ![img_3.png](../../../99_img/genai/2025/llm/01/img_3.png)
+- ![img_4.png](../../../99_img/genai/2025/llm/01/img_4.png)
 
 #### ➖ Vector
 - the actual multi-dimension arrays of numbers that represent these embeddings.

@@ -1,7 +1,3 @@
-> 🏅🏅[Leaning plan and Digital course](https://skillbuilder.aws/learning-plan/G8ENMJ5QBE/aws-artificial-intelligence-practitioner-learning-plan/SU2A1EJM1A)
-> - course-1 : Fundamentals of Machine Learning and Artificial Intelligence
-
----
 ## ✔️AI history and Hierarchy
 ```
 - AI Artificial Intelligence
@@ -18,7 +14,7 @@
 | **DL**     | Deep Learning           | A subset of ML using deep neural networks for complex tasks                       | Face recognition, speech-to-text, GPT models          |
 | **Gen AI** | Generative AI           | A type of AI (often using DL) that generates new content (text, image, etc.)      | ChatGPT, DALL·E, GitHub Copilot, Sora                 |
 
-![img_1.png](../../99_img/genai/2025/llm/01/img_1.png)
+![img_1.png](../../../99_img/genai/2025/llm/01/img_1.png)
 
 ## ✔️Common Questions
 ### 1. When to Use Service/API
