@@ -1,3 +1,7 @@
+> 🏅🏅[Leaning plan and Digital course](https://skillbuilder.aws/learning-plan/G8ENMJ5QBE/aws-artificial-intelligence-practitioner-learning-plan/SU2A1EJM1A)
+> - course-1 : Fundamentals of Machine Learning and Artificial Intelligence
+
+---
 ## ✔️AI history and Hierarchy
 ```
 - AI Artificial Intelligence

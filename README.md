@@ -3,8 +3,8 @@
 
 ## 🔰 2025
 ### ✔️leaning/s
-- 01_AWS Certification - AIF-C01 [📚Notes](docs/2025/01_AWS_AIF-C01)
-- 02_AgenticAI 2025 [📚Notes](docs/2025/02_AgenticAI)
+- 01_AWS Certification AIF-C01 [📚Notes](docs/2025/01_AWS_AIF-C01)
+- 02_AgenticAI  [📚Notes](docs/2025/02_AgenticAI)
 
 ### ✔️POC projects
 - [01_LLM :: project - chatbot ](src/2025/01_chatbot/readme.md)
@@ -14,8 +14,9 @@
 ---
 ## 🔰 2026
 ### Learning/s
-- 01_Generative_UI [📚Notes](docs/2026/01_Generative_UI)
-- 02 AgenticAI 2026 [📚Notes](docs/2026/02_AgenticAI) | [🧪labs](src/2026/kk-ai-labs-2026/README.md) 👈🏻👈🏻
+- 01_AWS Certification AIF-C01 (continue...) [📚Notes](docs/2026/01_AWS_AIF-C01)
+- 02 AgenticAI  [📚Notes](docs/2026/02_AgenticAI_KK) | [🧪labs](src/2026/kk-ai-labs-2026/README.md) 👈🏻👈🏻
+- 99_Misc [📚Notes](docs/2026/99_Misc)
 
 ### POC projects
 - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule

@@ -69,34 +69,27 @@
 - `Cline`
 - IDE:`Kiro` (AWS) | https://kiro.ai/
 - IDE:`Cursor` (vscode) | https://www.cursor.so/
-- MCP
-  - Security with **teleport** | https://bit.ly/45YwXVS
 
 --- 
-## Certification
-- Learning plan Microsoft: https://learn.microsoft.com/en-us/plans/2x0jcgtzome4k0?tab=tab-learning-paths
-- AWS Certified AI Practitioner | AIF-C01 
-  - https://www.udemy.com/course/aws-ai-practitioner-certified/?couponCode=25BBPMXINACTIVE | [slide](https://courses.datacumulus.com/downloads/certified-ai-practitioner-9u8/)
-  - https://notes.kodekloud.com/docs/AWS-Certified-AI-Practitioner/Introduction/Introduction
-  - [AWS skill builder](https://skillbuilder.aws/learning-plan/G8ENMJ5QBE/aws-artificial-intelligence-practitioner-learning-plan/SU2A1EJM1A)
-    - [AWS demo - agents](https://aistylist.awsplayer.com/)
-    ```
-        --- 8 sections ---
-        Fundamentals of AI and ML
-        Exploring AI :: Use Cases and Applications
-        Responsible AI Practices
-        Developing ML Solutions
-      
-        Developing GenAI Solutions
-        Optimizing FM
-        Security, Compliance, and Governance for AI Solutions
-        Essentials of Prompt Engineering
-    ```
---- 
+## Certification/s
+### Microsoft Github-Copilot: 
+- [Learning-plan-1](https://learn.microsoft.com/en-us/plans/2x0jcgtzome4k0?tab=tab-learning-paths)
 
+### AWS Certified AI Practitioner | AIF-C01 
+- **https://skillbuilder.aws/learn**:
+  - [learning plan-1](https://skillbuilder.aws/learning-plan/G8ENMJ5QBE/aws-artificial-intelligence-practitioner-learning-plan/SU2A1EJM1A)
+  - [learning plan-2](https://skillbuilder.aws/learning-plan/3NRN71QZR2/exam-prep-plan-aws-certified-ai-practitioner-aifc01--english/FBV4STG94B)
+  - [agents demo](https://aistylist.awsplayer.com/)
+- **Udemy and more**:
+    - https://www.udemy.com/course/aws-ai-practitioner-certified/?couponCode=25BBPMXINACTIVE | [slide](https://courses.datacumulus.com/downloads/certified-ai-practitioner-9u8/)
+    - https://notes.kodekloud.com/docs/AWS-Certified-AI-Practitioner/Introduction/Introduction
+- Learning certs:
+  - LP1:DC1 - https://skillbuilder.aws/833b68f8-69ed-4dcd-bfd7-803645e99e98
+--- 
 ## More
 - [🗨️ chapgpt - gen ai 1](https://chatgpt.com/c/685dfae8-a808-800d-bc8c-4d992926601d)
 - [🗨️ chapgpt - gen ai 2](https://chatgpt.com/c/685e3233-8420-800d-a08a-2cd8b933dad6)
-- [00_Artifact.md](../../00_Artifact.md) 
+- MCP Security with **teleport** | https://bit.ly/45YwXVS
+
 
 
