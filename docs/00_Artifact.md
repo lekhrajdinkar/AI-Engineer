@@ -56,14 +56,17 @@
 - **typeSense** - event-driven-search tool. not keyword search (lexical search)
 
 ## Coding Agent for IDE
-- `GitHub-copilot` ✅
-- `Roo-Code` 
-- `Cline` 
+- `GitHub-copilot` ✅ 
+  - CLI https://github.com/features/copilot/cli
+  - chat https://github.com/copilot 
+  - IDE plugin 
 - `Claude code` 
   - https://claude.ai/code claude code
-  - https://claude.com/download Desktop app
-  - plugin https://plugins.jetbrains.com/plugin/27310-claude-code-beta-
-- `Amazon Q` (AWS)  https://aws.amazon.com/amazon-q/ - plugin + cli
+  - https://claude.com/download Desktop app, comes with CLI
+  - IDE plugin https://plugins.jetbrains.com/plugin/27310-claude-code-beta-
+- `Amazon Q` (AWS)  https://aws.amazon.com/amazon-q/
+- `Roo-Code`
+- `Cline`
 - IDE:`Kiro` (AWS) | https://kiro.ai/
 - IDE:`Cursor` (vscode) | https://www.cursor.so/
 - MCP
@@ -71,6 +74,7 @@
 
 --- 
 ## Certification
+- Learning plan Microsoft: https://learn.microsoft.com/en-us/plans/2x0jcgtzome4k0?tab=tab-learning-paths
 - AWS Certified AI Practitioner | AIF-C01 
   - https://www.udemy.com/course/aws-ai-practitioner-certified/?couponCode=25BBPMXINACTIVE | [slide](https://courses.datacumulus.com/downloads/certified-ai-practitioner-9u8/)
   - https://notes.kodekloud.com/docs/AWS-Certified-AI-Practitioner/Introduction/Introduction
