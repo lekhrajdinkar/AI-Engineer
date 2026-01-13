@@ -19,6 +19,9 @@
 - [README.md](04_vectors/README.md)
 
 ## 🧪Lab-5: The RAG Revolution
+- vector DB done again.
+- [README.md](05_RAG/README.md)
+- ![img_1.png](../../../docs/99_img/2026/01/05/img_5.png)
 
 ## 🧪Lab-6: LangGraph Basics - Build Stateful AI Workflows
 

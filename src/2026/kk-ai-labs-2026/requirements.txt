@@ -2,3 +2,7 @@ openai
 langchain
 langchain_openai
 pydantic
+langchain_text_splitters
+sentence_transformers
+langchain_huggingface
+langchain_community
