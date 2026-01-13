@@ -15,9 +15,8 @@
 ---
 ## 🔰 2026
 ### Learning/s
-- [01_Generative_UI - overview](docs/2026/01_Generative_UI)
-- [02_📚Notes -AgenticAI 2026](docs/2026/02_AgenticAI)
+- 01_Generative_UI [📚Notes](docs/2026/01_Generative_UI)
+- 02 AgenticAI 2026 [📚Notes](docs/2026/02_AgenticAI) | [🧪labs](src/2026/kk-ai-labs-2026/README.md) 👈🏻👈🏻
 
 ### POC projects
 - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule
-- [AI-labs-2026](src/2026/kk-ai-labs-2026/README.md)
