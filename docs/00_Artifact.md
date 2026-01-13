@@ -12,8 +12,6 @@
 - **Udemy and more**:
     - https://www.udemy.com/course/aws-ai-practitioner-certified/?couponCode=25BBPMXINACTIVE | [slide](https://courses.datacumulus.com/downloads/certified-ai-practitioner-9u8/)
     - https://notes.kodekloud.com/docs/AWS-Certified-AI-Practitioner/Introduction/Introduction
-- Learning certs:
-    - LP1:DC1 - https://skillbuilder.aws/833b68f8-69ed-4dcd-bfd7-803645e99e98
   
 ---
 
