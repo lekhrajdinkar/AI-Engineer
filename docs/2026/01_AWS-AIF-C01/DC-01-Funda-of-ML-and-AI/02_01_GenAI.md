@@ -1,10 +1,42 @@
 # GenAI
+## ✔️Overview
 - genAI generates new data/content (ext, images, audio, code, or video) that is similar to the **data it was trained on**.
 - **Inference** is the process of using  FM to make predictions or generate **new** outputs
+- features:
+  - Adaptability
+  - Responsiveness
+  - Simplicity
+  - Creativity and exploration
+  - Personalization
+  - Scalability
 
 ![img_2.png](../../../99_img/genai/03/img_2.png)
 
-## ✔️Models
+---
+## ✔️Factors to Consider When Selecting a Generative AI Model
+- Models are optimized for different tasks, so choosing the right one is crucial for achieving the desired results.
+- **Model types** 
+- **Performance requirements** : accuracy vs performance
+- **Capabilities**
+- **Constraints** 
+  - Available GPU, memory, etc
+  - size fof training data
+  - onPrem vs cloud
+- **Compliance**
+  - Sensitive domains like healthcare, finance, and legal applications
+  - One should consider factors such as fairness, transparency or traceability, accountability, hallucination, and toxicity
+- **Cost**
+
+---
+## ✔️Business Metric for genAI App
+- User satisfaction
+- Average revenue per user ARPU
+- Cross-domain performance
+- Conversion rate
+- Efficiency (resource utilization, computation time, and scalability)
+
+---
+## ✔️GenAI Models
 ### FM
 - https://youtu.be/zg7nJrDQZ5s?si=EztmeLIgCiWlZU4u
 - pretrained on **internet-scale data**
@@ -38,7 +70,7 @@
 
 
 ---
-## ✔️ Concepts for LLM
+## ✔️️Models - Core Concepts
 
 ![img_3.png](../../../99_img/genai/03/img_3.png)
 
