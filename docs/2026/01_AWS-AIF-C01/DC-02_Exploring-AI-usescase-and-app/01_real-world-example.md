@@ -59,7 +59,7 @@
         - facial-recognition can swiftly identify unlawful entries or persons.
 
 - **intelligent document processing (IDP)**
-    - IDP is an application that extracts and classifies information from **unstructured** data,
+    - IDP is an application that extracts and classifies information from **unstructured and structured** data,
     - then generates summaries, and provides actionable insights
     - uses - NLP and OCR optical character recognition
     - **examples**: ◀️
