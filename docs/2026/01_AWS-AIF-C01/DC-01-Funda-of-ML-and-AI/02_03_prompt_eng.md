@@ -1,6 +1,15 @@
 # prompt Engineering
 - https://youtu.be/8RWfE9eDWXI?si=N52hqzSHowQNicmd
 - https://www.perplexity.ai/search/30-prompt-gpt-history-https-yo-21Nh.hcVTjCH0ndunc3vIw
+- [prompt_eng_03](../../../../src/y2026/lab_01_ai_agent/prompt_eng_03)
+
+## Problem 
+- AI gives vague, unhelpful responses. 
+- Different results every time. 
+- Not following your instructions properly
+- context unaware
+- consequence - hallucinate
+
 ## Overview
 ![img_2.png](../../../99_img/genai/01/03/img_2.png)
 - Input token (prompt) --> LLM (not thinking) --> completion/output (by **predict** next token)
@@ -11,6 +20,8 @@
   - ![img_4.png](../../../99_img/genai/01/03/img_4.png)
 
 ```
+one-shot: Show the AI your company's policy format once, and it will replicate it perfectly for new policies!
+Few-shot: The AI learns nuanced patterns, tone, and style from diverse examples.
                     ┌────────────────────────┐
                     │   Prompt Engineering   │
                     |     strategies         │
@@ -24,7 +35,8 @@
   └─────┬─────┘                               └───────┬────────┘
         │                                            │
 ┌───────▼───────┐                        ┌───────────▼───────────┐
-│ Zero-shot     │                        │ Chain of Thought (CoT)│
+│ Zero-shot 
+|    one-shot   │                        │ Chain of Thought (CoT)│
 │ Few-shot      │                     
 └───────────────┘                        └───────────────────────┘
                     ┌────────────┐
@@ -78,3 +90,6 @@
 | **Top-P Sampling**         | `top_p=0.9`, `temperature=0.8`               | Chooses tokens with cumulative probability ≤ 90%  | “A watercolor sky melts into night, painted by the last light.”     |
 | **Creative Sampling**      | `top_k=100`, `top_p=0.95`, `temperature=1.0` | Creative, diverse, sometimes poetic or surprising | “The day exhales a breath of fire before surrendering to twilight.” |
 
+## Side Note
+- GitHub Copilot uses few-shot prompting to generate code,
+- while ChatGPT uses chain-of-thought for complex math problems!

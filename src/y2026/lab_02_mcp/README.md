@@ -27,9 +27,10 @@
   - **MCP_PROXY_AUTH_TOKEN**=<Session token>
 
 ```bash
-uv init flight-booking-server
-cd flight-booking-server
-uv add "mcp[cli]"
+cd  C:\Users\Manisha\Documents\github-2025\genai
+
+uv init 
+uv add "mcp[cli]" "fastmcp"
 uv add package
 uv sync
 
