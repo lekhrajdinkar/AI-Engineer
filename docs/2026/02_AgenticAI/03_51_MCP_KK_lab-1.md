@@ -1,6 +1,7 @@
-# MCP Kodekloud labs
+# MCP Kode kloud labs
 ## ✔️Lab-1 : Using an MCP Server
-- Free: https://kodekloud.com/studio/labs/artificial-intelligence/mcp-introductory-lab
+- v1 https://kodekloud.com/studio/labs/artificial-intelligence/mcp-introductory-lab
+- v2 https://kode.wiki/4nkTvFD (MCP Server: flight booking App | MCP client: coding Agent)
 
 ## ✔️Lab-2/3 : Building an MCP-Server/ MCP-Client
 - lab link : cannot access now

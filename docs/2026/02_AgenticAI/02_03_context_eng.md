@@ -1,6 +1,6 @@
 ## ✔️prompt engineering
 ![img.png](../../99_img/genai/agent/context-eng/img.png)
-- [02_03_prompt_eng.md](../../2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_03_prompt_eng.md)
+- [02_03_prompt_eng.md](../01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_03_prompt_eng.md)
 - **demo-to-production gap**. ◀️
   - better prompt --> better output from LLM. good for Demo/poc.
   - prompt engineering is the practice of designing and refining prompts to get accurate, useful, and reliable model outputs.
@@ -36,7 +36,7 @@
 - Tool are ext api to act/action.
 - API integration improved with **MCP**
 - [03_01_MCP.md](03_01_MCP.md)
-- [04_01_MCP_security.md](04_01_MCP_security.md)
+- [04_01_MCP_security.md](03_02_MCP_security.md)
 
 ### More
 
