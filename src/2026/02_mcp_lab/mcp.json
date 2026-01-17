@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "flight-booking": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "server.py"
+      ],
+      "cwd": "C:\\Users\\Manisha\\Documents\\github-2025\\genai\\src\\2026\\02_mcp_lab\\flight-booking-server"
+    },
+
+    "flight-booking2": {
+      "command": "C:\\Users\\Manisha\\Documents\\github-2025\\genai\\src\\2026\\02_mcp_lab\\flight-booking-server\\.venv\\Scripts\\python.exe",
+      "args": ["server.py"],
+      "cwd": "C:\\Users\\Manisha\\Documents\\github-2025\\genai\\src\\2026\\02_mcp_lab\\flight-booking-server"
+    },
+
+    "flight-booking3": {
+      "command": "python3",
+      "args": ["server.py"]
+    }
+  }
+}

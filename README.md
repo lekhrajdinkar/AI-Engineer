@@ -8,14 +8,10 @@
 - **POC projects**
   - [01_LLM :: project - chatbot ](src/2025/01_chatbot/readme.md)
   - [02 RAG :: Project - vector embedding and context search](src/2025/02_RAG/rag_poc_1/readme.md)
-  - [03_MCP :: project - flightTicketAgent](src/2025/03_MCP_flightTicketAgent)
 
 </details>
 
 ---
-
-<details>
-<summary> 🏅2026</summary>
 
 ### 2026
 - 01_AWS Certification AIF-C01 (continue...) [📚Notes](docs/2026/01_AWS-AIF-C01)
@@ -24,4 +20,3 @@
 - **POC projects**
   - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule
 
-</details>
