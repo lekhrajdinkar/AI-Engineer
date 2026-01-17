@@ -1,5 +1,5 @@
 # langchain
-- [02_01_lanchain.py](../../../src/2026/01_ai_lab_2026/02_01_lanchain.py)
+- [02_01_lanchain.py](../../../src/2026/lab_01_ai_agent/02_01_lanchain.py)
 
 ## ✔️Overview
 - **Scenario-1**:

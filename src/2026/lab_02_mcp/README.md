@@ -4,9 +4,9 @@
 ## overview
 - lab: https://kode.wiki/4nkTvFD 
 - KK https://youtu.be/dyt-bhxrrbk?si=dFKsfOunhuITdZrZ
-- **MCP Server**: flight booking App 
-- **MCP client-1**: coding Agent (cline/roo Code): 
-- **MCP client-2**: [mcp_client py](mcp_client)
+- **MCP Server**: flight booking App --> created locally and run 👈🏻
+- **MCP client-1**: coding Agent (cline/roo Code) [mcp.json](mcp.json) -> not worked in my local. 👈🏻
+- **MCP client-2**: [mcp_client py](mcp_client) -> worked locally 👈🏻
   
 ---
 ##  Key points
@@ -45,7 +45,7 @@ uv run python basic_client.py
 uv run python complete_client.py
 
 ---
-
+- Achievmnents
 ✅ Built basic clients for server discovery and connection
 ✅ Created tool-calling clients for automation
 ✅ Implemented advanced features: roots, sampling, elicitation

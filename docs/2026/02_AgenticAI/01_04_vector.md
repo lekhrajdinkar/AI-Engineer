@@ -1,5 +1,5 @@
 # vector
-- [project-1](../../../src/2026/01_ai_lab_2026/04_vectors/README.md)
+- [project-1](../../../src/2026/lab_01_ai_agent/04_vectors/README.md)
 
 ## overview
 - ![img.png](../../99_img/2026/01/04/img.png)

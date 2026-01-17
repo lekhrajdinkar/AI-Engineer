@@ -1,6 +1,7 @@
-# KK labs 2026
-- YT playlist: https://www.youtube.com/watch?v=ZaPbP9DwBOE&list=PL2We04F3Y_43f3x3n9pawcEuAwru7bcMG
-- lab: https://kode.wiki/3Wh4DZ6
+# AI AGENT lab(7)
+## overview
+- YT https://www.youtube.com/watch?v=ZaPbP9DwBOE&list=PL2We04F3Y_43f3x3n9pawcEuAwru7bcMG
+- lab: https://kode.wiki/3Wh4DZ6 | https://learn.kodekloud.com/user/courses/youtube-labs-ai-agent-fundamentals
 - **env setup**:
   - python3, venv, [requirements.txt](requirements.txt)
   - env variables: OPENAI_API_KEY, OPENAI_API_BASE | [.env](.env)
