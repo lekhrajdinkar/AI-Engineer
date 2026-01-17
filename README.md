@@ -1,4 +1,4 @@
-## AI Engineering [🔗Artifact](docs/00_Artifact.md)
+## AI Engineering | [🔗Artifact](docs/01_Artifact.md) | [🧪labs](docs/02_lab.md)
 
 <details>
 <summary> 🏅2025</summary>
@@ -19,7 +19,7 @@
 
 ### 2026
 - 01_AWS Certification AIF-C01 (continue...) [📚Notes](docs/2026/01_AWS-AIF-C01)
-- 02 AgenticAI  [📚Notes](docs/2026/02_AgenticAI) | [🧪labs](src/2026/kk-ai-labs-2026/README.md) 👈🏻👈🏻
+- 02 AgenticAI [📚Notes](docs/2026/02_AgenticAI)
 - 99_Misc [📚Notes](docs/2026/99_Misc)
 - **POC projects**
   - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule

@@ -7,7 +7,7 @@
 - lab link : cannot access now
 - IDE: VS code with **cline** and **Roo-code** plugins
 - $OPENAI_API_KEY :
-- [agent-1: flight-booking-server](../../../src/2025/03_MCP_flightTicketAgent)
+- [agent-1: flight-booking-server](../03_MCP_flightTicketAgent)
 
 ```bash
 uv init  flight-booking-server
