@@ -1,37 +1,60 @@
 # MCP labs
+🏅 https://learn.kodekloud.com/user/certificate/70898c94-da67-4c49-b68e-9277561700cd
+
 ## overview
 - lab: https://kode.wiki/4nkTvFD 
 - KK https://youtu.be/dyt-bhxrrbk?si=dFKsfOunhuITdZrZ
 - **MCP Server**: flight booking App 
-- **MCP client**: coding Agent (cline/roo Code): 
-  - Reason step-by-step
-  - Use tools
-  - Remember context
+- **MCP client-1**: coding Agent (cline/roo Code): 
+- **MCP client-2**: [mcp_client py](mcp_client)
   
 ---
 ##  Key points
 - STDIO Transport: Local communication, command-based configuration
-- MCP Components: Resources (data), Tools (actions), Prompts (guidance)
-- AI Integration: Seamless connection between MCP servers and AI assistants
-- Data Extraction: Using AI to query and extract specific information from MCP servers
-- `mcp[cli]` = MCP SDK and development tools (MCP Inspector)
+- `mcp[cli]` = MCP SDK and development tools (**MCP Inspector**)
+- **Sampling** allows servers to request LLM responses from clients.
+- **Elicitation** allows servers to request user input from clients. Experience true interactive MCP communication where the server can ask you for information directly.
 
 ---
 ## run
+- FastMCP servers are NOT meant to be run standalone like FastAPI 👈🏻
+- **option-1**: ✅
+  - uv run mcp run server.py --transport streamable-http
+- **option-2**: Run with MCP Dev Inspector
+  - `uv pip install mcp` // Install MCP CLI tools
+  - `mcp dev server.py` // Run server via MCP dev mode, attach JSON-RPC client 
+  -  MCP Inspector is up and running at http://127.0.0.1:6274 🚀
+  - **MCP_PROXY_AUTH_TOKEN**=<Session token>
+
 ```bash
-#---old---
-pip install package	
-python -m venv env	
-pip install -r requirements.txt	
-
-#---new---
-uv add package
-uv init project
-uv sync
-
 uv init flight-booking-server
 cd flight-booking-server
 uv add "mcp[cli]"
+uv add package
+uv sync
+
+# option-1
+mcp dev server.py
+# option-2 ✅
+uv run mcp run server.py --transport streamable-http
+
+---
+
+uv run python basic_client.py
+...
+uv run python complete_client.py
+
+---
+
+✅ Built basic clients for server discovery and connection
+✅ Created tool-calling clients for automation
+✅ Implemented advanced features: roots, sampling, elicitation
+✅ Developed production-ready integration patterns
+✅ Mastered async Python programming for MCP
+
 ```
+
+
+
 
 
