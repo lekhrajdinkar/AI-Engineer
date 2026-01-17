@@ -1,0 +1,25 @@
+# toml
+[project]
+name = "genai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastmcp>=2.14.3",
+    "mcp[cli]>=1.25.0",
+    "openai>=1.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+
+    "langchain",
+    "langchain_openai",
+    "langchain-core"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pipreqs>=0.4.11",
+]
