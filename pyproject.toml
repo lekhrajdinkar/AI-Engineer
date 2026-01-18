@@ -16,7 +16,9 @@ dependencies = [
 
     "langchain",
     "langchain_openai",
-    "langchain-core"
+    "langchain-core",
+
+    "duckduckgo-search"
 ]
 
 [project.optional-dependencies]
