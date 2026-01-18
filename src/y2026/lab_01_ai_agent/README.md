@@ -29,7 +29,9 @@
 - ![img_1.png](../../../docs/99_img/2026/01/05/img_5.png)
 
 ## 🧪Lab-6: LangGraph Basics - Build Stateful AI Workflows
+[langGraph_06](langGraph_06)
 
 ## 🧪Lab-7: Advanced MCP Concepts - Extend LangGraph with External Tools
+[mcp_07](mcp_07)
 
 
