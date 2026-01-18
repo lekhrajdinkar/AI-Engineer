@@ -14,11 +14,13 @@ dependencies = [
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
 
+    "chromadb",
+    "sentence_transformers",
+
     "langchain",
     "langchain_openai",
     "langchain-core",
     "langchain-mcp-adapters",
-
     "duckduckgo-search"
 ]
 

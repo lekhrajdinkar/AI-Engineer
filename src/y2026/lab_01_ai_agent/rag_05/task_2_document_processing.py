@@ -4,20 +4,23 @@ Task 2: Smart Document Processing
 Implement paragraph-based chunking for better RAG context
 """
 
-import os
 import chromadb
 from sentence_transformers import SentenceTransformer
 from pathlib import Path
 
-print("📄 Task 2: Smart Document Processing")
-print("=" * 50)
+path1=r"C:\Users\Manisha\Documents\github-2025\genai\src\y2026\lab_01_ai_agent\rag_05\techcorp-docs"
 
-# Initialize components from Task 1
-client = chromadb.PersistentClient(path="./chroma_db")
-collection = client.get_or_create_collection("techcorp_rag")
-model = SentenceTransformer("all-MiniLM-L6-v2")
+def load_store():
+    print("📄 Task 2: Smart Document Processing")
 
-print("✅ Loaded vector store and embedding model")
+    client = chromadb.PersistentClient(path="./chroma_db")
+    collection = client.get_or_create_collection("techcorp_rag")
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    print("Loaded vector store and embedding model")
+    return {
+        "chroma_collection":collection,
+        "embed_model":model
+    }
 
 def smart_chunk_document(text, overlap_ratio=0.2):
     """
@@ -50,118 +53,87 @@ def smart_chunk_document(text, overlap_ratio=0.2):
     return chunks
 
 # Process documents
-doc_dir = Path("/root/techcorp-docs")
-total_chunks = 0
-docs_processed = 0
+def process_doc(result):
+    doc_dir = Path(path1)
+    total_chunks = 0
+    docs_processed = 0
 
-for category_dir in doc_dir.iterdir():
-    if category_dir.is_dir():
-        print(f"\n📂 Processing {category_dir.name}:")
+    collection=result['chroma_collection']
+    model=result['embed_model']
 
-        for doc_file in category_dir.glob("*.md"):
-            # 3: Create metadata for document tracking
-            # Hint: Use doc_file.name for source, category_dir.name for section
-            metadata = {
-                "source": doc_file.name,
-                "section": category_dir.name
-            }
+    for category_dir in doc_dir.iterdir():
+        if category_dir.is_dir():
+            print(f"\n📂 Processing {category_dir.name}:")
 
-            # Read and process document
-            with open(doc_file, "r") as f:
-                content = f.read()
+            for doc_file in category_dir.glob("*.md"):
+                # 3: Create metadata for document tracking
+                # Hint: Use doc_file.name for source, category_dir.name for section
+                metadata = {
+                    "source": doc_file.name,
+                    "section": category_dir.name
+                }
 
-            # Chunk the document
-            chunks = smart_chunk_document(content)
+                # Read and process document
+                with open(doc_file, "r") as f:
+                    content = f.read()
 
-            # Store chunks in vector database
-            for i, chunk in enumerate(chunks):
-                chunk_id = f"{category_dir.name}_{doc_file.stem}_chunk_{i}"
-                embedding = model.encode(chunk).tolist()
+                # Chunk the document
+                chunks = smart_chunk_document(content)
 
-                collection.add(
-                    ids=[chunk_id],
-                    embeddings=[embedding],
-                    documents=[chunk],
-                    metadatas=[metadata]
-                )
-                total_chunks += 1
+                # Store chunks in vector database
+                for i, chunk in enumerate(chunks):
+                    chunk_id = f"{category_dir.name}_{doc_file.stem}_chunk_{i}"
+                    embedding = model.encode(chunk).tolist()
 
-            docs_processed += 1
-            print(f"   ✅ {doc_file.name}: {len(chunks)} chunks")
+                    collection.add(
+                        ids=[chunk_id],
+                        embeddings=[embedding],
+                        documents=[chunk],
+                        metadatas=[metadata]
+                    )
+                    total_chunks += 1
 
-print("\n" + "=" * 50)
-print("🎉 Document Processing Complete!")
-print(f"   - Documents processed: {docs_processed}")
-print(f"   - Total chunks created: {total_chunks}")
-print(f"   - Collection size: {collection.count()}")
-print("=" * 50)
+                docs_processed += 1
+                print(f"   ✅ {doc_file.name}: {len(chunks)} chunks")
 
-# Create marker file
-os.makedirs("/root/markers", exist_ok=True)
-with open("/root/markers/task2_processing_complete.txt", "w") as f:
-    f.write(f"TASK2_COMPLETE:DOCS={docs_processed},CHUNKS={total_chunks}")
+    print("\n" + "=" * 50)
+    print("🎉 Document Processing Complete!")
+    print(f"   - Documents processed: {docs_processed}")
+    print(f"   - Total chunks created: {total_chunks}")
+    print(f"   - Collection size: {collection.count()}")
+    print("=" * 50)
 
-print("\n💡 Smart chunking preserves context for better generation!")
-print("\n✅ Task 2 completed!")
+
+def main():
+    result=load_store()
+    process_doc(result)
+
+
+if __name__ == "__main__":
+    main()
+
 
 
 """
-root@controlplane ~/techcorp-docs via 🐍 v3.12.3 (venv) ➜  pwd
-/root/techcorp-docs
-
-root@controlplane ~/techcorp-docs via 🐍 v3.12.3 (venv) ➜  ls -l
-total 28
-drwxr-xr-x 2 root root 4096 Oct 28 04:41 customer-faqs
-drwxr-xr-x 2 root root 4096 Oct 28 04:41 employee-handbook
-drwxr-xr-x 2 root root 4096 Oct 28 04:41 meeting-notes
-drwxr-xr-x 2 root root 4096 Oct 28 04:41 policies
-drwxr-xr-x 2 root root 4096 Oct 28 04:41 product-specs
-drwxr-xr-x 2 root root 4096 Oct 28 04:41 products
-drwxr-xr-x 2 root root 4096 Oct 28 04:41 support
-
----
+python -m src.y2026.lab_01_ai_agent.rag_05.rag_test
 
 📄 Task 2: Smart Document Processing
-==================================================
-✅ Loaded vector store and embedding model
+Loaded vector store and embedding model
 
-📂 Processing product-specs:
-   ✅ cloudsync-pro.md: 36 chunks
-   ✅ datavault.md: 44 chunks
+📂 Processing compliance:
+   ✅ compliance-1.md: 4 chunks
+   ✅ compliance-2.md: 4 chunks
 
-📂 Processing products:
-   ✅ datasync.md: 7 chunks
-   ✅ cloudpro.md: 9 chunks
-
-📂 Processing policies:
-   ✅ pet-policy.md: 5 chunks
-   ✅ remote-work.md: 7 chunks
-   ✅ vacation.md: 7 chunks
-
-📂 Processing support:
-   ✅ troubleshooting.md: 11 chunks
-   ✅ faq.md: 10 chunks
-
-📂 Processing meeting-notes:
-   ✅ product-launch-review.md: 37 chunks
-   ✅ q3-planning-meeting.md: 33 chunks
-
-📂 Processing employee-handbook:
-   ✅ remote-work-policy.md: 33 chunks
-   ✅ benefits-overview.md: 27 chunks
-   ✅ pet-policy.md: 18 chunks
-
-📂 Processing customer-faqs:
-   ✅ general-faqs.md: 43 chunks
+📂 Processing finance:
+   ✅ finance-1.md: 4 chunks
+   ✅ finance-2.md: 4 chunks
 
 ==================================================
 🎉 Document Processing Complete!
-   - Documents processed: 15
-   - Total chunks created: 327
-   - Collection size: 327
+   - Documents processed: 4
+   - Total chunks created: 16
+   - Collection size: 16
 ==================================================
 
-💡 Smart chunking preserves context for better generation!
 
-✅ Task 2 completed!
 """

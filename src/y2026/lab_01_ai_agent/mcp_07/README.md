@@ -1,5 +1,6 @@
-# Advance MCP + langGraph lab
+# Advance MCP lab
 ## overview
+- agent(mcp-client in it) with no langGraph
 - [03_01_MCP.md](../../../../docs/2026/02_AgenticAI/03_01_MCP.md)
 ```
 START → MCP Basics → Integration → Orchestration → COMPLETE!
@@ -169,13 +170,17 @@ pip install langgraph langchain langchain-openai langchain-mcp-adapters mcp
 
 - **Run**
 ```bash
+#---1
 # start mcp1 (my-basic-mcp : calculator)
 python -m src.y2026.lab_01_ai_agent.mcp_07.task_1_mcp_basics
-
 # start agent-1 (simgle mcp - calculator)
 python -m src.y2026.lab_01_ai_agent.mcp_07.task_2_mcp_langgraph
 
-# start agent-2 (multiple mcp - calculator + weather)
+#---2
+# Start MCP/s
+python -m src.y2026.lab_01_ai_agent.mcp_07.mcp_server.calculator_servers
+python -m src.y2026.lab_01_ai_agent.mcp_07.mcp_server.weather_servers
+# start agent-2 (multiple mcp/s as above - calculator + weather)
 python -m src.y2026.lab_01_ai_agent.mcp_07.task_3_multi_servers
 ```
 
