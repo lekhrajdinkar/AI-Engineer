@@ -54,7 +54,7 @@ client = MultiServerMCPClient(
     {
         "calculator": {
             "command": "python",
-            "args": ["/root/code/task_1_mcp_basics.py"],
+            "args": ["/root/code/task_1_mcp_basics.py"], # calculator mcp
             #"args": ["C:\Users\Manisha\Documents\github-2025\genai\src\y2026\lab_01_ai_agent\mcp_07\task_1_mcp_basics.py"],
             "transport": "stdio",
         }
@@ -66,7 +66,6 @@ async def run_agent_with_mcp():
     tools = await client.get_tools()
     agent:  CompiledStateGraph = create_react_agent(model, tools)
     print("✅ Agent created with MCP tools!\n")
-    #return agent
 
     # Test 1: Math query (should use MCP tools)
     print("\nTest 1: Math Query")

@@ -1,4 +1,6 @@
 # langGraph Lab
+## Overview
+- [05_01_langGraph.md](../../../../docs/2026/02_AgenticAI/05_01_langGraph.md)
 ```
 START → Imports → Nodes → Edges → Flows → Routing → Calculator → Research Agent → COMPLETE!
   ↓        ↓        ↓       ↓       ↓        ↓          ↓            ↓
@@ -6,26 +8,32 @@ Learn   Create   Connect  Multi   Dynamic   LLM      Multiple    You're a
 Basics  Functions Graph    Step   Decisions  Tool     Tools      LangGraph Pro!
 ```
 ---
-## Environment Setup
+## Environment Setup and run
 
-
-### 2. Required Packages
+- **Required Packages**
 ```bash
 pip install langgraph langchain langchain-openai duckduckgo-search
 ```
-
 - `langgraph` - Stateful graph framework
 - `langchain` - Core LLM abstractions
 - `langchain-openai` - OpenAI integration
 - `duckduckgo-search` - Free web search (no API key needed!)
 
-### 3. Environment Variables
-Pre-configured in the container:
-- `OPENAI_API_BASE` - Proxy endpoint for LLM access
-- `OPENAI_API_KEY` - Authentication
-- `OPENAI_MODEL` - Default model (gpt-4.1-mini)
+- **Environment Variables**
+  - `OPENAI_API_BASE` - Proxy endpoint for LLM access
+  - `OPENAI_API_KEY` - Authentication
+  - `OPENAI_MODEL` - Default model (gpt-4.1-mini)
 
-## 📂 File Structure
+- **Run**
+```bash
+cd C:\Users\Manisha\Documents\github-2025\genai
+python -m src.y2026.lab_01_ai_agent.langGraph_06.langgraph_test
+```
+
+---
+## Tasks
+check task 6 and task 7 only in future  👈🏻👈🏻👈🏻
+
 ```
 ├── task_1_understanding_imports.py    # Learn imports (44 lines)
 ├── task_2_creating_nodes.py          # Create nodes (61 lines)
@@ -34,31 +42,6 @@ Pre-configured in the container:
 ├── task_5_conditional_routing.py     # Routing (115 lines)
 ├── task_6_calculator_tool.py         # Calculator (124 lines)
 ├── task_7_research_agent.py          # Full agent (146 lines)
-└── verify_environment.py              # Environment checker
-```
-
-## 🏃 Running the Lab
-```bash
-cd C:\Users\Manisha\Documents\github-2025\genai
-python -m src.y2026.lab_01_ai_agent.langGraph_06.langgraph_test
-```
-
----
-## Tasks
-```
-Task 1: Imports        → Foundation setup
-       ↓
-Task 2: Nodes          → State transformation
-       ↓
-Task 3: Edges          → Connect nodes
-       ↓
-Task 4: Complete Flow  → Multi-step workflow
-       ↓
-Task 5: Routing        → Dynamic decisions
-       ↓
-Task 6: Calculator     → LLM integration
-       ↓
-Task 7: Research Agent → Multiple tools
 ```
 
 ### Task 1: Understanding Imports 📦
