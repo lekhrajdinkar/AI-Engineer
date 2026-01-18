@@ -17,6 +17,7 @@ dependencies = [
     "langchain",
     "langchain_openai",
     "langchain-core",
+    "langchain-mcp-adapters",
 
     "duckduckgo-search"
 ]

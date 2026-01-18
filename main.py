@@ -6,7 +6,10 @@ from src.y2026.lab_01_ai_agent.prompt_eng_03 import promt_eng_test
 if __name__ == "__main__":
     load_dotenv() # load API token
 
-    # 1. y2026.lab_01_ai_agent
+    # ▶️=== y2026.lab_01_ai_agent ===
     #promt_eng_test.test()
-    langgraph_test.test()
+    #langgraph_test.test()
+
+
+
 
