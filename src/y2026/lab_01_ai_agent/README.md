@@ -9,22 +9,28 @@
   - env variables: OPENAI_API_KEY, OPENAI_API_BASE | [.env](../../../.env)
 - Note: [02_AgenticAI](../../../docs/2026/02_AgenticAI) 📚
 
-## 🧪Lab-1: openAI Call
-- [01_01_verify_env.py](01_01_verify_env.py)
-- [01_02_openai.py](01_02_openai.py)
+## 🧪Lab-1 / 2 llm
+- openai SDK [01_02_openai.py](lab_01_openai.py)
+- lanChain abstraction [02_01_lanchain.py](lab_02_lanchain.py)
+  - **switch between multi model/llm**
+  - **output parser**
+- **Run**
+```bash
+cd C:\Users\Manisha\Documents\github-2025\genai; 
 
-## 🧪Lab-2: LangChain
-- [02_01_lanchain.py](02_01_lanchain.py)
-- ![img.png](../../../docs/99_img/2026/01/03/img.png)
+python -m src.y2026.lab_01_ai_agent.lab_01_openai
+python -m src.y2026.lab_01_ai_agent.lab_02_lanchain
+```
 
 ## 🧪Lab-3: Prompt Engineering with LangChain
-- [03_prompt_eng](prompt_eng_03)
+- [README.md](prompt_eng_03/README.md)
 
-## 🧪Lab-4: Vector Databases - Build TechDocs Semantic Search Engine
+## 🧪Lab-4: Vector Databases 
+- Build TechDocs - **Semantic Search Engine**
 - [README.md](vectors_04/README.md)
 
 ## 🧪Lab-5: The RAG Revolution
-- vector DB done again.
+- vector DB revision
 - [README.md](rag_05/README.md)
 - ![img_1.png](../../../docs/99_img/2026/01/05/img_5.png)
 
