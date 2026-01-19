@@ -3,7 +3,8 @@
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-def main():
+def init_vector_store():
+
     print("✔️Task 1: Setting up Vector Store for RAG")
     print("=" * 50)
 
@@ -14,13 +15,15 @@ def main():
     print(f"- Collection '{collection.name}' ready")
 
     # Initialize embedding model for 384-dimension vectors
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    embed_model = SentenceTransformer("all-MiniLM-L6-v2")
     print("- Embedding model loaded")
 
     # Test the setup
     test_text = "Testing RAG setup"
-    test_embedding = model.encode(test_text)
+    test_embedding = embed_model.encode(test_text)
     print(f"✅Testing: \ntext- {test_text} \nEmbedding: {test_embedding} \n length - {len(test_embedding)} dimensions")
+
+    return collection, embed_model
 
 
 """

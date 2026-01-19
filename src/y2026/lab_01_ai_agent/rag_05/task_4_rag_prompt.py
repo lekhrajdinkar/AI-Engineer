@@ -1,53 +1,38 @@
 #!/usr/bin/env python3
 
 import os
-from langchain_openai import ChatOpenAI
 
-print("📝 Task 4: Prompt Engineering")
-print("=" * 50)
+from src.y2026.lab_01_ai_agent.rag_05.task_3_llm_integration import initialize_llm_and_test
 
-# Initialize LangChain ChatOpenAI client
-api_base = os.getenv("OPENAI_API_BASE")
-api_key = os.getenv("OPENAI_API_KEY")
-client = ChatOpenAI(
-    api_key=api_key,
-    base_url=api_base,
-    model="openai/gpt-4.1-mini",
-    temperature=0.3,
-    max_tokens=200
-)
-print("✅ OpenAI client ready")
 
 def create_rag_prompt(context_chunks, user_question):
     """Create the RAG prompt with context and question"""
+    # ACTION 1:  System prompt
+    system_prompt = """
+    You are TechCorp's helpful AI assistant.
+    Answer ONLY based on the provided context.
+    If the answer is not in the context, say: 'I don't have that information in the provided documents.'
+    Be concise and accurate.
+    """
 
-    # TODO 1:  System prompt
-    # Hint: The AI should answer "ONLY" based on provided context
-    system_prompt = """You are TechCorp's helpful AI assistant.
-Answer ONLY based on the provided context.
-If the answer is not in the context, say: 'I don't have that information in the provided documents.'
-Be concise and accurate."""
-
-    # TODO 2: Build context section from retrieved chunks
-    # Hint: Format each chunk as [Document N] followed by content
+    # ACTION 2: Build context section from retrieved chunks
     context_text = "Context from TechCorp documents:\n\n"
     for i, chunk in enumerate(context_chunks, 1):
         context_text += f"[Document {i}]\n{chunk}\n\n"  # Replace ___ with chunk
 
-    # TODO 3: Create the user prompt with context and question
-    # Hint: Include context_text and user_question
+    # ACTION 3: Create the user prompt with context and question
     user_prompt = f"""
-{context_text}
-
-Question: {user_question}
-
-Answer:"""  # Replace ___ with user_question
+    {context_text}
+    Question: {user_question}
+    Answer:"""
 
     return system_prompt, user_prompt
+
 
 # Test the prompt template
 def test_prompt_engineering():
     """Test the prompt template with sample data"""
+    llm = initialize_llm_and_test()
 
     # Sample retrieved chunks
     test_chunks = [
@@ -74,36 +59,13 @@ def test_prompt_engineering():
         {"role": "user", "content": user_prompt}
     ]
 
-    response = client.invoke(messages)
+    response = llm.invoke(messages)
     answer = response.content
     print("\n🤖 Generated Answer:")
     print("-" * 40)
     print(answer)
-
     return True
 
-# Run the test
-try:
-    success = test_prompt_engineering()
-
-    print("\n" + "=" * 50)
-    print("🎉 Prompt Engineering Complete!")
-    print("   - System prompt: Context-aware")
-    print("   - User prompt: Structured with context")
-    print("   - Answer: Based on provided documents")
-    print("   - Ready for complete RAG pipeline!")
-    print("=" * 50)
-
-    # Create marker file
-    os.makedirs("/root/markers", exist_ok=True)
-    with open("/root/markers/task4_prompt_complete.txt", "w") as f:
-        f.write("TASK4_COMPLETE:PROMPT_READY")
-
-except Exception as e:
-    print(f"\n❌ Error: {e}")
-
-print("\n💡 The RAG prompt formula ensures accurate, context-based answers!")
-print("\n✅ Task 4 completed!")
 
 
 """
@@ -147,7 +109,4 @@ You can work from home up to 3 days per week.
    - Ready for complete RAG pipeline!
 ==================================================
 
-💡 The RAG prompt formula ensures accurate, context-based answers!
-
-✅ Task 4 completed!
 """
