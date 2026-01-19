@@ -1,26 +1,12 @@
 # langchain
-- [02_01_lanchain.py](../../../src/y2026/lab_01_ai_agent/lab_02_lanchain.py)
+- [lab_01_lanchain.py](../../../src/y2026/lab_01_ai_agent/lab_02_lanchain.py)
 
 ## ✔️Overview
-- **Scenario-1**:
-    - Your startup built everything using the OpenAI SDK.
-    - Now Google's Gemini is 3x cheaper
-    - and X.AI's Grok is 2x faster.
-    - But switching means rewriting thousands of lines of code...
-    - ▶️with langchain, just change a single line of code!
-    ```
-    - Companies save 40% on average by finding the right model mix.
-        - Some use GPT-4 for complex tasks,
-        - Gemini for simple queries!  
-    ```
-- **Scenario-2**:
-    - Agentic-ai app has so many **components**, need to tie together.
-    - API call, vector DB call, Conversation memory, tool, web search, local file system, etc
-    - ▶️langchain does all heavy lifting.
-
----
-## ✔️python example
-![img.png](../../99_img/2026/01/02/img.png)
+- **framework** for:
+  - building RAG appl
+  - abstraction over switching multiple LLM
+  - **orchestrate component** in agentic Application
+    - ![img.png](../../99_img/2026/01/02/img.png)
 
 ---
 ## ✔️LangChain Advantage

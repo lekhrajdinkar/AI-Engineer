@@ -1,5 +1,5 @@
 # RAG LAB
-🏅
+🏅 ...
 
 ## Overview
 - https://www.youtube.com/watch?v=vT-DpLvf29Q
