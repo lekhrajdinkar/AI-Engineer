@@ -12,8 +12,8 @@
     - follows same standard to run container
     - expose via API
 
-- ![img.png](img.png)
-- ![img_1.png](img_1.png)
+- ![img.png](../../99_img/2026/dmr/img.png)
+- ![img_1.png](../../99_img/2026/dmr/img_1.png)
 
 
 ### Inference Engine
