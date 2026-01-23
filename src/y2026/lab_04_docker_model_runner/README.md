@@ -1,7 +1,9 @@
 # Docker Model Runner Lab
 ## overview
-- https://kode.wiki/4qP9myB (paid)
+- lab: https://kode.wiki/4qP9myB (paid)
 - https://www.youtube.com/watch?v=tYg6T_DAP-k, watch lab on YouTube
+- must have GPU on my desktop.
+  -  **intel uhd graphics 630**, good for small model.
 
 ## Steps
 ```bash
