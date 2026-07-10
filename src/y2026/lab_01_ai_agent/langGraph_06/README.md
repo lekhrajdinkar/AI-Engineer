@@ -1,6 +1,6 @@
 # langGraph Lab
 ## Overview
-- [05_01_langGraph.md](../../../../docs/2026/02_AgenticAI/05_01_langGraph.md)
+- [05_01_langGraph.md](../../../../docs/2026/02_AgenticAI/06_langGraph/01_langGraph_start.md)
 ```
 START → Imports → Nodes → Edges → Flows → Routing → Calculator → Research Agent → COMPLETE!
   ↓        ↓        ↓       ↓       ↓        ↓          ↓            ↓

@@ -1,10 +1,10 @@
 # vector
-- [project-1](../../../src/y2026/lab_01_ai_agent/vectors_04/README.md)
+- [project-1](../../../../src/y2026/lab_01_ai_agent/vectors_04/README.md)
 
 ## overview
-- ![img.png](../../99_img/2026/01/04/img.png)
-- ![img_3.png](../../99_img/2026/01/04/img_3.png)
-- ![img_1.png](../../99_img/2026/01/04/img_1.png)
+- ![img.png](../../../99_img/2026/01/04/img.png)
+- ![img_3.png](../../../99_img/2026/01/04/img_3.png)
+- ![img_1.png](../../../99_img/2026/01/04/img_1.png)
 
 ---
 ## Embeddings & Semantic Search

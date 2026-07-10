@@ -1,12 +1,12 @@
 # langchain
-- [lab_01_lanchain.py](../../../src/y2026/lab_01_ai_agent/lab_02_lanchain.py)
+- [lab_01_lanchain.py](../../../../src/y2026/lab_01_ai_agent/lab_02_lanchain.py)
 
 ## ✔️Overview
 - **framework** for:
   - building RAG appl
   - abstraction over switching multiple LLM
   - **orchestrate component** in agentic Application
-    - ![img.png](../../99_img/2026/01/02/img.png)
+    - ![img.png](../../../99_img/2026/01/02/img.png)
 
 ---
 ## ✔️LangChain Advantage
@@ -37,5 +37,5 @@
 ### Chain Composition
 - Connecting LangChain components with the | operator to create data pipelines - like Unix pipes for AI.
 - chain = prompt | llm | parser
-- ![img.png](../../99_img/2026/01/03/img-2.png)
+- ![img.png](../../../99_img/2026/01/03/img-2.png)
 

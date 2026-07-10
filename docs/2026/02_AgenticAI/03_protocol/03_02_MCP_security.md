@@ -1,6 +1,6 @@
 # Security with MCP 
 ## Best practice
-![img_2.png](../../99_img/genai/agent/38/img_2.png)
+![img_2.png](../../../99_img/genai/agent/38/img_2.png)
 
 ---
 ## guardrail:: `Teleport`
@@ -12,7 +12,7 @@
 - offers -  (RBAC), session recording, and audit logging.
 - who access what and when, under which permission
 - makes sures ai agent only **operates** within defined boundaries.
-- ![img.png](../../99_img/genai/agent/38/img.png)
-- ![img_1.png](../../99_img/genai/agent/38/img_1.png)
+- ![img.png](../../../99_img/genai/agent/38/img.png)
+- ![img_1.png](../../../99_img/genai/agent/38/img_1.png)
 
 

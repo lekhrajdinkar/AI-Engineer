@@ -1,6 +1,6 @@
 ## ✔️prompt engineering
-![img.png](../../99_img/genai/agent/context-eng/img.png)
-- [02_03_prompt_eng.md](../01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_03_prompt_eng.md)
+![img.png](../../../99_img/genai/agent/context-eng/img.png)
+- [02_03_prompt_eng.md](../../01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_03_prompt_eng.md)
 - **demo-to-production gap**. ◀️
   - better prompt --> better output from LLM. good for Demo/poc.
   - prompt engineering is the practice of designing and refining prompts to get accurate, useful, and reliable model outputs.
@@ -11,9 +11,9 @@
 
 ---
 ## ✔️Context Engineering
-![img_1.png](../../99_img/genai/agent/context-eng/img_1.png)
+![img_1.png](../../../99_img/genai/agent/context-eng/img_1.png)
 
-![img_3.png](../../99_img/genai/agent/context-eng/img_3.png)
+![img_3.png](../../../99_img/genai/agent/context-eng/img_3.png)
 
 ### ➖ Memory mgt
 - store previous interaction in vector db.
@@ -35,8 +35,8 @@
 ### ➖ Tool Integration
 - Tool are ext api to act/action.
 - API integration improved with **MCP**
-- [03_01_MCP.md](03_01_MCP.md)
-- [04_01_MCP_security.md](03_02_MCP_security.md)
+- [03_01_MCP.md](../03_protocol/03_01_MCP.md)
+- [04_01_MCP_security.md](../03_protocol/03_02_MCP_security.md)
 
 ### More
 
@@ -44,4 +44,4 @@
 ### 🔸Example1 : Slackbot
 - slackBot is giving response by revolving around company's data instead of generic data
 - by using RAG to fetch context from company data base.
-![img_2.png](../../99_img/genai/agent/context-eng/img_2.png)
+![img_2.png](../../../99_img/genai/agent/context-eng/img_2.png)
