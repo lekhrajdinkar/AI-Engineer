@@ -24,5 +24,5 @@
 
 ---  
 ## ✔️3. Autonomous AI Agent  
-- [02_02_Agentic-AI_workflow.md](../02_architecture/01_Agent-Overview.md)
+- [Overview](../02_architecture/01_Agent-Overview.md)
 - agent to perform a specialized task autonomously.
