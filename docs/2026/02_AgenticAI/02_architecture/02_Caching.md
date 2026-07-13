@@ -1,12 +1,13 @@
 # AI Agent : Cache problem
 - https://www.youtube.com/watch?v=4Afvll6TQXA (Skip)
-- https://www.betterdb.com/ | `BetterDB`
+
 
 ## Overview
-- AI agents must manage expensive, repeated calls at 3 places:
-  - language models, 
-  - tool executions, (mcp)
-  - session memory. 
+- AI agents must manage expensive, repeated calls at:
+  - language models 
+  - tool executions (mcp)
+  - session memory
+  - RAG
 
 ## Types of Repeats
 **Exact Repeats**
@@ -21,9 +22,11 @@
 
 ---
 
-> ## Try: BetterDB ⭐
-> - https://www.betterdb.com/
-> - It tracks metrics like hit rates, latency, and cost savings. 
-> - This data is fed into an MCP server that provides actionable recommendations—such as 
->  - adjusting caching duration 
->  - semantic cache thresholds
+## 1 RedisVL
+
+## 2 BetterDB
+- https://www.betterdb.com/
+- It also tracks **metrics** like hit rates, latency, and cost savings. 
+- This data is fed into an MCP server that provides actionable recommendations—such as 
+  - adjusting caching duration 
+  - semantic cache thresholds

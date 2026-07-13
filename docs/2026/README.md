@@ -8,6 +8,9 @@
 ## Project
 - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule
 
+## Labs
+- [AgenticAI > README_LABS.md](02_AgenticAI/README_LABS.md)
+
 ---
 ## Certification/s
 Microsoft Github-Copilot:
