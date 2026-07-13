@@ -1,18 +1,22 @@
 # langGraph (Stateful graph framework)
+> tip: think of harness pipeline.
 ## ✔️Overview
-- complex workflow automation tool
-  - multi-steps, stateful (using graph)
-- **complex decision-making**:  loop, conditional routing (branching logic in pipeline)
-- **calculator** - LLM Tools
-- tip: think of harness pipeline.
-- 🧪lab: [langGraph_06](../../../../src/y2026/lab_01_ai_agent/langGraph_06)
-- https://youtu.be/gyBxdNpFM-8?si=7A0ontQD8g8ZUyYh
+- complex agentic workflow, automation tool
+- **complex decision-making**:  
+  - loop
+  - branch - conditional routing (branching logic in pipeline)
+  - State
 
 ![img.png](../../../99_img/2026/01/06/img.png)
 
+## ✔️Lab
+- [🧪Lab_langGraph_06](../../../../src/y2026/lab_01_ai_agent/langGraph_06)
+- https://youtu.be/gyBxdNpFM-8?si=7A0ontQD8g8ZUyYh
+
 ---
 ## ✔️components
-### StateGraph (the container)
+### StateGraph 
+- container
 
 ### State (Dict)
 - Data flowing through
@@ -24,7 +28,7 @@
   - takes arg - (state)
   - returns partial state
 
-### Edge
+### Edge (transitional logic)
 - connection between 2 nodes.
 - Define execution order
 - Can be conditional

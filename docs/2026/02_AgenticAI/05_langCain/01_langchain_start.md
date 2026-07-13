@@ -1,23 +1,30 @@
 # langchain
-- [lab_01_lanchain.py](../../../../src/y2026/lab_01_ai_agent/lab_02_lanchain.py)
+- https://www.youtube.com/watch?v=e-GR3PlEOVU
 
 ## ✔️Overview
-- **framework** for:
-  - building RAG appl
-  - abstraction over switching multiple LLM
-  - **orchestrate component** in agentic Application
-    - ![img.png](../../../99_img/2026/01/02/img.png)
+- **framework** for building AI pipeline by providing standardized building blocks/ **orchestrate component**, like:
+  - **Prompt Templates**
+  - Rigid **Chains** for multi-step workflows
+  - **Tools** for enabling LLM actions (web seach, database, api, etc)
+  - **RAG**
+  
+![img.png](../../../99_img/2026/01/02/img.png)
+
+![img.png](../../../99_img/2026/01/02/img-7-13-1.png)
+
+## ✔️Lab
+- [lab_01_lanchain.py](../../../../src/y2026/lab_01_ai_agent/lab_02_lanchain.py) 👈
 
 ---
 ## ✔️LangChain Advantage
-- One interface, infinite possibilities.
-- Switch between providers with a single line change. No more vendor lock-in!
-- Build **reusable templates** that work everywhere
-- Transform messy AI text into clean data structures
-- Build reusable templates that work everywhere
+### Switch LLM Provider
+- abstraction over switching multiple LLM
+- Switch between providers with a single line change. 
+- No more vendor lock-in!. 
 - Test OpenAI, Google, and X.AI with identical code
 
 ### prompt template
+Build **reusable templates** that work everywhere
 ```
 - template-1 = "Explain {topic} in {style}"
     - "Explain quantum computing in simple terms"
@@ -34,8 +41,10 @@
   - CommaSeparatedListOutputParser
 ```
 
-### Chain Composition
-- Connecting LangChain components with the | operator to create data pipelines - like Unix pipes for AI.
-- chain = prompt | llm | parser
-- ![img.png](../../../99_img/2026/01/03/img-2.png)
+### Chain Composition 👈
+- Connecting LangChain components with the pipeline `|` operator to create data pipelines 
+- like Unix pipes for AI.
+- `chain = prompt | llm | parser`
+
+![img.png](../../../99_img/2026/01/03/img-2.png)
 

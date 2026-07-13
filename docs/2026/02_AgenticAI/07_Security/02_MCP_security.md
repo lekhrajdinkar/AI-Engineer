@@ -11,8 +11,9 @@
 
 ---
 ## Solution/s
-### `Teleport` (MCP guardrail) 
-https://bit.ly/45YwXVS
+###  MCP guardrail
+
+`Teleport` | https://bit.ly/45YwXVS
 
 ![img.png](../../../99_img/genai/agent/38/img.png)
 
@@ -30,9 +31,9 @@ Audit & Compliance:
 - Every request—whether approved or denied—is logged, 
 - providing a full audit trail for security teams
 
+###  MCP gateway
+- `Storm MCP` | https://stormmcp.ai/apps 
 
-### `arcade` (OAuth 2) 
-https://arcade.dev.plug.dev/QyccQEk
-
-### `Storm MCP` (gateway)
-https://stormmcp.ai/apps
+###  OAuth2 gateway
+- `arcade`   | https://arcade.dev.plug.dev/QyccQEk 
+- `scalekit` | https://auth.scalekit.com/a/auth/signup?utm_source=youtube&utm_medium=video&utm_campaign=bytemonk
