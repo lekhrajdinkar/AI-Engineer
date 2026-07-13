@@ -4,9 +4,9 @@
 > - that is similar to the **data it was trained on**.
 
 ## Models Overview
-**Training** of Model
+✔️**Training** of Model
 
-**Inference** Model
+✔️**Inference** of Model
   - using model by API call.
   - Every API call goes through five steps: 
     - **tokenization** 
@@ -24,13 +24,16 @@
       
 ---           
 ## Four Levers for Cost Optimization:
-**Trim and Cap**: Reduce system prompt length and set max_tokens to the minimum necessary 
+**Trim and Cap**: 
+- Reduce system prompt length 
+- and set max_tokens to the minimum necessary 
 
-**Prefix Caching**: Cache the system prompt's prefill state to cut costs by 80-90% for repetitive prompts 
+**Prefix Caching**: 
+- Cache the system prompt's prefill state to cut costs by 80-90% for repetitive prompts 
 
-**Model Tiering**: Match the model size to the task difficulty; don't use frontier models for simple tasks 
-
-**Provider Routing**: Use platforms like OpenRouter to route requests to the cheapest or fastest provider for the same underlying model
+**Model Tiering**: 
+- Match the model size to the task difficulty; don't use frontier models for simple tasks 
+- Use platforms like `OpenRouter` to route requests to the cheapest or fastest provider for the same underlying model
 
 ---
 ## Factors to Consider When Selecting a Generative AI Model

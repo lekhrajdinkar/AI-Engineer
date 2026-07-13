@@ -3,7 +3,7 @@ site_description: AI Engineer 2025
 site_author: Lekhraj Dinkar
 docs_dir: docs
 nav:
-        - Artifacts : 01_Artifact.md
+        - Artifacts : README.md
 
 theme:
   name: material
