@@ -1,42 +1,65 @@
 # MCP (**Anthropic**) | Nov 2024
-# Overview
 - BM1 https://youtu.be/-b6rGrIEG0w?si=A7SgF5D31U7RPhm3
 - Bm2 https://youtu.be/PS9kw4W52Gs?si=rsffucXDfQY3zrOe
 - KK1 https://www.youtube.com/watch?v=dyt-bhxrrbk
-- ![img_1.png](../../../99_img/2026/01/06/img_1.png)
-- ![img_2.png](../../../99_img/2026/01/06/img_2.png)
 
-## ➖ Why/solves what ?
-- Standardize **API Integration complexity** between AI agents and external tools/data sources
-  - multiple transport : REST/WS/gRPC/GraphQL/webhooks
-  - juggling between multiple - API specs, auth, rate-limiting, error-handling, data-formatting
-  - calling and handling 3 github api vs calling 3 tools
+## Overview
+- Think of universal adaptor between:
+    - AI agent
+    - external tools/data sources
 
-- think sof universal adaptor b/w AI model and external tools/data sources
+**Problem**
+- Integrations between AI agents and multiple external tools/data sources
+- juggling between multiple - API specs, auth, rate-limiting, error-handling, data-formatting
+- Custom integration for each external system.
+  - multiple transport : REST/WS/RPC/GraphQL/webhooks
 
-![img.png](../../../99_img/genai/2025/lam/01/img.png)
-![img_1.png](../../../99_img/genai/2025/lam/01/img_1.png)
+**Solution**
+- Standardize **API Integration complexity** 
+  - JSON-RPC (format)
+  - HTTP/SSE (transport protocol)
 
-## ➖ Overview
+## Benefits
 - model-agnostic,  meaning it can work with different AI models and platforms.
-- acts as a bridge between "AI agent" and "external tools or data sources". 
-  - It enables AI agent to access information beyond its built-in knowledge/training of LLM
-  - ai-agent-1|2|...(mcp-client)  <--> mcp-server-1|2|...(re-use) <--> external tools (vendor api, etc)
-  - handle **multi-turn conversations** seamlessly
-  - manage context effectively, to do intelligent reasoning and decision-making
-- MCP Adoption
-  - chatGPT can discover mcp tools and call them via mcp-client
-  - MS vscod support MCP to enhance copilot capabilities
-  - Claude Desktop (MCP client) can call MCP server tools
-- **Generate MCP server** from postman collection ◀️
-  - warp any existing API as MCP tool/resource.
-  - generate Node project and share zip.
-  - run local or inside container.
+- handle **multi-turn conversations** seamlessly
+- manage context effectively,
+- to do intelligent reasoning and decision-making
 
-## ➖ benefits
 ![img_2.png](../../../99_img/genai/agent/01/02/img_2.png)
 
-## ➖ Architecture 
+---
+## MCP Adoption
+- chatGPT can discover mcp tools and call them via mcp-client
+- MS vscod support MCP to enhance copilot capabilities
+- Claude Desktop (MCP client) can call MCP server tools
+
+---
+## Sample Code
+✔️**Python SDK**
+
+![img_4.png](../../../99_img/genai/agent/01/02/img_4.png)
+
+![img_6.png](../../../99_img/genai/agent/01/02/img_6.png)
+
+✔️**Postman** : 
+Generate MCP server from postman collection.
+- warp any existing API as MCP tool/resource.
+- generate Node project and share zip.
+- run local or inside container.
+
+---
+## Screenshots
+
+![img_1.png](../../../99_img/2026/01/06/img_1.png)
+
+![img_2.png](../../../99_img/2026/01/06/img_2.png)
+
+![img.png](../../../99_img/genai/2025/lam/01/img.png)
+
+![img_1.png](../../../99_img/genai/2025/lam/01/img_1.png)
+
+---
+## Architecture 
 ![img.png](../../../99_img/genai/agent/img-10.png)
 
 ![img.png](../../../99_img/genai/agent/01/02/img.png)
@@ -45,33 +68,36 @@
 
 ![img_3.png](../../../99_img/genai/agent/01/02/img_3.png)
 
-- **MCP Schema** - how req and response is structured
+✔️ **Schema** 
+- how req and response is structured
+  - JSON-RPC (text based)
+
 ![img_5.png](../../../99_img/genai/agent/01/02/img_5.png)
 
-- **Python SDK**
-  - ![img_4.png](../../../99_img/genai/agent/01/02/img_4.png)
-  - ![img_6.png](../../../99_img/genai/agent/01/02/img_6.png)
+✔️ **Transport over**
+- HTTP
+- SSE
+> Note: rpc not supported [check MCP_gRPC.md](03_MCP_gRPC.md)
 
-- **LLM Loops** 
-  - Take Model Response and decide which MCP Tool/Resource to invoke
 
-- **Components**:
-  - **MCP Server** | hosted:  locally, cloud, k8s,  3rd-party vendors
-    - 🔸Tools : actions that AI can perform (e.g., database queries, API calls, file operations)
-    - 🔸resources: data sources that AI can access (e.g., documents, databases, web pages)
-    - 🔸Prompts: predefined instructions/templates to guide AI interactions on tools/resources
-    - **Reusability** : can reuse same mcp-server for multiple agents ◀️
-    - has all the implementation logic for **action**. So not complex code changes needed on mcp-client side/ agent side ◀️
-    - Can wrap any existing API as MCP tool/resource ◀️
-    - Apply all System Design principles : scalability, reliability, security, observability, etc ◀️
-  - **MCP Client** 
-    - **Discovers** tools/resources from MCP server ◀️
-    - Sends/received JSON-RPC requests/responses to/from MCP server over HTTP/WebSocket/gRPC ◀️
-    - 🔸Sampling
-    - 🔸Elicitation
-    - 🔸Root: FileSystem, DB | eg: keep user preference
+✔️ **MCP Server** | hosted:  locally, cloud, k8s,  3rd-party vendors
+  - 🔸Tools : actions that AI can perform (e.g., database queries, API calls, file operations)
+  - 🔸resources: data sources that AI can access (e.g., documents, databases, web pages)
+  - 🔸Prompts: predefined instructions/templates to guide AI interactions on tools/resources
+  - **Reusability** : can reuse same mcp-server for multiple agents ◀️
+  - has all the implementation logic for **action**. So not complex code changes needed on mcp-client side/ agent side ◀️
+  - Can wrap any existing API as MCP tool/resource ◀️
+  - Apply all System Design principles : scalability, reliability, security, observability, etc ◀️
 
-## ➖ reference:
+✔️ **MCP Client** 
+  - **Discovers** tools/resources from MCP server ◀️
+  - Sends/received JSON-RPC requests/responses to/from MCP server over HTTP/WebSocket/gRPC ◀️
+  - 🔸Sampling
+  - 🔸Elicitation
+  - 🔸Root: FileSystem, DB | eg: keep user preference
+
+---
+##  Reference:
 - https://www.youtube.com/watch?v=RhTiAOGwbYE
 - [MCP lab-1](https://learn.kodekloud.com/user/courses/youtube-labs-mcp?utm_source=youtube&utm_medium=video&utm_campaign=mcpcrashcourse_part1&utm_id=mcpcrashcourse_p1&utm_term=&utm_content=)
 - [https://kode.wiki/4lFwf5p](https://kode.wiki/4lFwf5p)
@@ -79,5 +105,3 @@
 - [https://docs.anthropic.com/en/docs/mcp](https://docs.anthropic.com/en/docs/mcp)
 - [bbgo links](https://github.com/lekhrajdinkar/solution-engineer/blob/main/docs/10_System_Design/blogs_01_byteByteGo.md#%EF%B8%8Fagentic-ai)
 - byteMonk
-
----

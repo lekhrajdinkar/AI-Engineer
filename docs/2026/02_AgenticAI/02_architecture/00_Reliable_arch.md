@@ -3,7 +3,8 @@
 - https://youtu.be/xKLf_rA2sQI?si=JxF-sD00EBGtj7ht
 - `AWS NovaAct` | https://aws.amazon.com/nova/act/?trk=33dc490e-0fb2-4cb1-a521-3941c13b64c0&sc_channel=ps
 
-## Core Problem: Reliability
+---
+## Core Problem: `Reliability`
 - **Agents are NOT inherently reliable**: 
   - While they appear intelligent, 
   - they are probabilistic (guessing the next token). 
@@ -16,7 +17,7 @@
   - and must engineer for failure 
 
 ## Key Architecture Patterns for Reliability
-**The ReAct Pattern (Observe → Reason → Act):** 
+✔️ **The ReAct Pattern (Observe → Reason → Act):** 
 - Instead of one-shot execution, 
 - the agent operates in a continuous loop: 
   - observing the page (screenshot), 
@@ -26,7 +27,7 @@
 
 ![img.png](../../../99_img/2026/01/07/img-7-13-3.png)
 
-**The Reliable Agent Stack:** 
+✔️ **The Reliable Agent Stack:** 
 Reliability emerges from layering several components
 
 Workflow Definition: 

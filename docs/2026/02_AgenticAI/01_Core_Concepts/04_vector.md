@@ -1,5 +1,9 @@
-# vector
+# Vector
 - [project-1](../../../../src/y2026/lab_01_ai_agent/vectors_04/README.md)
+- https://www.youtube.com/watch?v=PByDzuOrkek (Skip)
+  - core concept: token, embed, mcp, tools, etc
+
+![img.png](../../../99_img/2026/02-aws/02/img_3.png)
 
 ## overview
 - ![img.png](../../../99_img/2026/01/04/img.png)
@@ -73,3 +77,5 @@ Finds: "work from home guidelines" [0.21, 0.79, ...]
 - Local-first: No cloud dependency
 - Production-ready: Used by real companies 
 - Metadata filtering: Search by tags, dates, categories
+
+

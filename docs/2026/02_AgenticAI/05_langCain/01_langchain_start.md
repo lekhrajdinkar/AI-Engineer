@@ -5,8 +5,8 @@
 - **framework** for building AI pipeline by providing standardized building blocks/ **orchestrate component**, like:
   - **Prompt Templates**
   - Rigid **Chains** for multi-step workflows
-  - **Tools** for enabling LLM actions (web seach, database, api, etc)
-  - **RAG**
+  - **Tools** plumbing for enabling LLM actions (web seach, database, api, etc)
+  - **RAG** plumbing
   
 ![img.png](../../../99_img/2026/01/02/img.png)
 
