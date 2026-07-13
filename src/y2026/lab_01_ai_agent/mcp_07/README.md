@@ -1,7 +1,7 @@
 # Advance MCP lab
 ## overview
 - agent(mcp-client in it) with no langGraph
-- [03_01_MCP.md](../../../../docs/2026/02_AgenticAI/03_protocol/03_01_MCP.md)
+- [03_01_MCP.md](../../../../docs/2026/02_AgenticAI/03_protocol/01_MCP.md)
 ```
 START → MCP Basics → Integration → Orchestration → COMPLETE!
   ↓         ↓            ↓              ↓

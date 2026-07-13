@@ -82,7 +82,7 @@ closing the feedback loop.
 ![img_4.png](../../../99_img/genai/agent/01/29/img_4.png)
 - **Component**:
     - LLM
-    - Tools : MCP integration, [here](../03_protocol/03_01_MCP.md), 
+    - Tools : MCP integration, [here](../03_protocol/01_MCP.md), 
     - resource : Knowledge Base and RAG
     - **memory** (in vector Db) : user session, past steps, outcomes, long-term, short-term
     - guardrails

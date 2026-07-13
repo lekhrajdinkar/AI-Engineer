@@ -1,11 +1,11 @@
 # 2026
 
 ## Docs
-- AWS Certification | AIF-C01 (continue...) [📚Notes](docs/2026/01_AWS-AIF-C01)
-- Agentic AI [📚Notes](docs/2026/02_AgenticAI)
-- Misc [📚Notes](docs/2026/99_Misc)
+- AWS Certification | AIF-C01 (continue...) [01_AWS-AIF-C01](01_AWS-AIF-C01)
+- Agentic AI [📚Notes](02_AgenticAI)
+- Misc [📚Notes](99_Misc)
 
-## project
+## Project
 - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule
 
 ---
@@ -26,7 +26,8 @@ AWS Certified AI Practitioner | AIF-C01
 ## Artifacts
 **ByteMonk**
 - YT (LLM playlist): https://www.youtube.com/watch?v=iQ9arr3TTMA&list=PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU 👈🏻👈🏻
-  - 1/77 af 7/2026
+  - 1-42  (completed 2/2026)
+  - 42-72 (completed 7/2026) | Skip - 45,46
   - https://www.perplexity.ai/spaces/bytemonk-llm-playlist-OrEHPnMCQ3yCzSsjQ3CnRw
   
 **KodeKloud**

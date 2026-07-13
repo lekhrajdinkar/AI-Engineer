@@ -3,6 +3,8 @@
 - https://www.perplexity.ai/search/30-prompt-gpt-history-https-yo-21Nh.hcVTjCH0ndunc3vIw
 - [prompt_eng_03](../../../../src/y2026/lab_01_ai_agent/prompt_eng_03)
 
+![img.png](../../../99_img/genai/agent/context-eng/img.png)
+
 ## Problem 
 - AI gives vague, unhelpful responses. 
 - Different results every time. 

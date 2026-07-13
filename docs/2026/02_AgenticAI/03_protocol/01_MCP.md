@@ -1,4 +1,4 @@
-# MCP (**Anthropic**)
+# MCP (**Anthropic**) | Nov 2024
 # Overview
 - BM1 https://youtu.be/-b6rGrIEG0w?si=A7SgF5D31U7RPhm3
 - Bm2 https://youtu.be/PS9kw4W52Gs?si=rsffucXDfQY3zrOe

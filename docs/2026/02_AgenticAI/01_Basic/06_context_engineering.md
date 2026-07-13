@@ -1,16 +1,10 @@
-## ✔️prompt engineering
-![img.png](../../../99_img/genai/agent/context-eng/img.png)
-- [02_03_prompt_eng.md](../../01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_03_prompt_eng.md)
-- **demo-to-production gap**. ◀️
-  - better prompt --> better output from LLM. good for Demo/poc.
-  - prompt engineering is the practice of designing and refining prompts to get accurate, useful, and reliable model outputs.
-  - But it **doesnt solves** real industry problem.
-- therefore, we need to build **environment for AI agent to solve act(action) to solve real world problem**.
-- **Context Engineering** helps to build that environment.
+# Context Engineering
+## Overview
+- prompt engineering (passive) [more](../../01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_03_prompt_eng.md)
+  - practice of designing and refining prompts to get accurate, useful, and reliable model outputs.
+  - it Does not real industry problem
+  - but Agent with right context, does
 
-
----
-## ✔️Context Engineering
 ![img_1.png](../../../99_img/genai/agent/context-eng/img_1.png)
 
 ![img_3.png](../../../99_img/genai/agent/context-eng/img_3.png)
@@ -32,16 +26,13 @@
 - thus improve the context for AI agent.
 - since model is not limited to knowledge in training data.
 
-### ➖ Tool Integration
+### ➖ Tool Integration 
 - Tool are ext api to act/action.
-- API integration improved with **MCP**
-- [03_01_MCP.md](../03_protocol/03_01_MCP.md)
-- [04_01_MCP_security.md](../03_protocol/03_02_MCP_security.md)
+- API integration improved with [MCP](../03_protocol)
 
-### More
-
-
-### 🔸Example1 : Slackbot
+---
+## AI Agent for understanding ( Slackbot )
 - slackBot is giving response by revolving around company's data instead of generic data
-- by using RAG to fetch context from company data base.
+- by using RAG to fetch context from company database.
+
 ![img_2.png](../../../99_img/genai/agent/context-eng/img_2.png)

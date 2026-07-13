@@ -3,7 +3,7 @@
 https://www.youtube.com/watch?v=MNiTL1NwTUM
 
 ---
-![img.png](../../99_img/2026/99/04/img.png)
+![img.png](../../../99_img/2026/99/04/img.png)
 
 ## Security risks associated with "vibe coding"
 - AI Coding agent/tools like **GitHub Copilot**,  ClaudeCode, Cursor, ChatGPT

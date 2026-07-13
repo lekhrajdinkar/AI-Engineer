@@ -9,11 +9,12 @@
   - ask same thing 3 time and check outbout format type:
   - ![img_2.png](../../99_img/2026/01/01/img_2.png)
   
-## C1 Thesys
+## try Thesys
+Free Playground: https://console.thesys.dev/playground
 - generative UI for production.
 - wrapper over LLm and generate UI out of LLM reponse text
 - streams the response/UI-component (react)
 - openai compatible, same sdk
 - responsive
-- Free Playground: https://console.thesys.dev/playground
+- 
 - ![img_3.png](../../99_img/2026/01/01/img_3.png)
