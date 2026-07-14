@@ -47,7 +47,7 @@
 - Accessing external data like product catalogs or documentation.
 - [Production grade RAG.md](../04_RAG/04_01_RAG.md#-production-grade-rag)
 
-### Redis AI Data Layer (RedisVL)
+### Redis AI Data Layer (`RedisVL lib`)
 `RedisVL` (Vector Library) simplifies building retrieval systems with three primitives:
 - Schema: 
   - Configures **indexing** (e.g., HNSW algorithm for performance) 

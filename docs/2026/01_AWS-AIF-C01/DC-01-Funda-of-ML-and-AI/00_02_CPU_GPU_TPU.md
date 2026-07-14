@@ -41,8 +41,15 @@ Supply Chain Control:
 - specifically for critical packaging steps like CoWoS and high-bandwidth memory (HBM), 
 - making it difficult for competitors to even get their chips physically produced.
 
-## ✔️TPU (Google)
-- Tensor processing unit
+## ✔️TPU (Google)| Tensor processing unit
+- https://youtu.be/iseM_Sb-ruo?si=9Ub5q2cfB6keaVw7 (Skip)
+- **TPU 8t** (Training): 
+  - A compute-bound chip designed for massive clusters (up to 9,600 chips in a pod). 
+  - It focuses on raw floating-point throughput and high-bandwidth interconnects to speed up model training from months to weeks
+- **TPU 8i** (Inference): 
+  - A memory-bound chip tailored for handling user queries.
+  - It features significantly increased on-chip SRAM (384MB) to house the KV cache directly, 
+  - which drastically reduces latency for real-time generative tasks and AI agents
 
 ## ✔️Tranium (Amazon)
 
