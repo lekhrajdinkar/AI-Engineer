@@ -1,4 +1,5 @@
 # MCP (**Anthropic**) | Nov 2024
+- A\ https://anthropic.skilljar.com/introduction-to-model-context-protocol
 - BM1 https://youtu.be/-b6rGrIEG0w?si=A7SgF5D31U7RPhm3
 - Bm2 https://youtu.be/PS9kw4W52Gs?si=rsffucXDfQY3zrOe
 - KK1 https://www.youtube.com/watch?v=dyt-bhxrrbk

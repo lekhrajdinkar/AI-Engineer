@@ -13,6 +13,10 @@
 
 ---
 ## Certification/s
+Anthropic | https://anthropic.skilljar.com/
+- 🎖️https://verify.skilljar.com/c/qsvy5x38s5ob | Claude 101
+- 🎖️https://verify.skilljar.com/c/pyadqx2jf8ss | Claude Code 101
+
 Microsoft Github-Copilot:
 - [Learning-plan-1](https://learn.microsoft.com/en-us/plans/2x0jcgtzome4k0?tab=tab-learning-paths)
 
@@ -29,7 +33,7 @@ AWS Certified AI Practitioner | AIF-C01
 ## Artifacts
 ### **Anthropic**:
 - https://www.youtube.com/@anthropic-ai/videos
-- https://anthropic.skilljar.com/
+- https://anthropic.skilljar.com/ | `ldus@g J12a`
 
 ### **OpenAI**
 - https://www.youtube.com/@OpenAI

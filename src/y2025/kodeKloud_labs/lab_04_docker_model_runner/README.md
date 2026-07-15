@@ -30,4 +30,4 @@ docker model start-runner
 
 # 5. call API with Any http-client
 ```
-![img.png](../../../docs/99_img/genai/dmr.png)
+![img.png](../../../../docs/99_img/genai/dmr.png)
