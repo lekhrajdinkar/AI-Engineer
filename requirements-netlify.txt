@@ -1,5 +1,4 @@
-mkdocs
-mkdocs-material
-pymdown-extensions
-mkdocs-awesome-pages-plugin
-mkdocs-redirects
+mkdocs==1.5.3
+mkdocs-material==9.4.10
+pyyaml==6.0.1
+python-frontmatter==1.0.1

@@ -1,58 +1,116 @@
-site_name: AI Engineer 2025
-site_description: AI Engineer 2025
-site_author: Lekhraj Dinkar
-docs_dir: docs
-nav:
-        - Artifacts : README.md
-
+site_name: Agentic AI Docs
+site_description: Learning, PoC, and Research Documentation
+repo_url: https://github.com/lekhrajdinkar/AI-Engineer
+edit_uri: edit/main/docs/
 theme:
   name: material
-  features:
-    - navigation.tracking          # Enables breadcrumbs
-    - navigation.tabs              # Optional: if using tabs layout
-    - navigation.top               # Scroll-to-top button
-    - navigation.sections
-    #- navigation.expand
-    - navigation.indexes
-    - navigation.footer            # Enables next/previous at bottom
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: blue grey
-      accent: pink
-  custom_dir: .
-
-repo_url: https://github.com/lekhrajdinkar/genai
-repo_name: GitHub
-edit_uri: edit/main/Notes/
-
-# Extensions
-markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences:
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
-  - admonition
-  - pymdownx.details
-  - pymdownx.tabbed:
-      alternate_style: true
-  - attr_list
-  - md_in_html
-  - tables
-  - toc:
-      permalink: true
-
+  - scheme: default
+    primary: blue
+    accent: light-blue
+    toggle:
+      icon: material/brightness-7
+      name: Switch to dark mode
+  - scheme: slate
+    primary: blue
+    accent: light-blue
+    toggle:
+      icon: material/brightness-4
+      name: Switch to light mode
+  features:
+  - navigation.instant
+  - navigation.tracking
+  - navigation.tabs
+  - search.suggest
+  - search.highlight
 plugins:
-  - search
-
-extra:
-  social:
-    - icon: fontawesome/brands/github
-      link: https://github.com/lekhrajdinkar
-    - icon: fontawesome/brands/linkedin
-      link: https://www.linkedin.com/in/lekhraj-dinkar-25872140/
+- search
+markdown_extensions:
+- admonition
+- attr_list
+- codehilite
+- meta
+- pymdownx.arithmatex
+- pymdownx.betterem
+- pymdownx.caret
+- pymdownx.critic
+- pymdownx.details
+- pymdownx.emoji
+- pymdownx.highlight:
+    use_pygments: true
+- pymdownx.inlinehilite
+- pymdownx.keys
+- pymdownx.mark
+- pymdownx.smartsymbols
+- pymdownx.superfences
+- pymdownx.tasklist:
+    custom_checkbox: true
+- pymdownx.tilde
+- tables
+- toc:
+    permalink: true
+nav:
+- '2026':
+  - AWS AIF C01:
+    - DC 01 Funda Of ML And AI:
+      - AWS AI Services: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/03_01_AWS_AI_Services.md
+      - AWS Bedrock: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/03_02_AWS_bedrock.md
+      - AWS Sagemaker: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/03_03_AWS_sageMaker.md
+      - CPU GPU TPU: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/00_02_CPU_GPU_TPU.md
+      - Challenges: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_04_challenges.md
+      - DL: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/01_03_DL.md
+      - Kickoff: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/00_01_kickOff.md
+      - LLM: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_02_LLM.md
+      - ML: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/01_02_ML.md
+      - Models (1 Overview): 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_01_Models
+          (1 Overview).md
+      - Models (2 Training): 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_01_Models
+          (2 Training).md
+      - Models (3 More Concepts): 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_01_Models
+          (3 More Concepts).md
+      - Prompt Eng: 2026/01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_03_prompt_eng.md
+    - DC 02 Exploring AI Usescase And App:
+      - ML: 2026/01_AWS-AIF-C01/DC-02_Exploring-AI-usescase-and-app/02_ML.md
+      - Real World Example: 2026/01_AWS-AIF-C01/DC-02_Exploring-AI-usescase-and-app/01_real-world-example.md
+  - Agenticai:
+    - Architecture:
+      - Agent Overview: 2026/02_AgenticAI/02_architecture/01_Agent-Overview.md
+      - Agentic Memory: 2026/02_AgenticAI/02_architecture/03_Agentic_memory.md
+      - Claudecode Arch: 2026/02_AgenticAI/02_architecture/00_claudeCode_Arch.md
+      - Caching: 2026/02_AgenticAI/02_architecture/02_Caching.md
+      - Reliable Arch: 2026/02_AgenticAI/02_architecture/00_Reliable_arch.md
+    - Core Concepts:
+      - Context Window: 2026/02_AgenticAI/01_Core_Concepts/05_context_window.md
+      - Context Engineering: 2026/02_AgenticAI/01_Core_Concepts/06_context_engineering.md
+      - Framework: 2026/02_AgenticAI/01_Core_Concepts/02_Framework.md
+      - Kickoff: 2026/02_AgenticAI/01_Core_Concepts/00_kickoff.md
+      - LAM: 2026/02_AgenticAI/01_Core_Concepts/03_LAM.md
+      - UV: 2026/02_AgenticAI/01_Core_Concepts/01_UV.md
+      - Vector: 2026/02_AgenticAI/01_Core_Concepts/04_vector.md
+    - Langcain:
+      - Langchain Start: 2026/02_AgenticAI/05_langCain/01_langchain_start.md
+    - Langgraph:
+      - Langgraph Start: 2026/02_AgenticAI/06_langGraph/01_langGraph_start.md
+    - Observaility:
+      - Langsmith: 2026/02_AgenticAI/08_Observaility/04_langSmith.md
+    - Protocol:
+      - A2A: 2026/02_AgenticAI/03_protocol/02_A2A.md
+      - MCP: 2026/02_AgenticAI/03_protocol/01_MCP.md
+      - MCP Grpc: 2026/02_AgenticAI/03_protocol/03_MCP_gRPC.md
+    - RAG:
+      - Agenticrag: 2026/02_AgenticAI/04_RAG/04_03_AgenticRAG.md
+      - CAG: 2026/02_AgenticAI/04_RAG/04_02_CAG.md
+      - Hirarchical RAG: 2026/02_AgenticAI/04_RAG/04_05_hirarchical_RAG.md
+      - Multi Query RAG: 2026/02_AgenticAI/04_RAG/04_04_Multi-Query-RAG.md
+      - Multi Modal RAG: 2026/02_AgenticAI/04_RAG/04_06_Multi-modal_RAG.md
+      - RAG: 2026/02_AgenticAI/04_RAG/04_01_RAG.md
+    - Security:
+      - MCP Security: 2026/02_AgenticAI/07_Security/02_MCP_security.md
+      - Prompt Injections: 2026/02_AgenticAI/07_Security/01_Prompt_injections.md
+      - Sonarqube MCP Server: 2026/02_AgenticAI/07_Security/03_SonarQube-MCP-server.md
+  - Misc:
+    - Claudes Arch: 2026/99_Misc/05_claudes_Arch.md
+    - Generativeui Overview: 2026/99_Misc/01_generativeUI-overview.md
+    - LLM Local: 2026/99_Misc/02_LLM_local.md
+    - Mlops+aiops: 2026/99_Misc/03_MLOps+AIOps.md
+    - Openclaw: 2026/99_Misc/04_openclaw.md

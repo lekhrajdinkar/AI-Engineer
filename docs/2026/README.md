@@ -24,13 +24,12 @@ AWS Certified AI Practitioner | AIF-C01
     - [learning plan-1](https://skillbuilder.aws/learning-plan/G8ENMJ5QBE/aws-artificial-intelligence-practitioner-learning-plan/SU2A1EJM1A)
     - [learning plan-2](https://skillbuilder.aws/learning-plan/3NRN71QZR2/exam-prep-plan-aws-certified-ai-practitioner-aifc01--english/FBV4STG94B)
     - [agents demo](https://aistylist.awsplayer.com/)
-- **Udemy and more**:
-    - https://www.udemy.com/course/aws-ai-practitioner-certified/?couponCode=25BBPMXINACTIVE | [slide](https://courses.datacumulus.com/downloads/certified-ai-practitioner-9u8/)
-    - https://notes.kodekloud.com/docs/AWS-Certified-AI-Practitioner/Introduction/Introduction
+- Udemy https://www.udemy.com/course/aws-ai-practitioner-certified/?couponCode=25BBPMXINACTIVE | [slide](https://courses.datacumulus.com/downloads/certified-ai-practitioner-9u8/)
+- KK https://notes.kodekloud.com/docs/AWS-Certified-AI-Practitioner/Introduction/Introduction
 
 ---
-## Artifacts
-### **Anthropic**:
+## More Artifacts
+### **Anthropic A\**:
 - https://www.youtube.com/@anthropic-ai/videos
 - https://anthropic.skilljar.com/ | `ldus@g J12a`
 
