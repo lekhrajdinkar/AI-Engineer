@@ -40,11 +40,14 @@ uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001
 http://127.0.0.1:8001/docs 
 ### Authentication
 - `GET /auth/google/login` — Start Google OAuth flow
-  - http://localhost:8001/auth/google/login
 - `GET /auth/google/callback` — OAuth callback (automatic redirect)
 - `GET /auth/google/debug` — Debug token info
 - `POST /auth/google/logout` — Clear stored tokens
-
+### Authentication
+- `GET /auth/google/login` — Start Google OAuth flow, get access token and save in sqLite3
+- `GET /auth/google/callback` — OAuth callback (automatic redirect)
+- `GET /auth/google/debug` — Debug access token info
+- `POST /auth/google/logout` — Clear access stored tokens
 ### YouTube Data
 - `GET /api/channels` — List subscribed channels (OAuth required)
 - `GET /api/{channel_id}/playlists` — List playlists for a channel
@@ -59,7 +62,8 @@ http://127.0.0.1:8001/docs
 - `GET /api/search?q={query}` — Search videos across all plans
 
 
-## Load Dumps from API call taken at [json-dumps](json-dumps)
+## Load Dumps from API call taken at [json-dumps](../frontend/sample-data)
+- http://localhost:8001/auth/google/login
 - http://127.0.0.1:8001/api/channels
     - youtube-agent-2/backend/json-dumps/channels.json
 - http://127.0.0.1:8001/api/UCzCsyvyrq38R6TnztEzOmgg/playlists
@@ -67,4 +71,5 @@ http://127.0.0.1:8001/docs
 - http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg&playlist_id=PLJq-63ZRPdBt-RFGwsJO9Pv6A8ZwYHua9 
     - youtube-agent-2/backend/json-dumps/videos-of-a-playlist.json
 - http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg
+    - youtube-agent-2/backend/json-dumps/all-videos-from-channel.json
 
