@@ -64,6 +64,7 @@ http://127.0.0.1:8001/docs
 
 ## Load Dumps from API call taken at [json-dumps](../frontend/sample-data)
 - http://localhost:8001/auth/google/login
+- http://localhost:8001/auth/google/debug
 - http://127.0.0.1:8001/api/channels
     - youtube-agent-2/backend/json-dumps/channels.json
 - http://127.0.0.1:8001/api/UCzCsyvyrq38R6TnztEzOmgg/playlists

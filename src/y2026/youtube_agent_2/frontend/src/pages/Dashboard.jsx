@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getChannels, getAuthDebug, googleLogin, googleLogout } from '../api/client'
+import { getChannels, getAuthDebug, googleLogin } from '../api/client'
 
 export default function Dashboard() {
   const [auth, setAuth] = useState(null)
@@ -8,7 +8,12 @@ export default function Dashboard() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    getAuthDebug().then(setAuth).catch(() => setAuth(null))
+    getAuthDebug()
+      .then(data => {
+        if (data.has_access_token === true) setAuth(data)
+        else setAuth(null)
+      })
+      .catch(() => setAuth(null))
   }, [])
 
   async function handleFetchChannels() {
@@ -41,7 +46,7 @@ export default function Dashboard() {
 
       {auth && (
         <div className="alert alert-success">
-          <strong>Authenticated</strong> — token scopes: {auth.scopes?.join(', ') || 'N/A'}
+          <strong>Signed in</strong> — token scopes: {auth.scopes?.join(', ') || 'N/A'}
         </div>
       )}
 

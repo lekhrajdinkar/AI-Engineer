@@ -4,11 +4,12 @@
 Dependencies are installed at the repo root (`../../..`). No separate `npm install` needed here.
 
 ```bash
-# start dev server (Vite) — proxies /auth and /api to backend at http://127.0.0.1:8001
-npm run dev
+# Start backend
+uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001
 
-# production build
-npm run build
+# Start Vite
+cd src\y2026\youtube_agent_2\frontend;
+npm run dev
 ```
 
 ## UI
@@ -16,7 +17,8 @@ npm run build
 - requirements [project-req-doc.md](../metadata/project-req-doc.md)
 - building backend api is out of scope.
 
-## proposed learning plan object
+## proposed learning-plan object
+
 ```json
 {
   "learning_plan": {
@@ -26,7 +28,12 @@ npm run build
     "created_at": "ISO8601",
     "updated_at": "ISO8601",
     "channels": [
-      { "channel_id": "string", "title": "string", "url": "string", "videos_count": 0 }
+      {
+        "channel_id": "string",
+        "title": "string",
+        "url": "string",
+        "videos_count": 0
+      }
     ],
     "courses": [
       {
@@ -39,7 +46,14 @@ npm run build
             "title": "string",
             "sequence": 1,
             "videos": [
-              { "video_id": "string", "title": "string", "description": "String","url": "string", "duration_secs": 0, "watched": false }
+              {
+                "video_id": "string",
+                "title": "string",
+                "description": "String",
+                "url": "string",
+                "duration_secs": 0,
+                "watched": false
+              }
             ]
           }
         ]
@@ -74,3 +88,42 @@ http://127.0.0.1:8001/docs
 ## Sample Data from API response
 - [sample-data](sample-data)
 - to understand data Structure, dto
+
+---
+## UI Design - update set 1
+### 1.
+- call /auth/google/debug on screen load first
+- if response json has `"has_access_token": true`. 
+- then mark it signed in.
+
+### 2. create plan with 3 input only :
+- name,
+- desc,
+- logo (optional)
+
+### 3. view created plan/s page
+Action buttons:
+- Add course manually
+- AI suggested Course creation
+- Delete
+
+### 4. Add course manually button:
+It will input 4 things:
+- course name
+- desc
+- upload logo (optional) 
+- content Source:
+    - youtube subscribed channel/s  multi-select tiles (title, Alphabet circle logo)
+    - For selected channels tile show dynamically multi-select playlist list ( title, desc, thumbnail )
+    - user will click : **load videos** button  
+    - video list ( title + thumbnail + desc trimmed)
+- after that **create course** button
+- it will create course with single module (chapter-1) and all videos into that module. 
+- then similarly user can add more courses.
+
+# 4 AI suggest Course create button.
+Similar input
+- channel
+- playlist (optional)
+
+AI will return complete learning plan object with automatically suggested course and modules (chapters inside it)
