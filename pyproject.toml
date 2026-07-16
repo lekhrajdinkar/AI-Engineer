@@ -13,15 +13,14 @@ dependencies = [
     "uvicorn[standard]>=0.22.0",
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
-
     "chromadb",
     "sentence_transformers",
-
     "langchain",
     "langchain_openai",
     "langchain-core",
     "langchain-mcp-adapters",
-    "duckduckgo-search"
+    "duckduckgo-search",
+    "google-api-python-client>=2.198.0",
 ]
 
 [project.optional-dependencies]

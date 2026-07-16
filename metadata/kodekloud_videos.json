@@ -1,0 +1,408 @@
+{
+  "channel_id": "UCSWj8mqQCcrcBlXPi4ThRDQ",
+  "query": null,
+  "fetched_at": "2026-07-16T00:31:58.052884Z",
+  "count": 50,
+  "videos": [
+    {
+      "video_id": "ZLiZaQxFHxc",
+      "title": "The Trick That Makes AI Agents Follow Best Practices",
+      "description": "AI agent skills are how we keep our LLMs from working off stale, generalist training data and get them following real best practices ...",
+      "published_at": "2026-07-15T14:14:26Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=ZLiZaQxFHxc"
+    },
+    {
+      "video_id": "_pqdHM3sl5w",
+      "title": "Platform Engineering vs DevOps Explained",
+      "description": "Platform engineering vs DevOps engineering comes down to who the work serves. A DevOps engineer automates things for their ...",
+      "published_at": "2026-07-15T12:30:24Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=_pqdHM3sl5w"
+    },
+    {
+      "video_id": "3hotxds9g5I",
+      "title": "KodeKloud Cohorts Check-in #5 with Nourhan Mohamed | CNPE Certification Prep",
+      "description": "Hey KodeKloud Community! Join us for KodeKloud Cohorts Check-in #5 on July 16, 2026, at 10 PM SGT / 7:30 PM IST!",
+      "published_at": "2026-07-14T22:33:17Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=3hotxds9g5I"
+    },
+    {
+      "video_id": "oz1FrycaQM4",
+      "title": "How Caching Saves Your App from Crashing🚨",
+      "description": "4 Caching Layers Every Backend Developer Must Know What actually keeps your database from crashing when traffic explodes?",
+      "published_at": "2026-07-14T15:47:41Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=oz1FrycaQM4"
+    },
+    {
+      "video_id": "yvP_AAirOQc",
+      "title": "What is Loop Engineering?",
+      "description": "Stop prompting. Start building loops.   Loop engineering is the shift where your AI agent stops waiting for the next instruction and ...",
+      "published_at": "2026-07-14T14:56:21Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=yvP_AAirOQc"
+    },
+    {
+      "video_id": "yahZy5tBoeo",
+      "title": "How Claude Does Web Search?",
+      "description": "How does ChatGPT or Claude actually search the web? Most people assume the model itself opens a browser and pulls live data.",
+      "published_at": "2026-07-14T12:30:02Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=yahZy5tBoeo"
+    },
+    {
+      "video_id": "rYgITcJIkYw",
+      "title": "Analyze Linux Logs With AI (No More Regex)",
+      "description": "What if you could just ask your Linux server what went wrong? We skip the regex and let an AI assistant read the logs, so you go ...",
+      "published_at": "2026-07-13T15:45:17Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=rYgITcJIkYw"
+    },
+    {
+      "video_id": "AIuZExZFHNU",
+      "title": "Consistent Hashing Explained (System Design Basics)",
+      "description": "System Design: Scaling Shards with Consistent Hashing! Basic database sharding setups fail when scaling out storage nodes.",
+      "published_at": "2026-07-13T12:30:06Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=AIuZExZFHNU"
+    },
+    {
+      "video_id": "VQdim50QJw8",
+      "title": "What Is Prompt Injection? The Real Risk in AI Agents",
+      "description": "Prompt injection is what happens when an AI agent can't tell your instructions apart from text it just read, and that confusion is ...",
+      "published_at": "2026-07-10T14:55:37Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=VQdim50QJw8"
+    },
+    {
+      "video_id": "iYBEnLD3YLQ",
+      "title": "Build a Serverless CDC Pipeline on AWS",
+      "description": "Ever added a feature to checkout and prayed nothing breaks? This is the fix, a change data capture (CDC) pipeline on AWS ...",
+      "published_at": "2026-07-09T14:39:28Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=iYBEnLD3YLQ"
+    },
+    {
+      "video_id": "2ZEdlXibwak",
+      "title": "The Real Difference Between a Good Engineer and a Great Engineer",
+      "description": "Urgent work gets applause. Important work gets silence. That is the whole reason we keep choosing urgent. Think about the ...",
+      "published_at": "2026-07-08T15:00:12Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=2ZEdlXibwak"
+    },
+    {
+      "video_id": "kY4emVgTjPc",
+      "title": "Debug Kubernetes with kagent (Full Hands-On Demo)",
+      "description": "In this video, we run an AI agent inside a live Kubernetes cluster with kagent and use it to debug two real failures that leave ...",
+      "published_at": "2026-07-06T15:26:18Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=kY4emVgTjPc"
+    },
+    {
+      "video_id": "4GwXyVIbKfY",
+      "title": "Stateful vs. Stateless Architecture!",
+      "description": "Basic application architectures fail when scaling horizontal workloads that store active user sessions directly inside server ...",
+      "published_at": "2026-07-04T12:44:13Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=4GwXyVIbKfY"
+    },
+    {
+      "video_id": "dvvWoRxqkIQ",
+      "title": "What is Loop Engineering?",
+      "description": "Automating LLMs with Loop Engineering! Loop engineering means building a reliable loop around an LLM instead of hunting ...",
+      "published_at": "2026-06-30T15:36:15Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=dvvWoRxqkIQ"
+    },
+    {
+      "video_id": "X-NfwLUBco4",
+      "title": "Blue-Green Deployment on AWS with EC2 and a Load Balancer",
+      "description": "In this video, we break down how a blue-green deployment on AWS actually works, then hand you free hands-on labs to build it ...",
+      "published_at": "2026-06-29T14:16:35Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=X-NfwLUBco4"
+    },
+    {
+      "video_id": "4yp7p7f9FbQ",
+      "title": "Kubernetes if API Server Goes Down!",
+      "description": "\"If the API server goes down, does the whole cluster go down?\" This is a Kubernetes interview question that trips up a lot of people ...",
+      "published_at": "2026-06-22T15:30:13Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=4yp7p7f9FbQ"
+    },
+    {
+      "video_id": "awU76_QDa34",
+      "title": "System Design: Defeating the SMS Retry Storm!",
+      "description": "System Design: Defeating the SMS Retry Storm! 1000 login requests hit your backend in one second. Your SMS provider only ...",
+      "published_at": "2026-06-18T15:30:38Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=awU76_QDa34"
+    },
+    {
+      "video_id": "CTCwLY-OqeA",
+      "title": "System Design: Building Caching System!",
+      "description": "A cache is supposed to shield your database. Until one expired key turns it into the weapon that takes the whole thing down.",
+      "published_at": "2026-06-17T16:05:07Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=CTCwLY-OqeA"
+    },
+    {
+      "video_id": "X0lZuvzK-zk",
+      "title": "The Truth About Closed AI Models Nobody Tells You",
+      "description": "The AI industry has split into two camps: open models and closed models. But what does that divide actually mean for you, ...",
+      "published_at": "2026-06-16T14:08:28Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=X0lZuvzK-zk"
+    },
+    {
+      "video_id": "tQFCUXTkcLs",
+      "title": "Best Observability Tools Ranked (2026)",
+      "description": "8 Observability Tools Compared: The Production Stack That Wins #shorts Logs, metrics, traces: the three pillars of observability, ...",
+      "published_at": "2026-06-12T12:27:51Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=tQFCUXTkcLs"
+    },
+    {
+      "video_id": "f-MpyJ-aPsY",
+      "title": "Docker Interview: Rapid Fire Round (Can You Keep Up?)",
+      "description": "Docker Interview: Rapid Fire Questions #shorts Picture yourself in a live DevOps interview with the questions coming fast. This is a ...",
+      "published_at": "2026-06-08T15:30:09Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=f-MpyJ-aPsY"
+    },
+    {
+      "video_id": "Bf5GhT8jZPc",
+      "title": "Why Perfect Networking is Impossible!",
+      "description": "Why Perfect Networking is Impossible! #shorts Why can no networked system ever be 100% reliable? This short breaks down one ...",
+      "published_at": "2026-06-05T14:28:21Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=Bf5GhT8jZPc"
+    },
+    {
+      "video_id": "vdx4-z5CoBk",
+      "title": "Design Webhooks Processing System",
+      "description": "System Design: Scaling Webhooks to 10 Million Events/Day! #shorts A full system design walkthrough: how to build a webhook ...",
+      "published_at": "2026-06-04T15:45:44Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=vdx4-z5CoBk"
+    },
+    {
+      "video_id": "fUkaBxruhLs",
+      "title": "Puzzle and Encryption",
+      "description": "The Three-Pass Protocol: Sending Secrets Without a Shared Key! Imagine needing to send a valuable item in a trunk to a ...",
+      "published_at": "2026-06-01T13:30:17Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=fUkaBxruhLs"
+    },
+    {
+      "video_id": "BpAhZTBLwnk",
+      "title": "AWS Just Fixed S3 After 20 Years",
+      "description": "Hands-on Lab (no AWS account needed): https://kode.wiki/4uDzrTk AWS S3 Files is the biggest change to Amazon S3 in 20 years ...",
+      "published_at": "2026-05-29T14:00:25Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=BpAhZTBLwnk"
+    },
+    {
+      "video_id": "4jrEAAq4MOY",
+      "title": "Design Payment Processing System",
+      "description": "System Design: Building a Bulletproof Payment Gateway! Basic payment setups fail during network timeouts. To block ...",
+      "published_at": "2026-05-27T13:00:30Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=4jrEAAq4MOY"
+    },
+    {
+      "video_id": "vJVD8jGWHHM",
+      "title": "Azure DevOps Question 42",
+      "description": "AZ-400: Locking Down Azure DevOps Pipeline Approvals! #shorts When designing secure CI/CD pipelines for the AZ-400 exam, ...",
+      "published_at": "2026-05-24T11:00:54Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=vJVD8jGWHHM"
+    },
+    {
+      "video_id": "0X3cQo4euEo",
+      "title": "Why AI Agents Are Killing Workflows in 2026",
+      "description": "AI Agents are replacing rigid workflows in 2026. Here's what actually changed. From prompt engineering to context engineering to ...",
+      "published_at": "2026-05-23T16:25:52Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=0X3cQo4euEo"
+    },
+    {
+      "video_id": "N-I7Jr9CGXw",
+      "title": "Amazon Checkout System Design Explained in 2 Minutes",
+      "description": "Ever wondered what really happens when you click \"Place Order\" on Amazon? In this short, we break down the classic system ...",
+      "published_at": "2026-05-18T15:30:22Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=N-I7Jr9CGXw"
+    },
+    {
+      "video_id": "mePQALlbb40",
+      "title": "Azure DevOps Engineer Question 41",
+      "description": "AZ-400: Tracking Custom Business Events in Azure! #shorts Application Insights is the definitive monitoring choice when you ...",
+      "published_at": "2026-05-15T08:05:12Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=mePQALlbb40"
+    },
+    {
+      "video_id": "ro0-3O-x9TE",
+      "title": "Public S3 Bucket!",
+      "description": "S3 Data Leak? Your Incident Response Checklist! #shorts Securing a leaked S3 bucket is just the beginning of a critical incident ...",
+      "published_at": "2026-05-13T17:04:52Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=ro0-3O-x9TE"
+    },
+    {
+      "video_id": "PTtYs2yeuwc",
+      "title": "AWS Amazon S3 Files Explained",
+      "description": "AWS just launched Amazon S3 Files — a new way to mount your S3 bucket as an NFS file system, so your app can read and write ...",
+      "published_at": "2026-05-09T10:41:42Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=PTtYs2yeuwc"
+    },
+    {
+      "video_id": "xGOhnRu9X3k",
+      "title": "Interview: Why You Need GitOps?",
+      "description": "This is one of the best DevOps interview questions out there: \"Why does GitOps even exist if we already had CD?\" Most people ...",
+      "published_at": "2026-05-04T06:32:56Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=xGOhnRu9X3k"
+    },
+    {
+      "video_id": "aFxTJbhkb2c",
+      "title": "(Part 1/2) Agent vs Workflow - Which Should You Choose? (Part 1/2)",
+      "description": "Most developers jump straight to AI agents — but that's almost never the right move. Before you build anything, ask one question: ...",
+      "published_at": "2026-04-29T15:48:03Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=aFxTJbhkb2c"
+    },
+    {
+      "video_id": "o9jz04bIW0E",
+      "title": "LLM Fine Tuning Tutorial (Free Labs)",
+      "description": "Fine-Tune LLMs & Build Real AI Agents — https://kode.wiki/4cHnB48 Prompt engineering is fragile. Users can override your ...",
+      "published_at": "2026-04-29T14:53:30Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=o9jz04bIW0E"
+    },
+    {
+      "video_id": "TQynIWJ3DHs",
+      "title": "Why Prompt Engineering is DEAD (Do This to Your LLM Instead)",
+      "description": "Prompt engineering has limits. Fine-tuning doesn't. Most companies building AI agents are stuck at the surface level ...",
+      "published_at": "2026-04-24T15:30:30Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=TQynIWJ3DHs"
+    },
+    {
+      "video_id": "eWrdefWfcRU",
+      "title": "GCP Data Engineer Question 7",
+      "description": "BigQuery: Slashing Storage Costs! #shorts The Solution: Table Partitioning & Long-Term Storage To reduce costs for 200TB ...",
+      "published_at": "2026-04-24T10:53:21Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=eWrdefWfcRU"
+    },
+    {
+      "video_id": "5kwb1m_O0KU",
+      "title": "The DevOps Dilemma",
+      "description": "It's 2:00 PM and production is hitting a critical billing bug. You have a three-line fix ready, but your CI/CD pipeline takes 45 minutes ...",
+      "published_at": "2026-04-23T06:27:32Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=5kwb1m_O0KU"
+    },
+    {
+      "video_id": "PPkLtGi4YSg",
+      "title": "What is Claude Mythos?",
+      "description": "Anthropic built an AI so dangerous they refused to release it Claude Methus just scored 77.8% on SWE-Bench Pro — nearly ...",
+      "published_at": "2026-04-21T15:55:34Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=PPkLtGi4YSg"
+    },
+    {
+      "video_id": "w3gX6n-Lfdk",
+      "title": "Docker Image Too Big? Here&#39;s What Senior DevOps Engineers Say",
+      "description": "Shrink Your Docker Images! ⚡ #shorts Multi-stage builds are the ultimate way to slash your Docker image size and skyrocket ...",
+      "published_at": "2026-04-21T09:03:31Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=w3gX6n-Lfdk"
+    },
+    {
+      "video_id": "qIHaSPQYciM",
+      "title": "Stop Prompt Engineering. Start Customizing Your LLM the Right Way",
+      "description": "Customize LLMs & Agents for FREE — https://kode.wiki/3QcX45W Most teams rely on prompt engineering. The ones building ...",
+      "published_at": "2026-04-15T13:45:28Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=qIHaSPQYciM"
+    },
+    {
+      "video_id": "u5NNTqqBVnE",
+      "title": "AWS AI Practitioner Question 38",
+      "description": "Amazon Bedrock: Comparing Models! Goal: Evaluate foundation models for accuracy, latency, and cost before production.",
+      "published_at": "2026-04-13T05:30:24Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=u5NNTqqBVnE"
+    },
+    {
+      "video_id": "kQMQGormS4I",
+      "title": "How LLM API Calls Actually Work (OpenAI SDK vs Raw HTTP)",
+      "description": "Ever wonder what actually happens when you send a message to ChatGPT? Behind the scenes, your prompt is packaged into an ...",
+      "published_at": "2026-04-12T17:41:22Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=kQMQGormS4I"
+    },
+    {
+      "video_id": "obj-PvjnaOQ",
+      "title": "Prompting Basics - Part 3/3",
+      "description": "You asked for a sentiment classification. The model gave you a three-sentence essay. Why? In Part 3 of our Prompting ...",
+      "published_at": "2026-04-12T06:20:45Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=obj-PvjnaOQ"
+    },
+    {
+      "video_id": "5Y_JM6C9xOA",
+      "title": "How the vLLM inference engine works?",
+      "description": "vLLM isn't just another inference engine, it's the one that finally solved GPU memory waste at scale The problem: every time ...",
+      "published_at": "2026-04-08T13:00:08Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=5Y_JM6C9xOA"
+    },
+    {
+      "video_id": "uh5wFLOyG_4",
+      "title": "Why Should You Care About AI Tokens in 2026?",
+      "description": "The reason your AI responses are slow and expensive? Tokens. Every word your LLM reads and generates is counted — and ...",
+      "published_at": "2026-04-03T12:08:49Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=uh5wFLOyG_4"
+    },
+    {
+      "video_id": "qdPkA5mxLhg",
+      "title": "Understanding vLLM with a Hands On Demo",
+      "description": "vLLMs Labs for FREE — https://kode.wiki/4toLSl7 Most people can use an LLM. Very few know how to serve one at scale.",
+      "published_at": "2026-03-31T14:01:01Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=qdPkA5mxLhg"
+    },
+    {
+      "video_id": "aZB4iqTWF3M",
+      "title": "What is AIOps?",
+      "description": "Your IT team can't read every log. AI can. Enterprises generate hundreds of gigabytes of log data daily — managing that ...",
+      "published_at": "2026-03-26T14:00:02Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=aZB4iqTWF3M"
+    },
+    {
+      "video_id": "Vgt6Zqj_oe8",
+      "title": "Azure DevOps Engineer Question 23",
+      "description": "The best strategy to retain standard artifacts for 30 days while keeping production artifacts indefinitely is to set a global 30-day ...",
+      "published_at": "2026-03-25T15:01:00Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=Vgt6Zqj_oe8"
+    },
+    {
+      "video_id": "pC0QpWqs-6I",
+      "title": "Azure DevOps Engineer Exam: Question 21",
+      "description": "Azure Pipelines: Mastering Stage Order! #shorts Goal: Ensure your Production stage triggers automatically—but only after the ...",
+      "published_at": "2026-03-23T07:33:44Z",
+      "channel_title": "KodeKloud",
+      "video_url": "https://www.youtube.com/watch?v=pC0QpWqs-6I"
+    }
+  ]
+}
