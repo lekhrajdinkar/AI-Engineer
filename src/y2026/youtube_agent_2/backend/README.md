@@ -32,9 +32,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-# From the backend directory
-cd src\y2026\youtube-agent-2\backend
-uvicorn main:app --reload --port 8001
+uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001
 ```
 
 ---

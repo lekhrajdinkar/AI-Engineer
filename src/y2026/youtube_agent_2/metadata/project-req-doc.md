@@ -88,8 +88,6 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 6) Archive / Delete
 - Soft-delete or archive plans to preserve history
 
-
-
 ## Acceptance Criteria (clear pass/fail for MVP)
 1. User can authenticate with Google and the app can read their subscriptions
 2. User can import videos from at least 3 channels and create a learning plan

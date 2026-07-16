@@ -2,7 +2,6 @@
 """Test script for new YouTube video/playlist endpoints."""
 
 import requests
-import json
 import time
 
 BASE_URL = "http://localhost:8001"

@@ -1,7 +1,7 @@
 import sqlite3
 import json
 from typing import Optional, List
-from . import  config
+from src.y2026.youtube_agent_2.backend import config
 
 def init_db():
     conn = sqlite3.connect(config.DB_PATH)
@@ -32,7 +32,7 @@ def init_db():
 
 
 def save_plan(plan_obj: dict):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     pid = plan_obj.get("id")
     data = json.dumps(plan_obj, default=str)
@@ -44,7 +44,7 @@ def save_plan(plan_obj: dict):
 
 
 def save_tokens(provider: str, tokens: dict):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     data = json.dumps(tokens, default=str)
     created = tokens.get("created_at")
@@ -54,7 +54,7 @@ def save_tokens(provider: str, tokens: dict):
 
 
 def load_latest_tokens(provider: str) -> Optional[dict]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT data FROM tokens WHERE provider = ? ORDER BY id DESC LIMIT 1", (provider,))
     row = cur.fetchone()
@@ -65,7 +65,7 @@ def load_latest_tokens(provider: str) -> Optional[dict]:
 
 
 def load_plan(plan_id: str) -> Optional[dict]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT data FROM plans WHERE id = ?", (plan_id,))
     row = cur.fetchone()
@@ -76,7 +76,7 @@ def load_plan(plan_id: str) -> Optional[dict]:
 
 
 def list_plans() -> List[dict]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT data FROM plans ORDER BY updated_at DESC")
     rows = cur.fetchall()

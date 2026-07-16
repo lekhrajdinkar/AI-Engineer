@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 import os
 import sqlite3
 from dotenv import load_dotenv
-from . import db
-from . import youtube_client
+from src.y2026.youtube_agent_2.backend import db
+from src.y2026.youtube_agent_2.backend import youtube_client
 
 load_dotenv()
 
