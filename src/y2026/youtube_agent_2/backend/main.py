@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from starlette.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import uuid
@@ -8,8 +9,38 @@ import sqlite3
 from dotenv import load_dotenv
 from src.y2026.youtube_agent_2.backend import db
 from src.y2026.youtube_agent_2.backend import youtube_client
+from src.y2026.youtube_agent_2.backend import config
 
 load_dotenv()
+
+#=====================================
+# Helper Functions
+#=====================================
+def trim_description(description: Optional[str]) -> Optional[str]:
+    """
+    Trim description after the first double newline (\\n\\n).
+    If config.TRIM_VIDEO_DESC is False, return description as-is.
+    """
+    if not config.TRIM_VIDEO_DESC or not description:
+        return description
+    
+    # Split by double newline and return only the first part
+    parts = description.split("\n\n")
+    return parts[0] if parts else description
+
+
+def process_videos(videos: List[dict]) -> List[dict]:
+    """
+    Process videos list: trim descriptions if config.TRIM_VIDEO_DESC is True.
+    """
+    processed = []
+    for v in videos:
+        processed_video = v.copy()
+        if "description" in processed_video:
+            processed_video["description"] = trim_description(processed_video["description"])
+        processed.append(processed_video)
+    return processed
+
 
 def get_channels():
     return youtube_client.list_subscribed_channels()
@@ -93,6 +124,17 @@ def get_videos(channel_id: Optional[str] = None, playlist_id: Optional[str] = No
     Fetch videos.
     - If only channel_id: returns all uploads for that channel
     - If both channel_id and playlist_id: returns videos for that specific playlist
+    - if config.TRIM_VIDEO_DESC, then trim 'description' field, after encounter first \n\n
+
+    sample output
+    {
+        "channel_id": "",
+        "videos": [
+            { "video_id": "",      "title": "",      "description": "",      "thumbnail": "",      "url": "",      "position": null},
+            { "video_id": "",      "title": "",      "description": "",      "thumbnail": "",      "url": "",      "position": null}
+        ]
+    }
+
     """
     print(f"🎬 [GET /api/videos] Called with channel_id={channel_id}, playlist_id={playlist_id}")
     
@@ -103,11 +145,17 @@ def get_videos(channel_id: Optional[str] = None, playlist_id: Optional[str] = No
         # Get videos from specific playlist
         print(f"   Mode: specific playlist")
         videos = youtube_client.get_playlist_videos(playlist_id)
-        return {"channel_id": channel_id, "playlist_id": playlist_id, "videos": videos}
     else:
         # Get all videos from channel
         print(f"   Mode: channel uploads")
         videos = youtube_client.get_channel_videos(channel_id)
+    
+    # Process videos: trim descriptions if configured
+    videos = process_videos(videos)
+    
+    if playlist_id:
+        return {"channel_id": channel_id, "playlist_id": playlist_id, "videos": videos}
+    else:
         return {"channel_id": channel_id, "videos": videos}
 
 
@@ -164,7 +212,7 @@ def google_debug():
 def google_logout():
     """Clear stored tokens (forces re-authentication on next login)."""
     # For MVP, we just clear all Google tokens
-    conn = sqlite3.connect(db.DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("DELETE FROM tokens WHERE provider = ?", ("google",))
     conn.commit()
