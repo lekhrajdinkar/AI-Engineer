@@ -1,5 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import uuid
@@ -7,20 +6,17 @@ from datetime import datetime, timezone
 import os
 import sqlite3
 from dotenv import load_dotenv
-
 from . import db
 from . import youtube_client
 
 load_dotenv()
 
-app = FastAPI(title="YouTube Learning Organizer - Backend Prototype")
-
-
-# Demo channels come from the youtube_client (scaffold)
-def get_demo_channels():
+def get_channels():
     return youtube_client.list_subscribed_channels()
 
-
+#=====================================
+# Model / DTO / EEntity
+#=====================================
 class Video(BaseModel):
     video_id: str
     title: str
@@ -59,22 +55,67 @@ class LearningPlan(BaseModel):
     courses: List[Course] = Field(default_factory=list)
 
 
+#=====================================
+# API
+#=====================================
+app = FastAPI(title="YouTube Learning Organizer - Backend")
+
 @app.get("/", tags=["meta"])
 def root():
     return {"service": "YouTube Learning Organizer (prototype)", "status": "ok"}
 
-
+####################
+### YouTube Data
+####################
+#### CHANNEL #####
 @app.get("/api/channels", tags=["channels"])
 def list_channels():
     print(f"🌐 [GET /api/channels] Called")
-    channels = get_demo_channels()
+    channels = get_channels()
     print(f"   Returned {len(channels)} channels")
     if channels:
         print(f"   First channel: {channels[0].get('title', 'N/A')}")
     return {"channels": channels}
 
+#### PLAYLIST #####
+@app.get("/api/{channel_id}/playlists", tags=["playlists"])
+def get_channel_playlists(channel_id: str):
+    """Fetch all playlists for a given channel."""
+    print(f"📋 [GET /api/{channel_id}/playlists] Called")
+    playlists = youtube_client.get_channel_playlists(channel_id)
+    print(f"   Returned {len(playlists)} playlists")
+    return {"channel_id": channel_id, "playlists": playlists}
+
+#### VIDEOS #####
+@app.get("/api/videos", tags=["videos"])
+def get_videos(channel_id: Optional[str] = None, playlist_id: Optional[str] = None):
+    """
+    Fetch videos.
+    - If only channel_id: returns all uploads for that channel
+    - If both channel_id and playlist_id: returns videos for that specific playlist
+    """
+    print(f"🎬 [GET /api/videos] Called with channel_id={channel_id}, playlist_id={playlist_id}")
+    
+    if not channel_id:
+        raise HTTPException(status_code=400, detail="channel_id is required")
+    
+    if playlist_id:
+        # Get videos from specific playlist
+        print(f"   Mode: specific playlist")
+        videos = youtube_client.get_playlist_videos(playlist_id)
+        return {"channel_id": channel_id, "playlist_id": playlist_id, "videos": videos}
+    else:
+        # Get all videos from channel
+        print(f"   Mode: channel uploads")
+        videos = youtube_client.get_channel_videos(channel_id)
+        return {"channel_id": channel_id, "videos": videos}
 
 
+####################
+### Authentication
+####################
+
+#### LOGIN #####
 @app.get("/auth/google/login", tags=["auth"])
 def google_login():
     client_id = os.getenv("GOOGLE_CLIENT_ID")
@@ -86,36 +127,7 @@ def google_login():
     url = youtube_client.get_oauth_authorize_url(client_id, redirect_uri, scope)
     return RedirectResponse(url)
 
-
-@app.get("/auth/google/debug", tags=["auth"])
-def google_debug():
-    """Debug endpoint to inspect stored token and scopes."""
-    tokens = db.load_latest_tokens("google")
-    if not tokens:
-        return {"status": "no tokens stored"}
-    return {
-        "status": "token found",
-        "has_access_token": "access_token" in tokens,
-        "has_refresh_token": "refresh_token" in tokens,
-        "scope": tokens.get("scope", "NOT PRESENT"),
-        "token_type": tokens.get("token_type"),
-        "created_at": tokens.get("created_at"),
-    }
-
-
-@app.post("/auth/google/logout", tags=["auth"])
-def google_logout():
-    """Clear stored tokens (forces re-authentication on next login)."""
-    # For MVP, we just clear all Google tokens
-    conn = sqlite3.connect(db.DB_PATH)
-    cur = conn.cursor()
-    cur.execute("DELETE FROM tokens WHERE provider = ?", ("google",))
-    conn.commit()
-    conn.close()
-    print("🔑 [google_logout] All Google tokens cleared")
-    return {"message": "logged out", "next": "/auth/google/login"}
-
-
+#### CALLBACK #####
 @app.get("/auth/google/callback", tags=["auth"])
 def google_callback(code: Optional[str] = None, error: Optional[str] = None):
     if error:
@@ -133,10 +145,44 @@ def google_callback(code: Optional[str] = None, error: Optional[str] = None):
     return {"message": "authentication successful", "next": "/", "info": "Tokens saved (single-user demo)"}
 
 
+@app.get("/auth/google/debug", tags=["auth"])
+def google_debug():
+    """Debug endpoint to inspect stored token and scopes."""
+    tokens = db.load_latest_tokens("google")
+    if not tokens:
+        return {"status": "no tokens stored"}
+    return {
+        "status": "token found",
+        "has_access_token": "access_token" in tokens,
+        "has_refresh_token": "refresh_token" in tokens,
+        "scope": tokens.get("scope", "NOT PRESENT"),
+        "token_type": tokens.get("token_type"),
+        "created_at": tokens.get("created_at"),
+    }
+
+@app.post("/auth/google/logout", tags=["auth"])
+def google_logout():
+    """Clear stored tokens (forces re-authentication on next login)."""
+    # For MVP, we just clear all Google tokens
+    conn = sqlite3.connect(db.DB_PATH)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM tokens WHERE provider = ?", ("google",))
+    conn.commit()
+    conn.close()
+    print("🔑 [google_logout] All Google tokens cleared")
+    return {"message": "logged out", "next": "/auth/google/login"}
+
+
+
+####################
+### LEARNING PLAN
+####################
+
+###### CREATE PLAN #######
 @app.post("/api/plans", tags=["plans"])
 def create_plan(payload: LearningPlanCreate):
     # Build channel objects from channel_ids (demo)
-    all_channels = get_demo_channels()
+    all_channels = get_channels()
     channels = [c for c in all_channels if c["channel_id"] in payload.channel_ids]
     plan = LearningPlan(name=payload.name, description=payload.description, channels=channels)
     # persist to sqlite
@@ -144,6 +190,7 @@ def create_plan(payload: LearningPlanCreate):
     return {"plan_id": plan.id, "plan": plan}
 
 
+###### VIEW PLAN #######
 @app.get("/api/plans/{plan_id}", tags=["plans"])
 def get_plan(plan_id: str):
     row = db.load_plan(plan_id)
@@ -152,7 +199,7 @@ def get_plan(plan_id: str):
     # pydantic will parse datetimes
     return LearningPlan.model_validate(row)
 
-
+###### REFRESH PLAN #######
 @app.patch("/api/plans/{plan_id}/refresh", tags=["plans"])
 def refresh_plan(plan_id: str):
     row = db.load_plan(plan_id)
@@ -177,7 +224,7 @@ def refresh_plan(plan_id: str):
     db.save_plan(plan.model_dump())
     return {"message": "refreshed", "added_video": new_video}
 
-
+###### REFRESH PLAN #######
 @app.post("/api/plans/{plan_id}/ai-suggest", tags=["plans"])
 def ai_suggest(plan_id: str):
     # Simple keyword-based grouping suggestion
@@ -208,7 +255,7 @@ def ai_suggest(plan_id: str):
 
     return {"suggestions": suggestions}
 
-
+###### SEARCH PLAN #######
 @app.get("/api/search", tags=["search"])
 def search(q: str):
     results = []

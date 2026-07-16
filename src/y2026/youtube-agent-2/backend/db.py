@@ -1,13 +1,10 @@
 import sqlite3
 import json
-from pathlib import Path
 from typing import Optional, List
-
-DB_PATH = Path(__file__).parent / "youtubeldb.sqlite3"
-
+from . import  config
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute(
         """

@@ -1,6 +1,6 @@
 # Backend 
+---
 ## One time configuration
-
 ### update environment variables 
 ```.dotenv
 .env file
@@ -26,19 +26,47 @@ GOOGLE_REDIRECT_URI=http://localhost:8001/auth/google/callback
     - Authorized redirect URIs:  http://localhost:8001/auth/google/callback
 
 ---
-## Run
+## Run ⭐
 ```bash
-python -m venv .venv; .\.venv\Scripts\Activate.ps1; 
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-# Push-Location src\y2026\youtube-agent-2\backend
-uvicorn src.y2026.youtube-agent-2.backend.main:app --reload --port 8001
-# Pop-Location
+# From the backend directory
+cd src\y2026\youtube-agent-2\backend
+uvicorn main:app --reload --port 8001
 ```
-Endpoints 
-- http://127.0.0.1:8001/docs 
-- http://localhost:8001/auth/google/login
+
+---
+## API DOCs
+http://127.0.0.1:8001/docs 
+### Authentication
+- `GET /auth/google/login` — Start Google OAuth flow
+  - http://localhost:8001/auth/google/login
+- `GET /auth/google/callback` — OAuth callback (automatic redirect)
+- `GET /auth/google/debug` — Debug token info
+- `POST /auth/google/logout` — Clear stored tokens
+
+### YouTube Data
+- `GET /api/channels` — List subscribed channels (OAuth required)
+- `GET /api/{channel_id}/playlists` — List playlists for a channel
+- `GET /api/videos?channel_id={channel_id}` — Get all videos from channel
+- `GET /api/videos?channel_id={channel_id}&playlist_id={playlist_id}` — Get videos from specific playlist
+
+### Learning Plans
+- `POST /api/plans` — Create a learning plan
+- `GET /api/plans/{plan_id}` — Get plan details
+- `PATCH /api/plans/{plan_id}/refresh` — Refresh plan (demo: adds synthetic video)
+- `POST /api/plans/{plan_id}/ai-suggest` — AI-powered grouping suggestion
+- `GET /api/search?q={query}` — Search videos across all plans
+
+
+## Load Dumps from API call taken at [json-dumps](json-dumps)
 - http://127.0.0.1:8001/api/channels
-
-
+    - youtube-agent-2/backend/json-dumps/channels.json
+- http://127.0.0.1:8001/api/UCzCsyvyrq38R6TnztEzOmgg/playlists
+    - youtube-agent-2/backend/json-dumps/playlist.json
+- http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg&playlist_id=PLJq-63ZRPdBt-RFGwsJO9Pv6A8ZwYHua9 
+    - youtube-agent-2/backend/json-dumps/videos-of-a-playlist.json
+- http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg
 

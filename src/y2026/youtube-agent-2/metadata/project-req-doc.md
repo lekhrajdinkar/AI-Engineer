@@ -88,30 +88,13 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 6) Archive / Delete
 - Soft-delete or archive plans to preserve history
 
-## API Skeleton (backend endpoints — suggested)
-- POST /auth/google/callback — OAuth callback
-- GET /api/channels — list subscribed channels (paginated)
-- POST /api/plans — create new learning plan (with channels)
-- GET /api/plans/{plan_id} — read plan
-- PATCH /api/plans/{plan_id}/refresh — incremental refresh
-- POST /api/plans/{plan_id}/ai-suggest — invoke Course Builder agent for suggestions
-- GET /api/search?q=... — global search
 
-## Phase Breakdown & Timeline (MVP estimate)
-- Phase 1 — Frontend (React) — 3–4 weeks
-  - Google OAuth, dashboard, CRUD UI for plans
-- Phase 2 — Backend (Python) — 2–3 weeks
-  - API, DB schema, YouTube integration, basic search
-- Phase 3 — AI Agents (optional) — 1–2 weeks
-  - Local prototype: simple clustering/keyword-based grouping; later LLM-based agent
-- Phase 4 — Integration & polish — 1 week
 
 ## Acceptance Criteria (clear pass/fail for MVP)
 1. User can authenticate with Google and the app can read their subscriptions
 2. User can import videos from at least 3 channels and create a learning plan
 3. User can create or accept AI-suggested course/module groupings and edit them
 4. Incremental refresh adds only new videos since last update
-5. App shows <2s response for browsing a plan with ~50 videos on local machine
 
 ## Assumptions
 - User stores data locally or in a single-user cloud DB

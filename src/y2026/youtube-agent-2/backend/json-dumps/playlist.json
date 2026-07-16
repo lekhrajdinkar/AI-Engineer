@@ -1,0 +1,125 @@
+{
+  "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
+  "playlists": [
+    {
+      "playlist_id": "PLJq-63ZRPdBtWd3MX1VuylaPLy7DaaAD5",
+      "title": "Deep Dive",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/aaIw2cXRjEc/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBuYe6h2vGc1oIlCs0j9Y6rX",
+      "title": "Git",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/E-CH3-VyVck/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBtLBbzA2fIG9mOPclbPDSxq",
+      "title": "Design Patterns",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/USLwIwyWVIM/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBtTnNozX53Aj1ieeOQ5mSz8",
+      "title": "Spring/Java",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/0NtIcbSsjBc/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBvQnN9YQlpe5dKKg56MDpx4",
+      "title": "FinTech",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/iI2NaN_QVTI/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBv4c4Tf6Htxy5HyX2MJsP1x",
+      "title": "Algorithms",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/uqI4u9wtkU0/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBsULKfvTbXvwlUIYGIwdLAz",
+      "title": "Frontend",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/Vej327jN8WI/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBu2Xp9FySm7EkXwUpWgptMv",
+      "title": "DDD",
+      "description": "Domain Drive Design",
+      "thumbnail": "https://i.ytimg.com/vi/sVi4aDNIPWo/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBuo5zjv9bPNLIks4tfd0Pui",
+      "title": "Machine Learning Basics",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/mmguq4BHVCc/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBsPWE24vdpmgeRFMRQyjvvj",
+      "title": "Microservices",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/hrvx8Nv9eQA/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBtFDMo2u0-pJOP2V-OcONNi",
+      "title": "Shorts",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/G13lQS_iZTU/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBtIebe_QwhtQgs34ZmQXvuY",
+      "title": "NewsBytes",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/Fm42RGGwpyo/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBsuf5tc_YP1hKdoakZ-x0rH",
+      "title": "Computer Networking",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/yBY5GJtmhg0/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBu38EjXRXzyPat3sYMHbIWU",
+      "title": "LLM",
+      "description": "Basics of building LLM from scratch",
+      "thumbnail": "https://i.ytimg.com/vi/iQ9arr3TTMA/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBt-RFGwsJO9Pv6A8ZwYHua9",
+      "title": "Security Basics",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/ZDuRmhLSLOY/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBveSLgUw2KA2RcAX8A2HzM2",
+      "title": "SystemDesignShorts",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/tHk5nbwha64/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBssWTtcUlbngD_O5HaxXu6k",
+      "title": "System Design Questions",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/xyLO8ZAk2KE/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBslxJd-ZT12BNBDqGZgFo58",
+      "title": "Emerging Tech",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/HELut8eTRJg/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBt423WbyAD1YZO0Ljo1pzvY",
+      "title": "System Design Interview Basics",
+      "description": "Must Know basics for any System Design Interview",
+      "thumbnail": "https://i.ytimg.com/vi/yioOQ4ItYuo/default.jpg"
+    },
+    {
+      "playlist_id": "PLJq-63ZRPdBswWWpRKzxlZPxF7m6LcZ_5",
+      "title": "AWS",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/wF1pldkQrOY/default.jpg"
+    }
+  ]
+}
