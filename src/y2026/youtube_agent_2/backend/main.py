@@ -51,7 +51,9 @@ def get_channels():
 class Video(BaseModel):
     video_id: str
     title: str
+    revised_title_from_ai: str
     url: Optional[str] = None
+    sequence: int = 1
     duration_secs: Optional[int] = None
     watched: bool = False
 
@@ -66,25 +68,18 @@ class Module(BaseModel):
 class Course(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
+    sequence: int = 1
     description: Optional[str] = None
     modules: List[Module] = Field(default_factory=list)
 
-
-class LearningPlanCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-    channel_ids: List[str] = []
-
-
 class LearningPlan(BaseModel):
+    logo_url: str = ""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    channels: List[dict] = Field(default_factory=list)
     courses: List[Course] = Field(default_factory=list)
-
 
 #=====================================
 # API
@@ -162,8 +157,6 @@ def get_videos(channel_id: Optional[str] = None, playlist_id: Optional[str] = No
 ####################
 ### Authentication
 ####################
-
-#### LOGIN #####
 @app.get("/auth/google/login", tags=["auth"])
 def google_login():
     client_id = os.getenv("GOOGLE_CLIENT_ID")
@@ -175,7 +168,6 @@ def google_login():
     url = youtube_client.get_oauth_authorize_url(client_id, redirect_uri, scope)
     return RedirectResponse(url)
 
-#### CALLBACK #####
 @app.get("/auth/google/callback", tags=["auth"])
 def google_callback(code: Optional[str] = None, error: Optional[str] = None):
     if error:
@@ -191,7 +183,6 @@ def google_callback(code: Optional[str] = None, error: Optional[str] = None):
     # After saving tokens in DB, return a friendly message
     print(f"✅ [google_callback] Tokens saved. Scopes: {tokens.get('scope', 'NOT_PRESENT')}")
     return {"message": "authentication successful", "next": "/", "info": "Tokens saved (single-user demo)"}
-
 
 @app.get("/auth/google/debug", tags=["auth"])
 def google_debug():
@@ -221,24 +212,21 @@ def google_logout():
     return {"message": "logged out", "next": "/auth/google/login"}
 
 
-
 ####################
 ### LEARNING PLAN
 ####################
-
 ###### CREATE PLAN #######
 @app.post("/api/plans", tags=["plans"])
-def create_plan(payload: LearningPlanCreate):
-    # Build channel objects from channel_ids (demo)
-    all_channels = get_channels()
-    channels = [c for c in all_channels if c["channel_id"] in payload.channel_ids]
-    plan = LearningPlan(name=payload.name, description=payload.description, channels=channels)
-    # persist to sqlite
+def create_plan(plan: LearningPlan):
     db.save_plan(plan.model_dump())
     return {"plan_id": plan.id, "plan": plan}
 
+###### VIEW ALL PLAN #######
+@app.get("/api/plans", tags=["plans"])
+def get_plan():
+    return db.list_plans()
 
-###### VIEW PLAN #######
+###### VIEW A PLAN #######
 @app.get("/api/plans/{plan_id}", tags=["plans"])
 def get_plan(plan_id: str):
     row = db.load_plan(plan_id)
@@ -247,9 +235,13 @@ def get_plan(plan_id: str):
     # pydantic will parse datetimes
     return LearningPlan.model_validate(row)
 
-###### REFRESH PLAN #######
-@app.patch("/api/plans/{plan_id}/refresh", tags=["plans"])
-def refresh_plan(plan_id: str):
+
+####################
+### Add COURSES
+####################
+###### add-course-manual : dump all video in single chapter/ module into given course object #######
+@app.patch("/api/plans/{plan_id}/add-course-manually", tags=["plans"])
+def refresh_plan(plan_id: str, course: Course):
     row = db.load_plan(plan_id)
     if not row:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -257,61 +249,20 @@ def refresh_plan(plan_id: str):
     plan = LearningPlan.model_validate(row)
     now = datetime.now(timezone.utc)
     plan.updated_at = now
-
-    # create a default course/module if none
-    if not plan.courses:
-        new_course = Course(title="Imported Course")
-        new_module = Module(title="Module 1", sequence=1)
-        new_course.modules.append(new_module)
-        plan.courses.append(new_course)
-
-    # add a synthetic video
-    new_video = Video(video_id=str(uuid.uuid4()), title=f"New video {now.isoformat()}")
-    plan.courses[0].modules[0].videos.append(new_video)
+    plan.courses.append(course)
 
     db.save_plan(plan.model_dump())
-    return {"message": "refreshed", "added_video": new_video}
+    return {"message": "✔️created course with, All chapters"}
 
-###### REFRESH PLAN #######
-@app.post("/api/plans/{plan_id}/ai-suggest", tags=["plans"])
-def ai_suggest(plan_id: str):
-    # Simple keyword-based grouping suggestion
+###### todo :: add-course-ai-suggested #######
+@app.post("/api/plans/{plan_id}/add-course-ai-suggested", tags=["plans"])
+def ai_suggest(plan_id: str, videos: List[Video]):
     row = db.load_plan(plan_id)
     if not row:
         raise HTTPException(status_code=404, detail="Plan not found")
 
     plan = LearningPlan.model_validate(row)
-    videos = []
-    for c in plan.courses:
-        for m in c.modules:
-            for v in m.videos:
-                videos.append({"video_id": v.video_id, "title": v.title or ""})
 
-    # basic heuristic: map top non-stopword to videos
-    stopwords = {"the", "a", "an", "of", "and", "in", "to", "for", "with", "on", "how"}
-    suggestions = {}
-    for v in videos:
-        words = [w.strip(".,:;()[]") for w in v["title"].lower().split() if w]
-        key = None
-        for w in words:
-            if w not in stopwords:
-                key = w
-                break
-        if not key:
-            key = "misc"
-        suggestions.setdefault(key, []).append(v)
-
-    return {"suggestions": suggestions}
-
-###### SEARCH PLAN #######
-@app.get("/api/search", tags=["search"])
-def search(q: str):
-    results = []
-    for row in db.list_plans():
-        plan = LearningPlan.model_validate(row)
-        for c in plan.courses:
-            for m in c.modules:
-                for v in m.videos:
-                    if q.lower() in (v.title or "").lower():
-                        results.append({"plan_id": plan.id, "video_id": v.video_id, "title": v.title})
-    return {"q": q, "results": results}
+    # todo:
+    # videos will be organised into courses and underlying videos.
+    # And then will be added to plan

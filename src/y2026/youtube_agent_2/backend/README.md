@@ -39,38 +39,34 @@ uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001
 ## API DOCs
 http://127.0.0.1:8001/docs 
 ### Authentication
-- `GET /auth/google/login` — Start Google OAuth flow
-- `GET /auth/google/callback` — OAuth callback (automatic redirect)
-- `GET /auth/google/debug` — Debug token info
-- `POST /auth/google/logout` — Clear stored tokens
-### Authentication
 - `GET /auth/google/login` — Start Google OAuth flow, get access token and save in sqLite3
 - `GET /auth/google/callback` — OAuth callback (automatic redirect)
 - `GET /auth/google/debug` — Debug access token info
 - `POST /auth/google/logout` — Clear access stored tokens
-### YouTube Data
+- test
+  - http://localhost:8001/auth/google/login
+  - http://localhost:8001/auth/google/debug
+  
+### Fetch Videos
 - `GET /api/channels` — List subscribed channels (OAuth required)
 - `GET /api/{channel_id}/playlists` — List playlists for a channel
 - `GET /api/videos?channel_id={channel_id}` — Get all videos from channel
-- `GET /api/videos?channel_id={channel_id}&playlist_id={playlist_id}` — Get videos from specific playlist
+- `GET /api/videos?channel_id={channel_id}&playlist_id={playlist_id}` — Get videos from specific channel's playlist
+- test
+  - http://127.0.0.1:8001/api/channels
+  - http://127.0.0.1:8001/api/UCzCsyvyrq38R6TnztEzOmgg/playlists
+  - http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg&playlist_id=PLJq-63ZRPdBt-RFGwsJO9Pv6A8ZwYHua9
+  - http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg
+  - [json-dumps](json-dumps) 👈
 
 ### Learning Plans
 - `POST /api/plans` — Create a learning plan
+- `GET /api/plans` — Get all plan detail
 - `GET /api/plans/{plan_id}` — Get plan details
-- `PATCH /api/plans/{plan_id}/refresh` — Refresh plan (demo: adds synthetic video)
-- `POST /api/plans/{plan_id}/ai-suggest` — AI-powered grouping suggestion
-- `GET /api/search?q={query}` — Search videos across all plans
 
+### Create Course in the plan
+- `POST /api/plans/{plan_id}/add-course-manually` — Add course into plan
+- `POST /api/plans/{plan_id}/add-course-ai-suggested` — Organize videos into course by AI , then add into plan's course
 
-## Load Dumps from API call taken at [json-dumps](../frontend/sample-data)
-- http://localhost:8001/auth/google/login
-- http://localhost:8001/auth/google/debug
-- http://127.0.0.1:8001/api/channels
-    - youtube-agent-2/backend/json-dumps/channels.json
-- http://127.0.0.1:8001/api/UCzCsyvyrq38R6TnztEzOmgg/playlists
-    - youtube-agent-2/backend/json-dumps/playlist.json
-- http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg&playlist_id=PLJq-63ZRPdBt-RFGwsJO9Pv6A8ZwYHua9 
-    - youtube-agent-2/backend/json-dumps/videos-of-a-playlist.json
-- http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg
-    - youtube-agent-2/backend/json-dumps/all-videos-from-channel.json
-
+### refresh Course with daily video new feeds
+- `PATCH /api/course/refresh` — Refresh courses with new videos
