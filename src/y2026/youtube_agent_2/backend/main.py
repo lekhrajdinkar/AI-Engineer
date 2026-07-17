@@ -57,13 +57,23 @@ class Video(BaseModel):
     duration_secs: Optional[int] = None
     watched: bool = False
 
-
 class Module(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
     sequence: int = 1
     videos: List[Video] = Field(default_factory=list)
 
+class Playlist(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    thumbnail: str
+
+class Channel(BaseModel):
+    channel_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    url: str
+    video_count: int = 1
+    playlists: List[Playlist] = Field(default_factory=list)
 
 class Course(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -71,6 +81,7 @@ class Course(BaseModel):
     sequence: int = 1
     description: Optional[str] = None
     modules: List[Module] = Field(default_factory=list)
+    source_channels: List[Channel]
 
 class LearningPlan(BaseModel):
     logo_url: str = ""
@@ -80,6 +91,7 @@ class LearningPlan(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     courses: List[Course] = Field(default_factory=list)
+    source_channels : List[Channel] = Field(default_factory=list)
 
 #=====================================
 # API

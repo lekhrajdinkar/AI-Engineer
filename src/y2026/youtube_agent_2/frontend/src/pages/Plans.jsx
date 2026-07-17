@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import PlanDetail from '../components/PlanDetail'
 import { getChannels, getPlaylists } from '../api/client'
 import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
@@ -12,7 +11,6 @@ function ChannelAvatar({ title }) {
 
 export default function Plans() {
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const plans = useSelector(state => state.plans.items)
   const selectedId = useSelector(state => state.plans.selectedId)
   const [showDrawer, setShowDrawer] = useState(false)
@@ -62,7 +60,6 @@ export default function Plans() {
   function handleDelete(planId) {
     dispatch(deletePlan(planId))
     dispatch(clearSelection())
-    navigate('/plans')
   }
 
   function handleUpdatePlan(updatedPlan) {

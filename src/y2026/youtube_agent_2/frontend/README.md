@@ -40,7 +40,7 @@ npm run dev
             "url": "string",
             "videos_count": 0,
             "playlists": [
-              {"playlist_id": "string","title": "string"}
+              {"playlist_id": "string","title": "string", "thumbnail":  "string"}
             ]
           }
         ],
