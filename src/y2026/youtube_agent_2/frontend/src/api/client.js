@@ -43,6 +43,14 @@ export function createPlan(data) {
   return request('/api/plans', { method: 'POST', body: JSON.stringify(data) })
 }
 
+export function getPlans() {
+  return request('/api/plans')
+}
+
+export function deletePlan(planId) {
+  return request(`/api/plans/${planId}`, { method: 'DELETE' })
+}
+
 export function getPlan(planId) {
   return request(`/api/plans/${planId}`)
 }

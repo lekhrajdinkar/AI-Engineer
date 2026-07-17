@@ -1,9 +1,10 @@
 import React from 'react'
-import { Provider } from 'react-redux'
+import { Provider, useDispatch, useSelector } from 'react-redux'
 import { store } from './store'
 import './App.css'
 import Plans from './pages/Plans'
-import { getAuthDebug } from './api/client'
+import { getAuthDebug, getPlans } from './api/client'
+import { setPlans } from './store/plansSlice'
 
 function useTheme() {
   const [theme, setTheme] = React.useState(() => localStorage.getItem('yt_theme') || 'light')
@@ -20,12 +21,32 @@ function useTheme() {
 
 function AppLayout() {
   const { theme, toggleTheme } = useTheme()
+  const dispatch = useDispatch()
+  const plans = useSelector(state => state.plans.items)
   const [auth, setAuth] = React.useState(null)
+  const [newPlanRequest, setNewPlanRequest] = React.useState(0)
+  const [plansLoading, setPlansLoading] = React.useState(false)
+
+  const loadPlans = React.useCallback(async () => {
+    setPlansLoading(true)
+    try {
+      const data = await getPlans()
+      dispatch(setPlans(Array.isArray(data) ? data : data.plans || []))
+    } catch (error) {
+      console.error('Unable to load learning plans:', error)
+    } finally {
+      setPlansLoading(false)
+    }
+  }, [dispatch])
 
   React.useEffect(() => {
     getAuthDebug()
       .then(data => setAuth(data.has_access_token ? data : null))
       .catch(() => setAuth(null))
+  }, [])
+
+  React.useEffect(() => {
+    if (plans.length === 0) loadPlans()
   }, [])
 
   return (
@@ -34,6 +55,19 @@ function AppLayout() {
         <h2>YouTube Learning</h2>
         <div className="top-bar-actions">
           {auth && <span className="auth-status">Signed in</span>}
+          <button
+            type="button"
+            className="refresh-plans"
+            onClick={loadPlans}
+            disabled={plansLoading}
+            aria-label="Refresh learning plans"
+            title="Refresh learning plans"
+          >
+            {plansLoading ? <span className="spinner" /> : '↻'}
+          </button>
+          <button className="btn btn-primary" onClick={() => setNewPlanRequest(request => request + 1)}>
+            + New Plan
+          </button>
           <button
             type="button"
             className="theme-toggle"
@@ -46,7 +80,7 @@ function AppLayout() {
         </div>
       </header>
       <main className="main-content">
-        <Plans />
+        <Plans newPlanRequest={newPlanRequest} />
       </main>
     </div>
   )

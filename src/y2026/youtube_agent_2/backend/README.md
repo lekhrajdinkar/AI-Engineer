@@ -1,8 +1,7 @@
 # Backend 
----
 ## One time configuration
 ### update environment variables 
-```.dotenv
+```.properties
 .env file
 ---
 # YOUTUBE_API_KEY=...
@@ -63,6 +62,7 @@ http://127.0.0.1:8001/docs
 - `POST /api/plans` — Create a learning plan
 - `GET /api/plans` — Get all plan detail
 - `GET /api/plans/{plan_id}` — Get plan details
+- `DELETE /api/plans/{plan_id}` — Delete plan details
 
 ### Create Course in the plan
 - `POST /api/plans/{plan_id}/add-course-manually` — Add course into plan

@@ -1,14 +1,8 @@
 import React, { useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
 import AddCourseModal from './AddCourseModal'
 import AiCourseModal from './AiCourseModal'
-import { updatePlan, deletePlan, clearSelection } from '../store/plansSlice'
 
-export default function PlanDetail() {
-  const dispatch = useDispatch()
-  const plans = useSelector(state => state.plans.items)
-  const selectedId = useSelector(state => state.plans.selectedId)
-  const plan = plans.find(p => p.id === selectedId) || null
+export default function PlanDetail({ plan, onUpdate, onDelete }) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -26,7 +20,7 @@ export default function PlanDetail() {
   const activeCourse = plan.courses?.find(c => c.id === activeCourseId) || null
 
   function handleCourseCreated(updatedPlan) {
-    dispatch(updatePlan(updatedPlan))
+    onUpdate(updatedPlan)
   }
 
   function toggleWatched(videoId) {
@@ -42,7 +36,7 @@ export default function PlanDetail() {
         }))
       }))
     }
-    dispatch(updatePlan(updated))
+    onUpdate(updated)
     if (activeVideo?.video_id === videoId) {
       const updatedV = updated.courses
         .flatMap(c => c.modules)
@@ -122,8 +116,7 @@ export default function PlanDetail() {
           {/* Top 20%: Plan info */}
           <div className="overview-top">
             <div className="card" style={{ marginBottom: 0 }}>
-              <h2 style={{ margin: 0 }}>{plan.name}</h2>
-              {plan.description && <p style={{ color: 'var(--text-secondary)', marginTop: '0.3rem' }}>{plan.description}</p>}
+              {plan.description && <p style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>}
             </div>
           </div>
 
@@ -218,7 +211,9 @@ export default function PlanDetail() {
                     <p>Are you sure you want to delete "<strong>{plan.name}</strong>"? This action cannot be undone.</p>
                     <div className="confirm-actions">
                       <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-                      <button className="btn btn-danger" onClick={() => { dispatch(deletePlan(plan.id)); setShowDeleteConfirm(false) }}>
+                      <button className="btn btn-danger" onClick={async () => {
+                        if (await onDelete(plan.id)) setShowDeleteConfirm(false)
+                      }}>
                         Delete
                       </button>
                     </div>

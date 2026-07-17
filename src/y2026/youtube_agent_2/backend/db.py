@@ -74,6 +74,14 @@ def load_plan(plan_id: str) -> Optional[dict]:
         return None
     return json.loads(row[0])
 
+def delete_plan(plan_id: str) -> bool:
+    conn = sqlite3.connect(config.DB_PATH)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM plans WHERE id = ?", (plan_id,))
+    deleted = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
 
 def list_plans() -> List[dict]:
     conn = sqlite3.connect(config.DB_PATH)

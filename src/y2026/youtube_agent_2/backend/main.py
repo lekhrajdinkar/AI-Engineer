@@ -54,6 +54,7 @@ class Video(BaseModel):
     revised_title_from_ai: str
     url: Optional[str] = None
     sequence: int = 1
+    thumbnail: str
     duration_secs: Optional[int] = None
     watched: bool = False
 
@@ -247,6 +248,12 @@ def get_plan(plan_id: str):
     # pydantic will parse datetimes
     return LearningPlan.model_validate(row)
 
+###### VIEW ALL PLAN #######
+@app.delete("/api/plans/{plan_id}", tags=["plans"])
+def delete_plan(plan_id: str):
+    if not db.delete_plan(plan_id):
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return {"message": "Plan deleted"}
 
 ####################
 ### Add COURSES
