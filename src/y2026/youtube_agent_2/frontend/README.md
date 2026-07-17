@@ -149,3 +149,18 @@ AI will return complete learning plan object with automatically suggested course
 - child tab - courses.
 - body panel, left (fixed lenght width, 30%) : add expandable module/chapter and videos
 - body panel, right (rest all width, 70%) : show YouTube video frame and palyer actions. don't want o open in new window
+
+## UI Design - update set 3
+1. update playlist tile.
+- thumbnail  and title.
+- remove desc.
+- so that all will have same height.
+
+2. Leaning Plan > overview tab > courses > show then in card tiles.
+- circular logo on left, if missing then add starting Alphabat logo
+- make tile clickable to its page.
+- on hover shadow effect
+
+3. Delete plan action btn : Add confirmation.
+
+4,. Add redux state store to keep learning plan object

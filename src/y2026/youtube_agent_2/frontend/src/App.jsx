@@ -1,5 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
+import { Provider } from 'react-redux'
+import { store } from './store'
 import './App.css'
 import Dashboard from './pages/Dashboard'
 import Plans from './pages/Plans'
@@ -48,7 +50,8 @@ function AppLayout({ children }) {
   return (
     <div className="app-layout">
       <aside className="sidebar">
-        <h2>YouTube Learning</h2>
+        <h2>YouTube</h2>
+        <h2>Learning</h2>
         <nav>
           <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'active' : ''}>
             <span style={{ fontSize: '1.2rem' }}>📊</span>
@@ -66,20 +69,7 @@ function AppLayout({ children }) {
         <div className="sidebar-footer">
           <div className="theme-toggle" onClick={toggleTheme}>
             <span>{theme === 'light' ? '☀️' : '🌙'}</span>
-            <div className={`toggle-track ${theme === 'dark' ? 'active' : ''}`}>
-              <div className={`toggle-thumb ${theme === 'dark' ? 'active' : ''}`} />
-            </div>
-            <span>Dark Mode</span>
-          </div>
-          <div style={{ marginTop: '0.75rem' }}>
-            {auth ? (
-              <div>
-                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.3rem' }}>Signed in</p>
-                <button className="btn btn-secondary btn-sm" onClick={handleLogout}>Sign Out</button>
-              </div>
-            ) : (
-              <button className="btn btn-primary btn-sm" onClick={googleLogin}>Sign In</button>
-            )}
+            <span>{theme === 'light' ? 'Light' : 'Dark'}</span>
           </div>
         </div>
       </aside>
@@ -90,15 +80,17 @@ function AppLayout({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppLayout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/plans" element={<Plans />} />
-          <Route path="/search" element={<Search />} />
-        </Routes>
-      </AppLayout>
-    </BrowserRouter>
+    <Provider store={store}>
+      <BrowserRouter>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/plans" element={<Plans />} />
+            <Route path="/search" element={<Search />} />
+          </Routes>
+        </AppLayout>
+      </BrowserRouter>
+    </Provider>
   )
 }

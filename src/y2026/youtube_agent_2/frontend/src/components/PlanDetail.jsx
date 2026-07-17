@@ -1,10 +1,17 @@
 import React, { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import AddCourseModal from './AddCourseModal'
 import AiCourseModal from './AiCourseModal'
+import { updatePlan, deletePlan, clearSelection } from '../store/plansSlice'
 
-export default function PlanDetail({ plan, onUpdate, onDelete }) {
+export default function PlanDetail() {
+  const dispatch = useDispatch()
+  const plans = useSelector(state => state.plans.items)
+  const selectedId = useSelector(state => state.plans.selectedId)
+  const plan = plans.find(p => p.id === selectedId) || null
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [activeCourseId, setActiveCourseId] = useState(null)
   const [expandedModules, setExpandedModules] = useState({})
   const [activeVideo, setActiveVideo] = useState(null)
@@ -19,7 +26,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
   const activeCourse = plan.courses?.find(c => c.id === activeCourseId) || null
 
   function handleCourseCreated(updatedPlan) {
-    onUpdate(updatedPlan)
+    dispatch(updatePlan(updatedPlan))
   }
 
   function toggleWatched(videoId) {
@@ -35,7 +42,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
         }))
       }))
     }
-    onUpdate(updated)
+    dispatch(updatePlan(updated))
     if (activeVideo?.video_id === videoId) {
       const updatedV = updated.courses
         .flatMap(c => c.modules)
@@ -51,7 +58,6 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
 
   function handleVideoSelect(video) {
     setActiveVideo(video)
-    // Navigate to the course tab containing this video
     const course = plan.courses?.find(c =>
       c.modules?.some(m => m.videos?.some(v => v.video_id === video.video_id))
     )
@@ -112,85 +118,114 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
 
       {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
-        <div>
-          {/* Panel 1: Plan info + course details */}
-          <div className="card">
-            <h2 style={{ margin: 0 }}>{plan.name}</h2>
-            {plan.description && <p style={{ color: 'var(--text-secondary)', marginTop: '0.3rem' }}>{plan.description}</p>}
-            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span className="badge badge-blue">{plan.channels?.length || 0} channels</span>
-              <span className="badge badge-green">{plan.courses?.length || 0} courses</span>
-              <span className="badge badge-blue">{totalVideos} videos</span>
-              <span className="badge badge-green">{watchedVideos} watched</span>
+        <div className="overview-layout">
+          {/* Top 20%: Plan info */}
+          <div className="overview-top">
+            <div className="card" style={{ marginBottom: 0 }}>
+              <h2 style={{ margin: 0 }}>{plan.name}</h2>
+              {plan.description && <p style={{ color: 'var(--text-secondary)', marginTop: '0.3rem' }}>{plan.description}</p>}
             </div>
           </div>
 
-          {/* Course details list */}
-          {plan.courses && plan.courses.length > 0 && (
-            <div className="card">
-              <h3>Courses ({plan.courses.length})</h3>
-              {plan.courses.map(course => {
-                const courseVideos = course.modules?.reduce((s, m) => s + (m.videos?.length || 0), 0) || 0
-                const courseWatched = course.modules?.reduce((s, m) => s + (m.videos?.filter(v => v.watched)?.length || 0), 0) || 0
-                return (
-                  <div key={course.id} style={{
-                    padding: '1rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 8,
-                    marginBottom: '0.75rem',
-                    background: 'var(--card-bg)'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                      {course.logo && (
-                        <img src={course.logo} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+          {/* Middle scrollable 70%: Courses + source channels */}
+          <div className="overview-middle">
+            {/* Course details list */}
+            {plan.courses && plan.courses.length > 0 && (
+              <div className="card">
+                <h3>Courses ({plan.courses.length})</h3>
+                {plan.courses.map(course => {
+                  const courseVideos = course.modules?.reduce((s, m) => s + (m.videos?.length || 0), 0) || 0
+                  const courseWatched = course.modules?.reduce((s, m) => s + (m.videos?.filter(v => v.watched)?.length || 0), 0) || 0
+                  const initial = (course.title || '?').charAt(0).toUpperCase()
+                  return (
+                    <div
+                      key={course.id}
+                      className="course-tile"
+                      onClick={() => {
+                        setActiveTab(course.id)
+                        setActiveCourseId(course.id)
+                      }}
+                      style={{
+                        padding: '0.75rem',
+                        border: '1px solid var(--border-color)',
+                        marginBottom: '0.5rem',
+                        background: 'var(--card-bg)',
+                        cursor: 'pointer',
+                        transition: 'box-shadow 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)'}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                    >
+                      {course.logo ? (
+                        <img src={course.logo} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-color)' }} />
+                      ) : (
+                        <div className="channel-avatar" style={{ width: 40, height: 40, borderRadius: '50%', fontSize: '0.9rem' }}>{initial}</div>
                       )}
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: 0 }}>{course.title}</h4>
-                        {course.description && <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.2rem' }}>{course.description}</p>}
-                        <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h4 style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{course.title}</h4>
+                        <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <span className="badge badge-blue">{course.modules?.length || 0} modules</span>
                           <span className="badge badge-gray">{courseVideos} videos</span>
                           <span className="badge badge-green">{courseWatched} watched</span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Source Channels */}
-          {plan.channels && plan.channels.length > 0 && (
-            <div className="card">
-              <h3>Content Source</h3>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {plan.channels.map(c => (
-                  <span key={c.channel_id} className="badge badge-gray" style={{ padding: '0.4rem 0.8rem' }}>
-                    {c.title} ({c.videos_count} videos)
-                  </span>
-                ))}
+                  )
+                })}
               </div>
-            </div>
-          )}
+            )}
 
-          {(!plan.courses || plan.courses.length === 0) && (
-            <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-              <p>No courses yet. Use the action buttons below to add courses.</p>
-            </div>
-          )}
+            {/* Source Channels */}
+            {plan.channels && plan.channels.length > 0 && (
+              <div className="card">
+                <h3>Content Source</h3>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {plan.channels.map(c => (
+                    <span key={c.channel_id} className="badge badge-gray" style={{ padding: '0.4rem 0.8rem' }}>
+                      {c.title} ({c.videos_count} videos)
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {/* Panel 2: Action buttons at bottom */}
-          <div className="action-bar" style={{ marginTop: '1.5rem', justifyContent: 'center' }}>
-            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-              + Add Course Manually
-            </button>
-            <button className="btn btn-warning" onClick={() => setShowAiModal(true)}>
-              ✨ AI Suggested Course Creation
-            </button>
-            <button className="btn btn-danger" onClick={() => onDelete(plan.id)}>
-              Delete Plan
-            </button>
+            {(!plan.courses || plan.courses.length === 0) && (
+              <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                <p>No courses yet. Use the action buttons below to add courses.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom 10%: Fixed action bar */}
+          <div className="overview-bottom">
+            <div className="action-bar" style={{ justifyContent: 'center', marginBottom: 0 }}>
+              <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                + Add Course Manually
+              </button>
+              <button className="btn btn-warning" onClick={() => setShowAiModal(true)}>
+                ✨ AI Suggested Course Creation
+              </button>
+              <button className="btn btn-danger" onClick={() => setShowDeleteConfirm(true)}>
+                Delete Plan
+              </button>
+              {showDeleteConfirm && (
+                <div className="confirm-overlay" onClick={() => setShowDeleteConfirm(false)}>
+                  <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
+                    <h3>Delete Learning Plan</h3>
+                    <p>Are you sure you want to delete "<strong>{plan.name}</strong>"? This action cannot be undone.</p>
+                    <div className="confirm-actions">
+                      <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+                      <button className="btn btn-danger" onClick={() => { dispatch(deletePlan(plan.id)); setShowDeleteConfirm(false) }}>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

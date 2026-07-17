@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import PlanDetail from '../components/PlanDetail'
-import { getChannels, getPlaylists, getVideos } from '../api/client'
+import { getChannels, getPlaylists } from '../api/client'
+import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
 
 function ChannelAvatar({ title }) {
   const letter = (title || '?').charAt(0).toUpperCase()
@@ -8,25 +11,23 @@ function ChannelAvatar({ title }) {
 }
 
 export default function Plans() {
-  const [plans, setPlans] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('yt_plans') || '[]') }
-    catch { return [] }
-  })
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const plans = useSelector(state => state.plans.items)
+  const selectedId = useSelector(state => state.plans.selectedId)
   const [showDrawer, setShowDrawer] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', logo: '' })
-  const [selectedPlan, setSelectedPlan] = useState(null)
   const [error, setError] = useState('')
 
-  // Drawer state for channel/playlist selection
+  // Drawer state
   const [channels, setChannels] = useState([])
   const [selectedChannels, setSelectedChannels] = useState([])
   const [playlists, setPlaylists] = useState({})
   const [selectedPlaylists, setSelectedPlaylists] = useState([])
-  const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(false)
   const [activeChannelTab, setActiveChannelTab] = useState('ALL')
   const [activePlaylistTab, setActivePlaylistTab] = useState('ALL')
-  const [drawerStep, setDrawerStep] = useState('form') // form, channels, playlists, videos
+  const [drawerStep, setDrawerStep] = useState('form') // form, channels, playlists
 
   useEffect(() => {
     if (showDrawer) {
@@ -34,9 +35,10 @@ export default function Plans() {
     }
   }, [showDrawer])
 
+  const selectedPlan = selectedId ? plans.find(p => p.id === selectedId) : null
+
   function persist(updated) {
-    setPlans(updated)
-    localStorage.setItem('yt_plans', JSON.stringify(updated))
+    // Handled by Redux
   }
 
   function handleCreate() {
@@ -49,26 +51,22 @@ export default function Plans() {
       logo: form.logo || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      channels: selectedChannels,
+      channels: [],
       courses: [],
     }
-    persist([...plans, newPlan])
+    dispatch(addPlan(newPlan))
     setForm({ name: '', description: '', logo: '' })
-    setSelectedChannels([])
-    setSelectedPlaylists([])
-    setVideos([])
-    setDrawerStep('form')
     setShowDrawer(false)
   }
 
   function handleDelete(planId) {
-    persist(plans.filter(p => p.id !== planId))
-    if (selectedPlan?.id === planId) setSelectedPlan(null)
+    dispatch(deletePlan(planId))
+    dispatch(clearSelection())
+    navigate('/plans')
   }
 
   function handleUpdatePlan(updatedPlan) {
-    persist(plans.map(p => p.id === updatedPlan.id ? updatedPlan : p))
-    setSelectedPlan(updatedPlan)
+    dispatch(updatePlan(updatedPlan))
   }
 
   function toggleChannel(ch) {
@@ -101,34 +99,6 @@ export default function Plans() {
     )
   }
 
-  async function loadVideos() {
-    setLoading(true)
-    setError('')
-    const allVideos = []
-    for (const ch of selectedChannels) {
-      const channelPlaylists = selectedPlaylists.filter(p =>
-        channels.find(c => c.channel_id === ch.channel_id) &&
-        playlists[ch.channel_id]?.find(pp => pp.playlist_id === p.playlist_id)
-      )
-      if (channelPlaylists.length > 0) {
-        for (const pl of channelPlaylists) {
-          try {
-            const data = await getVideos(ch.channel_id, pl.playlist_id)
-            allVideos.push(...(data.videos || []))
-          } catch { /* skip */ }
-        }
-      } else {
-        try {
-          const data = await getVideos(ch.channel_id)
-          allVideos.push(...(data.videos || []))
-        } catch { /* skip */ }
-      }
-    }
-    setVideos(allVideos)
-    setLoading(false)
-    setDrawerStep('videos')
-  }
-
   // Filter channels by active tab
   const filteredChannels = activeChannelTab === 'ALL'
     ? channels
@@ -144,8 +114,11 @@ export default function Plans() {
     setDrawerStep('form')
     setSelectedChannels([])
     setSelectedPlaylists([])
-    setVideos([])
     setError('')
+  }
+
+  function handleSelectPlan(plan) {
+    dispatch(selectPlan(plan.id))
   }
 
   return (
@@ -169,7 +142,7 @@ export default function Plans() {
               <button className="btn btn-secondary btn-sm" onClick={closeDrawer}>✕</button>
             </div>
             <div className="drawer-body">
-              {/* Step: Form */}
+              {/* Step 1: Form */}
               {drawerStep === 'form' && (
                 <div>
                   <div className="form-group">
@@ -190,13 +163,12 @@ export default function Plans() {
                 </div>
               )}
 
-              {/* Step: Channels */}
+              {/* Step 2: Channels */}
               {drawerStep === 'channels' && (
                 <div>
                   <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                     Select YouTube channels as content source:
                   </p>
-                  {/* Parent tab: Channels */}
                   <div className="tab-bar">
                     <button className={`tab-item ${activeChannelTab === 'ALL' ? 'active' : ''}`} onClick={() => setActiveChannelTab('ALL')}>
                       ALL
@@ -207,7 +179,6 @@ export default function Plans() {
                       </button>
                     ))}
                   </div>
-                  {/* Channel tiles */}
                   <div className="tile-grid" style={{ maxHeight: 350 }}>
                     {filteredChannels.map(ch => {
                       const isSelected = selectedChannels.find(c => c.channel_id === ch.channel_id)
@@ -222,13 +193,12 @@ export default function Plans() {
                 </div>
               )}
 
-              {/* Step: Playlists */}
+              {/* Step 3: Playlists */}
               {drawerStep === 'playlists' && (
                 <div>
                   <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    Select playlists (or leave empty to load all videos from channels):
+                    Select playlists (optional — leave empty to use all videos from channels):
                   </p>
-                  {/* Child tab: Playlists */}
                   <div className="sub-tab-bar">
                     <button className={`sub-tab-item ${activePlaylistTab === 'ALL' ? 'active' : ''}`} onClick={() => setActivePlaylistTab('ALL')}>
                       ALL
@@ -239,7 +209,6 @@ export default function Plans() {
                       </button>
                     ))}
                   </div>
-                  {/* Playlist tiles */}
                   {channelPlaylists.length > 0 ? (
                     <div className="tile-grid" style={{ maxHeight: 300 }}>
                       {channelPlaylists.map(pl => {
@@ -261,33 +230,9 @@ export default function Plans() {
                     </div>
                   ) : (
                     <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: '1rem 0' }}>
-                      No playlists found for selected channels. Click "Load Videos" to fetch all videos.
+                      No playlists found for selected channels.
                     </p>
                   )}
-                </div>
-              )}
-
-              {/* Step: Videos */}
-              {drawerStep === 'videos' && (
-                <div>
-                  <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    <strong>{videos.length}</strong> video(s) loaded. These will be available when adding courses.
-                  </p>
-                  <div style={{ maxHeight: 400, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 8, padding: '0.5rem' }}>
-                    {videos.map((v, i) => (
-                      <div className="video-card" key={v.video_id || i} style={{ marginBottom: '0.4rem' }}>
-                        {v.thumbnail ? (
-                          <img src={v.thumbnail} alt="" className="video-thumb" />
-                        ) : (
-                          <div className="video-thumb" />
-                        )}
-                        <div className="video-info">
-                          <h5>{v.title}</h5>
-                          <p>{v.description || ''}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>
@@ -315,14 +260,6 @@ export default function Plans() {
               {drawerStep === 'playlists' && (
                 <>
                   <button className="btn btn-secondary" onClick={() => setDrawerStep('channels')}>Back</button>
-                  <button className="btn btn-primary" onClick={loadVideos} disabled={loading}>
-                    {loading ? <><span className="spinner" /> Loading Videos...</> : 'Load Videos'}
-                  </button>
-                </>
-              )}
-              {drawerStep === 'videos' && (
-                <>
-                  <button className="btn btn-secondary" onClick={() => setDrawerStep('playlists')}>Back</button>
                   <button className="btn btn-success" onClick={handleCreate}>
                     Create Plan
                   </button>
@@ -335,9 +272,12 @@ export default function Plans() {
 
       {selectedPlan ? (
         <div>
-          <button className="btn btn-secondary btn-sm" onClick={() => setSelectedPlan(null)} style={{ marginBottom: '1rem' }}>
-            &larr; Back to Plans
-          </button>
+          <div className="page-header">
+            <h1>{selectedPlan.name}</h1>
+            <button className="btn btn-secondary btn-sm" onClick={() => { dispatch(clearSelection()); navigate('/plans') }}>
+              &larr; Back to Plans
+            </button>
+          </div>
           <PlanDetail plan={selectedPlan} onUpdate={handleUpdatePlan} onDelete={handleDelete} />
         </div>
       ) : (
@@ -349,10 +289,10 @@ export default function Plans() {
             </div>
           )}
           {plans.map(plan => (
-            <div className="card" key={plan.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedPlan(plan)}>
+            <div className="card" key={plan.id} style={{ cursor: 'pointer' }} onClick={() => handleSelectPlan(plan)}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  {plan.logo && <img src={plan.logo} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover' }} />}
+                  {plan.logo && <img src={plan.logo} alt="" style={{ width: 40, height: 40, border: '1px solid var(--border-color)', objectFit: 'cover' }} />}
                   <div>
                     <h3 style={{ margin: 0 }}>{plan.name}</h3>
                     {plan.description && <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.3rem' }}>{plan.description}</p>}
