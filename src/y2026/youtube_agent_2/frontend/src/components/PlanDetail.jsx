@@ -158,19 +158,15 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
       {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
         <div className="overview-layout">
-          {/* Top 20%: Plan info */}
-          <div className="overview-top">
-            <div className="card" style={{ marginBottom: 0 }}>
-              {plan.description && <p style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>}
-            </div>
+          <div>
+            {plan.description && <p style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>}
           </div>
 
           {/* Middle scrollable 70%: Courses + source channels */}
           <div className="overview-middle">
             {/* Course details list */}
             {plan.courses && plan.courses.length > 0 && (
-              <div className="card">
-                <h3>Courses ({plan.courses.length})</h3>
+              <div className="course-tile-container">
                 {plan.courses.map(course => {
                   const courseVideos = course.modules?.reduce((s, m) => s + (m.videos?.length || 0), 0) || 0
                   const courseWatched = course.modules?.reduce((s, m) => s + (m.videos?.filter(v => v.watched)?.length || 0), 0) || 0
@@ -204,6 +200,25 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <h4 style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{course.title}</h4>
+                        <p style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' , fontSize: '0.7rem' }}>{course.description}</p>
+                      <details style={{ marginTop: '0.35rem' }}  onClick={e => e.stopPropagation()} >
+                        <summary style={{ cursor: 'pointer', fontSize: '0.75rem', color: '#666' }}>
+                          Course Source  ({course.source_channels?.length || 0})
+                        </summary>
+
+                        {course.source_channels?.map(channel => (
+                          <a
+                            key={channel.channel_id}
+                            href={channel.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', textDecoration: 'none', color: 'inherit', marginTop: '0.3rem' }}
+                          >
+                            <img src="https://cdn.simpleicons.org/youtube/FF0000" alt="" height="14" />
+                            <span>{channel.title}</span>
+                          </a>
+                        ))}
+                      </details>
                         <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <span className="badge badge-blue">{course.modules?.length || 0} modules</span>
                           <span className="badge badge-gray">{courseVideos} videos</span>
