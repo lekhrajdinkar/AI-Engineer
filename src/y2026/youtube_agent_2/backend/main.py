@@ -271,7 +271,7 @@ def refresh_plan(plan_id: str, course: Course):
     plan.courses.append(course)
 
     db.save_plan(plan.model_dump())
-    return {"message": "✔️created course with, All chapters"}
+    return {"message": "created course", "plan": plan}
 
 ###### todo :: add-course-ai-suggested #######
 @app.post("/api/plans/{plan_id}/add-course-ai-suggested", tags=["plans"])
@@ -282,6 +282,17 @@ def ai_suggest(plan_id: str, videos: List[Video]):
 
     plan = LearningPlan.model_validate(row)
 
-    # todo:
-    # videos will be organised into courses and underlying videos.
-    # And then will be added to plan
+    if not videos:
+        raise HTTPException(status_code=400, detail="At least one video is required")
+
+    course = Course(
+        title="AI Suggested Course",
+        sequence=len(plan.courses) + 1,
+        description="Course generated from the selected YouTube videos.",
+        source_channels=[],
+        modules=[Module(title="Suggested learning path", sequence=1, videos=videos)],
+    )
+    plan.courses.append(course)
+    plan.updated_at = datetime.now(timezone.utc)
+    db.save_plan(plan.model_dump())
+    return {"message": "AI suggested course created", "plan": plan}

@@ -6,7 +6,7 @@
 
 /* ===== THEME SYSTEM ===== */
 :root, [data-theme="light"] {
-  --bg-primary: #ffffff;
+  --bg-primary: #e7edf0;
   --bg-secondary: #f0f2f5;
   --bg-sidebar: #f0f2f5;
   --bg-sidebar-hover: #e2e8f0;
@@ -113,7 +113,7 @@ body {
 .top-bar {
   min-height: 64px;
   padding: 0.75rem 1.5rem;
-  background: var(--card-bg);
+  background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -737,7 +737,8 @@ tr:hover td { background: var(--border-light); }
 }
 
 .course-left {
-  flex: 1;
+  width: 60%;
+  flex: 0 0 60%;
   background: var(--panel-right-bg);
   display: flex;
   flex-direction: column;
@@ -746,13 +747,13 @@ tr:hover td { background: var(--border-light); }
   padding: 0;
   position: relative;
   height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .course-right {
-  width: 30%;
-  min-width: 260px;
-  max-width: 360px;
+  width: 40%;
+  min-width: 320px;
+  max-width: none;
   background: var(--panel-left-bg);
   border-left: 1px solid var(--border-color);
   overflow-y: auto;
@@ -760,10 +761,55 @@ tr:hover td { background: var(--border-light); }
   height: 100%;
 }
 
+.course-module-search {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.5rem;
+}
+
+.course-module-search input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.course-module-search input:focus {
+  outline: none;
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.15);
+}
+
+.course-search-empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.bulk-video-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.bulk-video-actions > span {
+  margin-right: auto;
+}
+
 /* YouTube iframe container */
 .video-player-container {
   width: 100%;
   position: relative;
+  min-height: min-content;
 }
 
 .video-player-container iframe {
@@ -845,23 +891,67 @@ tr:hover td { background: var(--border-light); }
 }
 
 .module-videos {
-  padding-left: 1.5rem;
+  padding-left: 0.5rem;
 }
 
 .module-video-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
+  padding: 0.5rem;
   font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.2s;
   color: var(--text-secondary);
+  border-top: 1px solid var(--border-light);
 }
 
 .module-video-item:hover { background: var(--video-row-hover); color: var(--text-primary); }
 .module-video-item.active { background: var(--primary-bg); color: var(--primary); font-weight: 500; }
 .module-video-item .watched { text-decoration: line-through; opacity: 0.6; }
+
+.module-video-item.marked-for-delete { opacity: 0.65; }
+
+.module-video-thumbnail {
+  width: 72px;
+  height: 42px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+}
+
+.module-video-thumbnail-placeholder { background: var(--border-light); }
+
+.module-video-content {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+}
+
+.module-video-content > div:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-video-content p {
+  display: -webkit-box;
+  margin-top: 0.15rem;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.module-video-flags {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+  color: var(--warning);
+  font-size: 0.68rem;
+}
 
 .module-video-item .video-duration {
   margin-left: auto;
@@ -975,11 +1065,19 @@ tr:hover td { background: var(--border-light); }
   }
   .course-left {
     width: 100%;
+    flex-basis: auto;
     min-width: 0;
     max-width: none;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
     max-height: 300px;
+  }
+  .course-right {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    border-left: none;
   }
   .drawer {
     width: 100%;

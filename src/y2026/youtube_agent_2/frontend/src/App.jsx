@@ -52,7 +52,7 @@ function AppLayout() {
   return (
     <div className="app-layout">
       <header className="top-bar">
-        <h2>YouTube Learning</h2>
+        <img src="https://cdn.simpleicons.org/youtube/FF0000" alt="YouTube Logo" height="24"/>
         <div className="top-bar-actions">
           {auth && <span className="auth-status">Signed in</span>}
           <button

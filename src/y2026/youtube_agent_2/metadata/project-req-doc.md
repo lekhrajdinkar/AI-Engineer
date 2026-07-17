@@ -106,7 +106,8 @@ YouTube subscriptions are useful but unstructured for intentional learning:
     - add course in plan, AI Assisted
     - delete plan
 - individual course tab:
-    - left side 60% : video frame for selected video
+    - left side 60% : 
+      - video frame for selected video
     - right side 40% : 
       - Module/chapter to expandable trees structure. 
       - with search box at top to seach module or video.
@@ -118,10 +119,10 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 1) Add course (manual)
 - show 3 steps form as side drawer dialog from left.
     - step-1 : name, desc and logo
-    - step-2 : multi-select channels
-    - Step-3 : playlist from selected channel.
+    - step-2 : multi-select channels `GET /api/channels`
+    - Step-3 : playlist from selected channel.  `GET /api/{channel_id}/playlists`
 - refresh learning object in redux 
-- submit `POST /api/plans/{plan_id}/add-course-manually` — Add course into plan. pass course object in request body.
+- submit `POST /api/plans/{plan_id}/add-course-manually` — Add course object  passed in request body, into leaning plan
 
 2) Add course  (AI-assisted)
 - show 4 steps form as side drawer dialog from left.
@@ -129,20 +130,10 @@ YouTube subscriptions are useful but unstructured for intentional learning:
     - step-2 : multi-select channels (subscribed channels list) `GET /api/channels`
     - Step-3 : playlist from selected channel. `GET /api/{channel_id}/playlists`
     - Step-4 : Pull video metadata and show them (title, description, publishedAt, duration, thumbnails) `GET /api/videos?channel_id={channel_id}&playlist_id={playlist_id}`
-- submit:  `POST /api/plans/{plan_id}/add-course-manually` 
+- submit:  `POST /api/plans/{plan_id}/add-course-ai-suggested` 
+    - AI Agent will organise videos into courses.
     - Add course into plan. 
-    - pass course object in request body.
 - refresh learning plan object into redux. `GET /api/plans/{plan_id}` 
-
-4) Create Learning Plan (AI-assisted)
-- show 3 steps form as side drawer dialog from left.
-    - step-1 : multi-select channels (subscribed channels list)
-    - Step-2 : playlist from selected channel.
-    - Step-3 : Pull video metadata and show them (title, description, publishedAt, duration, thumbnails)
-- submit: `POST /api/plans/{plan_id}/add-course-ai-suggested` 
-    - It Organizes videos into course by AI , 
-    - then add into plan's courses []
-- refresh learing plan object into redux. `GET /api/plans/{plan_id}` 
 
 3) Delete plan
 - delete learning plan object from backend

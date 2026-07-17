@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { getChannels, getPlaylists, aiSuggest } from '../api/client'
-import { updatePlan } from '../store/plansSlice'
+import { getChannels, getPlaylists, getVideos, addAiSuggestedCourse, getPlan } from '../api/client'
 
 function ChannelAvatar({ title }) {
   const letter = (title || '?').charAt(0).toUpperCase()
   return <div className="channel-avatar">{letter}</div>
 }
 
-export default function AiCourseModal({ plan, onClose }) {
-  const dispatch = useDispatch()
+export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
   const [channels, setChannels] = useState([])
   const [selectedChannels, setSelectedChannels] = useState([])
   const [playlists, setPlaylists] = useState({})
@@ -21,9 +18,6 @@ export default function AiCourseModal({ plan, onClose }) {
   const [playlistSearch, setPlaylistSearch] = useState('')
   const [activePlaylistTab, setActivePlaylistTab] = useState('ALL')
   const [showPlaylists, setShowPlaylists] = useState(false)
-
-  const plans = useSelector(state => state.plans.items)
-  const currentPlan = plans.find(p => p.id === plan.id) || plan
 
   useEffect(() => {
     getChannels().then(d => setChannels(d.channels || [])).catch(() => {})
@@ -64,13 +58,32 @@ export default function AiCourseModal({ plan, onClose }) {
     setLoading(true)
     setError('')
     try {
-      const data = await aiSuggest(plan.id)
-      const suggested = data.learning_plan || data
-      if (suggested.courses && suggested.courses.length > 0) {
-        setResult(suggested.courses)
-      } else {
-        setError('AI returned no courses. Try different channels.')
+      const videos = []
+      for (const channel of selectedChannels) {
+        const channelPlaylists = selectedPlaylists.filter(playlist =>
+          playlists[channel.channel_id]?.some(item => item.playlist_id === playlist.playlist_id)
+        )
+        if (channelPlaylists.length) {
+          for (const playlist of channelPlaylists) {
+            const data = await getVideos(channel.channel_id, playlist.playlist_id)
+            videos.push(...(data.videos || []))
+          }
+        } else {
+          const data = await getVideos(channel.channel_id)
+          videos.push(...(data.videos || []))
+        }
       }
+      if (!videos.length) throw new Error('No videos found for the selected sources')
+      await addAiSuggestedCourse(plan.id, videos.map(video => ({
+        video_id: video.video_id || video.id,
+        title: video.title,
+        revised_title_from_ai: video.title,
+        thumbnail: video.thumbnail || '',
+        url: video.url || null,
+        duration_secs: video.duration_secs || null,
+      })))
+      onCourseCreated(await getPlan(plan.id))
+      onClose()
     } catch (err) {
       setError('AI suggest failed: ' + err.message)
     }
@@ -83,7 +96,6 @@ export default function AiCourseModal({ plan, onClose }) {
       ...currentPlan,
       courses: [...(currentPlan.courses || []), ...result],
     }
-    dispatch(updatePlan(updated))
     onClose()
   }
 
@@ -92,7 +104,6 @@ export default function AiCourseModal({ plan, onClose }) {
       ...currentPlan,
       courses: [...(currentPlan.courses || []), course],
     }
-    dispatch(updatePlan(updated))
     onClose()
   }
 

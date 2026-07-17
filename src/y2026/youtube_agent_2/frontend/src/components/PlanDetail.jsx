@@ -9,6 +9,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
   const [activeCourseId, setActiveCourseId] = useState(null)
   const [expandedModules, setExpandedModules] = useState({})
   const [activeVideo, setActiveVideo] = useState(null)
+  const [courseSearch, setCourseSearch] = useState('')
+  const [selectedVideoIds, setSelectedVideoIds] = useState([])
 
   // Build tab list: Overview + each course
   const tabs = [
@@ -18,6 +20,17 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
   const [activeTab, setActiveTab] = useState('overview')
 
   const activeCourse = plan.courses?.find(c => c.id === activeCourseId) || null
+  const normalizedCourseSearch = courseSearch.trim().toLowerCase()
+  const visibleModules = activeCourse?.modules
+    ?.map(module => {
+      const moduleMatches = module.title?.toLowerCase().includes(normalizedCourseSearch)
+      const matchingVideos = module.videos?.filter(video =>
+        video.title?.toLowerCase().includes(normalizedCourseSearch)
+      ) || []
+
+      return moduleMatches ? module : { ...module, videos: matchingVideos }
+    })
+    .filter(module => !normalizedCourseSearch || module.videos?.length > 0) || []
 
   function handleCourseCreated(updatedPlan) {
     onUpdate(updatedPlan)
@@ -48,6 +61,36 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
 
   function toggleModule(moduleId) {
     setExpandedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }))
+  }
+
+  function toggleVideoSelection(videoId) {
+    setSelectedVideoIds(previous =>
+      previous.includes(videoId)
+        ? previous.filter(id => id !== videoId)
+        : [...previous, videoId]
+    )
+  }
+
+  function applyBulkVideoUpdate(changes) {
+    if (selectedVideoIds.length === 0) return
+    const selectedIds = new Set(selectedVideoIds)
+    const updated = {
+      ...plan,
+      courses: plan.courses.map(course => ({
+        ...course,
+        modules: course.modules.map(module => ({
+          ...module,
+          videos: module.videos.map(video =>
+            selectedIds.has(video.video_id) ? { ...video, ...changes } : video
+          )
+        }))
+      }))
+    }
+    onUpdate(updated)
+    if (activeVideo && selectedIds.has(activeVideo.video_id)) {
+      setActiveVideo({ ...activeVideo, ...changes })
+    }
+    setSelectedVideoIds([])
   }
 
   function handleVideoSelect(video) {
@@ -100,8 +143,10 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
               setActiveTab(tab.id)
               if (tab.id !== 'overview') {
                 setActiveCourseId(tab.id)
+                setSelectedVideoIds([])
               } else {
                 setActiveCourseId(null)
+                setSelectedVideoIds([])
               }
             }}
           >
@@ -270,32 +315,69 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
 
           {/* Right panel: Course modules with expandable videos */}
           <div className="course-right">
-            {activeCourse.modules?.map(module => (
+            <div className="course-module-search">
+              <input
+                type="search"
+                value={courseSearch}
+                onChange={event => setCourseSearch(event.target.value)}
+                placeholder="Search modules or videos..."
+                aria-label="Search modules or videos"
+              />
+            </div>
+            {selectedVideoIds.length > 0 && (
+              <div className="bulk-video-actions">
+                <span>{selectedVideoIds.length} selected</span>
+                <button className="btn btn-secondary btn-sm" onClick={() => applyBulkVideoUpdate({ bookmarked: true })}>
+                  Bookmark
+                </button>
+                <button className="btn btn-success btn-sm" onClick={() => applyBulkVideoUpdate({ watched: true })}>
+                  Mark complete
+                </button>
+                <button className="btn btn-danger btn-sm" onClick={() => applyBulkVideoUpdate({ marked_for_delete: true })}>
+                  Mark for delete
+                </button>
+              </div>
+            )}
+            {visibleModules.map(module => {
+              const isExpanded = expandedModules[module.id] || Boolean(normalizedCourseSearch)
+              return (
               <div key={module.id}>
                 <div className="module-header" onClick={() => toggleModule(module.id)}>
-                  <span className={`expand-icon ${expandedModules[module.id] ? 'expanded' : ''}`}>▶</span>
+                  <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▶</span>
                   <span>{module.title}</span>
                   <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     {module.videos?.length || 0}
                   </span>
                 </div>
-                {expandedModules[module.id] && (
+                {isExpanded && (
                   <div className="module-videos" style={{ maxHeight: 300, overflowY: 'auto' }}>
                     {module.videos?.map(video => (
                       <div
                         key={video.video_id}
-                        className={`module-video-item ${activeVideo?.video_id === video.video_id ? 'active' : ''}`}
+                        className={`module-video-item ${activeVideo?.video_id === video.video_id ? 'active' : ''} ${video.marked_for_delete ? 'marked-for-delete' : ''}`}
                         onClick={() => handleVideoSelect(video)}
                       >
                         <input
                           type="checkbox"
-                          checked={!!video.watched}
-                          onChange={(e) => { e.stopPropagation(); toggleWatched(video.video_id) }}
+                          checked={selectedVideoIds.includes(video.video_id)}
+                          onClick={event => event.stopPropagation()}
+                          onChange={() => toggleVideoSelection(video.video_id)}
+                          aria-label={`Select ${video.title}`}
                           style={{ flexShrink: 0 }}
                         />
-                        <span className={video.watched ? 'watched' : ''} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {video.title}
-                        </span>
+                        {video.thumbnail ? (
+                          <img src={video.thumbnail} alt="" className="module-video-thumbnail" />
+                        ) : (
+                          <div className="module-video-thumbnail module-video-thumbnail-placeholder" />
+                        )}
+                        <div className="module-video-content">
+                          <div className={video.watched ? 'watched' : ''}>{video.title}</div>
+                          {video.description && <p>{video.description}</p>}
+                          <div className="module-video-flags">
+                            {video.bookmarked && <span>Bookmarked</span>}
+                            {video.marked_for_delete && <span>Marked for deletion</span>}
+                          </div>
+                        </div>
                         {video.duration_secs > 0 && (
                           <span className="video-duration">{formatDuration(video.duration_secs)}</span>
                         )}
@@ -304,7 +386,11 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
                   </div>
                 )}
               </div>
-            ))}
+              )
+            })}
+            {normalizedCourseSearch && visibleModules.length === 0 && (
+              <p className="course-search-empty">No modules or videos match “{courseSearch}”.</p>
+            )}
             {(!activeCourse.modules || activeCourse.modules.length === 0) && (
               <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>No modules in this course.</p>
             )}

@@ -51,16 +51,20 @@ export function deletePlan(planId) {
   return request(`/api/plans/${planId}`, { method: 'DELETE' })
 }
 
+export function addManualCourse(planId, course) {
+  return request(`/api/plans/${planId}/add-course-manually`, { method: 'PATCH', body: JSON.stringify(course) })
+}
+
+export function addAiSuggestedCourse(planId, videos) {
+  return request(`/api/plans/${planId}/add-course-ai-suggested`, { method: 'POST', body: JSON.stringify(videos) })
+}
+
 export function getPlan(planId) {
   return request(`/api/plans/${planId}`)
 }
 
 export function refreshPlan(planId) {
   return request(`/api/plans/${planId}/refresh`, { method: 'PATCH' })
-}
-
-export function aiSuggest(planId) {
-  return request(`/api/plans/${planId}/ai-suggest`, { method: 'POST' })
 }
 
 export function searchVideos(query) {

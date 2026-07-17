@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { getChannels, getPlaylists, getVideos } from '../api/client'
-import { updatePlan } from '../store/plansSlice'
+import { getChannels, getPlaylists, getVideos, addManualCourse, getPlan } from '../api/client'
 
 function ChannelAvatar({ title }) {
   const letter = (title || '?').charAt(0).toUpperCase()
   return <div className="channel-avatar">{letter}</div>
 }
 
-export default function AddCourseModal({ plan, onClose }) {
-  const dispatch = useDispatch()
-  const [showAddModal, setShowAddModal] = useState(false)
+export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({ name: '', description: '', logo: '' })
   const [channels, setChannels] = useState([])
@@ -25,9 +21,6 @@ export default function AddCourseModal({ plan, onClose }) {
   const [channelSearch, setChannelSearch] = useState('')
   const [playlistSearch, setPlaylistSearch] = useState('')
   const [activePlaylistTab, setActivePlaylistTab] = useState('ALL')
-
-  const plans = useSelector(state => state.plans.items)
-  const currentPlan = plans.find(p => p.id === plan.id) || plan
 
   useEffect(() => {
     getChannels().then(d => setChannels(d.channels || [])).catch(() => {})
@@ -91,33 +84,47 @@ export default function AddCourseModal({ plan, onClose }) {
     setStep(4)
   }
 
-  function handleCreateCourse() {
+  async function handleCreateCourse() {
     if (!form.name.trim()) { setError('Course name is required'); return }
     const newCourse = {
-      id: crypto.randomUUID(),
       title: form.name,
+      sequence: (plan.courses?.length || 0) + 1,
       description: form.description,
-      logo: form.logo || null,
+      source_channels: selectedChannels.map(channel => ({
+        channel_id: channel.channel_id,
+        title: channel.title,
+        url: channel.url || '',
+        video_count: channel.video_count || channel.videos_count || 0,
+        playlists: selectedPlaylists.filter(playlist => playlists[channel.channel_id]?.some(item => item.playlist_id === playlist.playlist_id))
+          .map(playlist => ({ id: playlist.playlist_id, title: playlist.title, thumbnail: playlist.thumbnail || '' })),
+      })),
       modules: [{
-        id: crypto.randomUUID(),
         title: 'Chapter 1',
         sequence: 1,
         videos: videos.map(v => ({
           video_id: v.video_id || v.id || crypto.randomUUID(),
           title: v.title,
+          revised_title_from_ai: v.title,
           description: v.description || '',
           url: v.url || '',
+          thumbnail: v.thumbnail || '',
           duration_secs: v.duration_secs || 0,
           watched: false,
         })),
       }],
     }
-    const updated = {
-      ...currentPlan,
-      courses: [...(currentPlan.courses || []), newCourse],
+    setLoading(true)
+    setError('')
+    try {
+      await addManualCourse(plan.id, newCourse)
+      const savedPlan = await getPlan(plan.id)
+      onCourseCreated(savedPlan)
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Unable to create course')
+    } finally {
+      setLoading(false)
     }
-    dispatch(updatePlan(updated))
-    onClose()
   }
 
   function closeDrawer() {
@@ -314,8 +321,8 @@ export default function AddCourseModal({ plan, onClose }) {
           {step === 4 && (
             <>
               <button className="btn btn-secondary" onClick={() => setStep(3)}>Back</button>
-              <button className="btn btn-success" onClick={handleCreateCourse} disabled={videos.length === 0}>
-                Create Course
+              <button className="btn btn-success" onClick={handleCreateCourse} disabled={videos.length === 0 || loading}>
+                {loading ? <><span className="spinner" /> Creating...</> : 'Create Course'}
               </button>
             </>
           )}
