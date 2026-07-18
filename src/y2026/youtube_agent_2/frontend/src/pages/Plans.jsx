@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { createPlan, deletePlan as deletePlanRequest } from '../api/client'
 import { updatePlanMetadata } from '../api/client'
 import EditMetadataDrawer from '../components/EditMetadataDrawer'
-import { EditIcon } from '../components/Icons'
+import { EditIcon, WorkspaceIcon } from '../components/Icons'
 import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
 
 export default function Plans({ newPlanRequest }) {
@@ -19,6 +19,7 @@ export default function Plans({ newPlanRequest }) {
   const [planToEdit, setPlanToEdit] = useState(null)
   const [query, setQuery] = useState('')
   const [sortBy, setSortBy] = useState('updated')
+  const [showSort, setShowSort] = useState(false)
   const visiblePlans = [...plans].filter(plan => `${plan.name} ${plan.description || ''}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : new Date(b.updated_at) - new Date(a.updated_at))
 
   useEffect(() => {
@@ -127,8 +128,8 @@ export default function Plans({ newPlanRequest }) {
       )}
 
       <div>
-          <div className="page-header"><h1>YouTube Learning</h1></div>
-          <div className="catalog-controls"><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search learning plans..." /><select value={sortBy} onChange={event => setSortBy(event.target.value)}><option value="updated">Recently updated</option><option value="name">Name</option></select></div>
+          <div className="page-header plan-overview-header"><h1>YouTube Learning</h1><div className="plan-action-panel"><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search learning plans..." aria-label="Search learning plans" /><button className="btn btn-secondary btn-sm icon-button" title="Sort learning plans" aria-label="Sort learning plans" onClick={() => setShowSort(true)}><WorkspaceIcon name="sort" /></button><div className="add-course-group"><button className="btn btn-secondary btn-sm" onClick={() => setShowDrawer(true)}><WorkspaceIcon name="manual" />New plan</button></div></div></div>
+          <div className="page-header course-toolbar"><h4>Learning plans <span className="badge badge-green">{plans.length}</span></h4></div>
           {plans.length === 0 && (
             <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>
               <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>No learning plans yet</p>
@@ -149,6 +150,7 @@ export default function Plans({ newPlanRequest }) {
             )
           })}</div>
       </div>
+      {showSort && <><div className="drawer-overlay" onClick={() => setShowSort(false)} /><aside className="drawer"><div className="drawer-header"><h2>Sort learning plans</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowSort(false)}>×</button></div><div className="drawer-body"><div className="material-select"><label>Sort learning plans</label><div className="sort-toggle" role="group" aria-label="Sort learning plans"><button className={sortBy === 'updated' ? 'active' : ''} onClick={() => setSortBy('updated')}>Recently updated</button><button className={sortBy === 'name' ? 'active' : ''} onClick={() => setSortBy('name')}>Name</button></div></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => setSortBy('updated')}>Reset</button><button className="btn btn-primary" onClick={() => setShowSort(false)}>Apply</button></div></aside></>}
       {planToEdit && <EditMetadataDrawer item={planToEdit} type="plan" onClose={() => setPlanToEdit(null)} onSave={async form => { const response = await updatePlanMetadata(planToEdit.id, form); dispatch(updatePlan(response.plan)); setPlanToEdit(null) }} onDelete={() => { setPlanToEdit(null); setPlanToDelete(planToEdit) }} />}
       {planToDelete && (
         <div className="confirm-overlay" onClick={() => setPlanToDelete(null)}>
