@@ -12,7 +12,7 @@ export default function Plans({ newPlanRequest }) {
   const navigate = useNavigate()
   const plans = useSelector(state => state.plans.items)
   const [showDrawer, setShowDrawer] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '', logoUrl: '' })
+  const [form, setForm] = useState({ name: '', description: '', logoUrl: 'https://skillicons.dev/icons?i=' })
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
   const [planToDelete, setPlanToDelete] = useState(null)
@@ -31,7 +31,7 @@ export default function Plans({ newPlanRequest }) {
 
   function closeDrawer() {
     setShowDrawer(false)
-    setForm({ name: '', description: '', logoUrl: '' })
+    setForm({ name: '', description: '', logoUrl: 'https://skillicons.dev/icons?i=' })
     setError('')
   }
 
@@ -113,7 +113,7 @@ export default function Plans({ newPlanRequest }) {
                   <input
                     value={form.logoUrl}
                     onChange={event => setForm({ ...form, logoUrl: event.target.value })}
-                    placeholder="Paste image URL"
+                    placeholder="https://skillicons.dev/icons?i="
                   />
                   {form.logoUrl && <img src={form.logoUrl} alt="Logo preview" className="logo-preview" />}
                 </div>

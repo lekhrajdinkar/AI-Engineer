@@ -8,7 +8,7 @@ import os
 import sqlite3
 import json
 from dotenv import load_dotenv
-from src.y2026.youtube_agent_2.backend import db_sqlLite as db
+from src.y2026.youtube_agent_2.backend import db
 from src.y2026.youtube_agent_2.backend import youtube_client
 from src.y2026.youtube_agent_2.backend import config
 from pathlib import Path

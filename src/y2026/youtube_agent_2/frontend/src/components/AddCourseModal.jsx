@@ -3,9 +3,28 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getChannels, getPlaylists, getVideos, addManualCourse, getPlan } from '../api/client'
 import { setChannelPlaylists, setSubscribedChannels } from '../store/sourcesSlice'
 
-function ChannelAvatar({ title }) {
+function ChannelAvatar({ title, thumbnail }) {
   const letter = (title || '?').charAt(0).toUpperCase()
+  if (thumbnail) return <img src={thumbnail} alt="" className="source-picker-thumb" />
   return <div className="channel-avatar">{letter}</div>
+}
+
+function getLastUpdated(item) {
+  return item.updated_at || item.last_updated || item.published_at || item.created_at || ''
+}
+
+function formatLastUpdated(item) {
+  const value = getLastUpdated(item)
+  if (!value) return 'Update date unavailable'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'Update date unavailable' : `Updated ${date.toLocaleDateString()}`
+}
+
+function sortSourceItems(items, sortBy) {
+  return [...items].sort((a, b) => {
+    if (sortBy === 'updated') return new Date(getLastUpdated(b) || 0) - new Date(getLastUpdated(a) || 0)
+    return (a.title || '').localeCompare(b.title || '')
+  })
 }
 
 export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
@@ -26,6 +45,9 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
   const [channelSearch, setChannelSearch] = useState('')
   const [playlistSearch, setPlaylistSearch] = useState('')
   const [activePlaylistTab, setActivePlaylistTab] = useState('ALL')
+  const [channelSortBy, setChannelSortBy] = useState('name')
+  const [playlistSortBy, setPlaylistSortBy] = useState('name')
+  const [showLoadVideosConfirm, setShowLoadVideosConfirm] = useState(false)
 
   useEffect(() => {
     if (cachedChannels !== null) {
@@ -45,6 +67,15 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
         ? prev.filter(c => c.channel_id !== ch.channel_id)
         : [...prev, ch]
     )
+  }
+
+  function selectAllChannels(items) {
+    setSelectedChannels(prev => [...prev, ...items.filter(item => !prev.some(selected => selected.channel_id === item.channel_id))])
+  }
+
+  function deselectAllChannels(items) {
+    const ids = new Set(items.map(item => item.channel_id))
+    setSelectedChannels(prev => prev.filter(item => !ids.has(item.channel_id)))
   }
 
   async function loadPlaylists() {
@@ -72,6 +103,15 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
         ? prev.filter(p => p.playlist_id !== pl.playlist_id)
         : [...prev, pl]
     )
+  }
+
+  function selectAllPlaylists(items) {
+    setSelectedPlaylists(prev => [...prev, ...items.filter(item => !prev.some(selected => selected.playlist_id === item.playlist_id))])
+  }
+
+  function deselectAllPlaylists(items) {
+    const ids = new Set(items.map(item => item.playlist_id))
+    setSelectedPlaylists(prev => prev.filter(item => !ids.has(item.playlist_id)))
   }
 
   async function loadVideos() {
@@ -155,21 +195,31 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
     setChannelSearch('')
     setPlaylistSearch('')
     setActivePlaylistTab('ALL')
+    setChannelSortBy('name')
+    setPlaylistSortBy('name')
+    setShowLoadVideosConfirm(false)
     onClose()
   }
 
   // Filtered channels
-  const filteredChannels = channels.filter(ch =>
+  const filteredChannels = sortSourceItems(channels.filter(ch =>
     !channelSearch || ch.title.toLowerCase().includes(channelSearch.toLowerCase())
-  )
+  ), channelSortBy)
 
   // Get playlists for active tab
   const channelPlaylists = activePlaylistTab === 'ALL'
     ? Object.values(playlists).flat()
     : (playlists[activePlaylistTab] || [])
-  const filteredPlaylists = channelPlaylists.filter(pl =>
+  const filteredPlaylists = sortSourceItems(channelPlaylists.filter(pl =>
     !playlistSearch || pl.title.toLowerCase().includes(playlistSearch.toLowerCase())
-  )
+  ), playlistSortBy)
+
+  const selectedSourcesSummary = selectedChannels.map(channel => ({
+    channel,
+    playlists: (playlists[channel.channel_id] || []).filter(playlist =>
+      selectedPlaylists.some(selected => selected.playlist_id === playlist.playlist_id)
+    ),
+  }))
 
   return (
     <>
@@ -179,7 +229,7 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
           <h2>Add Course Manually</h2>
           <button className="btn btn-secondary btn-sm" onClick={closeDrawer}>✕</button>
         </div>
-        <div className="drawer-body">
+        <div className="drawer-body add-course-drawer-body">
           {error && <div className="alert alert-error">{error}</div>}
 
           {/* Step 1: Course details */}
@@ -196,7 +246,7 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
               <div className="form-group">
                 <label>Logo (optional)</label>
                 <div className="logo-upload">
-                  <input value={form.logo} onChange={e => setForm({ ...form, logo: e.target.value })} placeholder="Paste image URL" />
+                  <input value={form.logo} onChange={e => setForm({ ...form, logo: e.target.value })} placeholder="https://skillicons.dev/icons?i=" />
                   {form.logo && <img src={form.logo} alt="preview" className="logo-preview" />}
                 </div>
               </div>
@@ -205,7 +255,7 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
 
           {/* Step 2: Select channels with search */}
           {step === 2 && (
-            <div>
+            <div className="add-course-source-step">
               <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 Search and select YouTube channels as content source:
               </p>
@@ -216,13 +266,29 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
                   placeholder="Search channels by name..."
                 />
               </div>
-              <div className="tile-grid" style={{ maxHeight: 400 }}>
+              <div className="source-picker-toolbar">
+                <span>Channels</span>
+                <div className="source-picker-actions">
+                  <div className="picker-bulk-toggle" aria-label="Select channels">
+                    <button type="button" onClick={() => selectAllChannels(filteredChannels)}>Select all</button>
+                    <button type="button" onClick={() => deselectAllChannels(filteredChannels)}>Deselect all</button>
+                  </div>
+                  <div className="picker-sort-toggle" aria-label="Sort channels">
+                    <button type="button" className={channelSortBy === 'name' ? 'active' : ''} onClick={() => setChannelSortBy('name')}>Name</button>
+                    <button type="button" className={channelSortBy === 'updated' ? 'active' : ''} onClick={() => setChannelSortBy('updated')}>Last updated</button>
+                  </div>
+                </div>
+              </div>
+              <div className="tile-grid source-picker-grid">
                 {filteredChannels.map(ch => {
                   const isSelected = selectedChannels.find(c => c.channel_id === ch.channel_id)
                   return (
                     <div key={ch.channel_id} className={`channel-tile ${isSelected ? 'selected' : ''}`} onClick={() => toggleChannel(ch)}>
-                      <ChannelAvatar title={ch.title} />
-                      <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{ch.title}</span>
+                      <ChannelAvatar title={ch.title} thumbnail={ch.thumbnail || ch.logo_url || ch.logo} />
+                      <div className="source-picker-tile-content">
+                        <strong className="source-picker-tile-title">{ch.title}</strong>
+                        <span className="source-picker-tile-meta">{formatLastUpdated(ch)}</span>
+                      </div>
                     </div>
                   )
                 })}
@@ -237,7 +303,7 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
 
           {/* Step 3: Select playlists with search and tabs */}
           {step === 3 && (
-            <div>
+            <div className="add-course-source-step">
               <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 Select playlists (or leave empty to load all videos from channels):
               </p>
@@ -260,9 +326,22 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
                   placeholder="Search playlists by name..."
                 />
               </div>
+              <div className="source-picker-toolbar">
+                <span>Playlists</span>
+                <div className="source-picker-actions">
+                  <div className="picker-bulk-toggle" aria-label="Select playlists">
+                    <button type="button" onClick={() => selectAllPlaylists(filteredPlaylists)}>Select all</button>
+                    <button type="button" onClick={() => deselectAllPlaylists(filteredPlaylists)}>Deselect all</button>
+                  </div>
+                  <div className="picker-sort-toggle" aria-label="Sort playlists">
+                    <button type="button" className={playlistSortBy === 'name' ? 'active' : ''} onClick={() => setPlaylistSortBy('name')}>Name</button>
+                    <button type="button" className={playlistSortBy === 'updated' ? 'active' : ''} onClick={() => setPlaylistSortBy('updated')}>Last updated</button>
+                  </div>
+                </div>
+              </div>
               {/* Playlist tiles */}
               {filteredPlaylists.length > 0 ? (
-                <div className="tile-grid" style={{ maxHeight: 350 }}>
+                <div className="tile-grid source-picker-grid">
                   {filteredPlaylists.map(pl => {
                     const isSelected = selectedPlaylists.find(p => p.playlist_id === pl.playlist_id)
                     return (
@@ -272,9 +351,9 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
                         ) : (
                           <div className="playlist-thumb" />
                         )}
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 500 }}>{pl.title}</div>
-                          {pl.description && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{pl.description}</div>}
+                        <div className="source-picker-tile-content">
+                          <strong className="source-picker-tile-title">{pl.title}</strong>
+                          <span className="source-picker-tile-meta">{formatLastUpdated(pl)}</span>
                         </div>
                       </div>
                     )
@@ -332,7 +411,7 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
           {step === 3 && (
             <>
               <button className="btn btn-secondary" onClick={() => setStep(2)}>Back</button>
-              <button className="btn btn-primary" onClick={loadVideos} disabled={loading}>
+              <button className="btn btn-primary" onClick={() => setShowLoadVideosConfirm(true)} disabled={loading}>
                 {loading ? <><span className="spinner" /> Loading Videos...</> : 'Load Videos'}
               </button>
             </>
@@ -347,6 +426,32 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
           )}
         </div>
       </div>
+      {showLoadVideosConfirm && (
+        <div className="confirm-overlay" onClick={() => setShowLoadVideosConfirm(false)}>
+          <div className="confirm-dialog load-videos-confirm" onClick={event => event.stopPropagation()}>
+            <h3>Load videos from selected sources?</h3>
+            <p>Review the source selection before collecting videos for this course.</p>
+            <div className="load-videos-source-list">
+              {selectedSourcesSummary.map(({ channel, playlists: channelPlaylists }) => (
+                <div className="load-videos-source" key={channel.channel_id}>
+                  <strong>{channel.title} ({channelPlaylists.length} playlist{channelPlaylists.length === 1 ? '' : 's'})</strong>
+                  {channelPlaylists.length > 0 ? (
+                    <ul className="load-videos-playlist-list">
+                      {channelPlaylists.map(playlist => <li key={playlist.playlist_id}>{playlist.title}</li>)}
+                    </ul>
+                  ) : (
+                    <span className="load-videos-all-note">No playlist selected — all videos from this channel will be collected.</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="confirm-actions">
+              <button className="btn btn-secondary" onClick={() => setShowLoadVideosConfirm(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={() => { setShowLoadVideosConfirm(false); loadVideos() }}>Load Videos</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
