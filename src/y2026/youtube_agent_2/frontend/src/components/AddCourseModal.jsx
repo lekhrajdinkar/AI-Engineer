@@ -110,6 +110,7 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
           thumbnail: v.thumbnail || '',
           duration_secs: v.duration_secs || 0,
           watched: false,
+          labels: [],
         })),
       }],
     }

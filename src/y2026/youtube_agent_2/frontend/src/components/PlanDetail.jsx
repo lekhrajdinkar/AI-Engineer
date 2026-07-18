@@ -1,23 +1,26 @@
 import React, { useState } from 'react'
 import AddCourseModal from './AddCourseModal'
 import AiCourseModal from './AiCourseModal'
+import { deleteCourses, getPlan, updateCourseLabels, updateModuleLabels, updateVideoLabels } from '../api/client'
+import { LabelIcon } from './Icons'
 
-export default function PlanDetail({ plan, onUpdate, onDelete }) {
+export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId }) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [activeCourseId, setActiveCourseId] = useState(null)
+  const [activeCourseId, setActiveCourseId] = useState(workspaceCourseId || null)
   const [expandedModules, setExpandedModules] = useState({})
   const [activeVideo, setActiveVideo] = useState(null)
   const [courseSearch, setCourseSearch] = useState('')
   const [selectedVideoIds, setSelectedVideoIds] = useState([])
+  const [labelError, setLabelError] = useState('')
 
   // Build tab list: Overview + each course
   const tabs = [
     { id: 'overview', label: 'Overview' },
     ...(plan.courses || []).map(c => ({ id: c.id, label: c.title }))
   ]
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(workspaceCourseId || 'overview')
 
   const activeCourse = plan.courses?.find(c => c.id === activeCourseId) || null
   const normalizedCourseSearch = courseSearch.trim().toLowerCase()
@@ -36,26 +39,31 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
     onUpdate(updatedPlan)
   }
 
-  function toggleWatched(videoId) {
-    const updated = {
-      ...plan,
-      courses: plan.courses.map(c => ({
-        ...c,
-        modules: c.modules.map(m => ({
-          ...m,
-          videos: m.videos.map(v =>
-            v.video_id === videoId ? { ...v, watched: !v.watched } : v
-          )
-        }))
-      }))
+  function withToggledLabel(labels = [], label) {
+    return labels.includes(label) ? labels.filter(item => item !== label) : [...labels, label]
+  }
+
+  async function refreshPlanAfterChange() {
+    const savedPlan = await getPlan(plan.id)
+    onUpdate(savedPlan)
+    if (activeVideo) {
+      const refreshedVideo = savedPlan.courses.flatMap(course => course.modules).flatMap(module => module.videos)
+        .find(video => video.video_id === activeVideo.video_id)
+      if (refreshedVideo) setActiveVideo(refreshedVideo)
     }
-    onUpdate(updated)
-    if (activeVideo?.video_id === videoId) {
-      const updatedV = updated.courses
-        .flatMap(c => c.modules)
-        .flatMap(m => m.videos)
-        .find(v => v.video_id === videoId)
-      if (updatedV) setActiveVideo(updatedV)
+  }
+
+  async function toggleWatched(videoId) {
+    const location = plan.courses.flatMap(course => course.modules.map(module => ({ course, module })))
+      .find(({ module }) => module.videos.some(video => video.video_id === videoId))
+    const video = location?.module.videos.find(item => item.video_id === videoId)
+    if (!location || !video) return
+    try {
+      setLabelError('')
+      await updateVideoLabels(plan.id, location.course.id, location.module.id, videoId, withToggledLabel(video.labels, 'watched'))
+      await refreshPlanAfterChange()
+    } catch (error) {
+      setLabelError(error.message || 'Unable to update video labels')
     }
   }
 
@@ -71,26 +79,71 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
     )
   }
 
-  function applyBulkVideoUpdate(changes) {
+  async function applyBulkVideoLabel(label) {
     if (selectedVideoIds.length === 0) return
-    const selectedIds = new Set(selectedVideoIds)
-    const updated = {
-      ...plan,
-      courses: plan.courses.map(course => ({
-        ...course,
-        modules: course.modules.map(module => ({
-          ...module,
-          videos: module.videos.map(video =>
-            selectedIds.has(video.video_id) ? { ...video, ...changes } : video
-          )
-        }))
-      }))
+    try {
+      setLabelError('')
+      const selectedIds = new Set(selectedVideoIds)
+      for (const course of plan.courses) {
+        for (const module of course.modules) {
+          for (const video of module.videos) {
+            if (selectedIds.has(video.video_id)) {
+              await updateVideoLabels(plan.id, course.id, module.id, video.video_id, withToggledLabel(video.labels, label))
+            }
+          }
+        }
+      }
+      await refreshPlanAfterChange()
+      setSelectedVideoIds([])
+    } catch (error) {
+      setLabelError(error.message || 'Unable to update video labels')
     }
-    onUpdate(updated)
-    if (activeVideo && selectedIds.has(activeVideo.video_id)) {
-      setActiveVideo({ ...activeVideo, ...changes })
+  }
+
+  async function toggleVideoLabel(video, label) {
+    const location = plan.courses.flatMap(course => course.modules.map(module => ({ course, module })))
+      .find(({ module }) => module.videos.some(item => item.video_id === video.video_id))
+    if (!location) return
+    try {
+      setLabelError('')
+      await updateVideoLabels(plan.id, location.course.id, location.module.id, video.video_id, withToggledLabel(video.labels, label))
+      await refreshPlanAfterChange()
+    } catch (error) {
+      setLabelError(error.message || 'Unable to update video labels')
     }
-    setSelectedVideoIds([])
+  }
+
+  async function toggleCourseLabel(label) {
+    if (!activeCourse) return
+    try {
+      setLabelError('')
+      await updateCourseLabels(plan.id, activeCourse.id, withToggledLabel(activeCourse.labels, label))
+      await refreshPlanAfterChange()
+    } catch (error) {
+      setLabelError(error.message || 'Unable to update course labels')
+    }
+  }
+
+  async function toggleModuleLabel(module, label) {
+    try {
+      setLabelError('')
+      await updateModuleLabels(plan.id, activeCourse.id, module.id, withToggledLabel(module.labels, label))
+      await refreshPlanAfterChange()
+    } catch (error) {
+      setLabelError(error.message || 'Unable to update module labels')
+    }
+  }
+
+  async function handleDeleteCourse(courseId) {
+    try {
+      setLabelError('')
+      const response = await deleteCourses(plan.id, [courseId])
+      onUpdate(response.plan)
+      setActiveTab('overview')
+      setActiveCourseId(null)
+    } catch (error) {
+      setLabelError(error.message || 'Unable to delete course')
+    }
   }
 
   function handleVideoSelect(video) {
@@ -134,7 +187,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
   return (
     <div>
       {/* Tab bar: Overview + per-course tabs */}
-      <div className="plan-tab-bar" style={{ overflowX: 'auto' }}>
+      {!workspaceCourseId && <div className="plan-tab-bar" style={{ overflowX: 'auto' }}>
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -153,10 +206,11 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
             {tab.label}
           </button>
         ))}
-      </div>
+      </div>}
+      {labelError && <div className="alert alert-error">{labelError}</div>}
 
       {/* OVERVIEW TAB */}
-      {activeTab === 'overview' && (
+      {!workspaceCourseId && activeTab === 'overview' && (
         <div className="overview-layout">
           <div>
             {plan.description && <p style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>}
@@ -225,6 +279,9 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
                           <span className="badge badge-green">{courseWatched} watched</span>
                         </div>
                       </div>
+                      <button className="btn btn-danger btn-sm" onClick={event => { event.stopPropagation(); handleDeleteCourse(course.id) }}>
+                        Delete Course
+                      </button>
                     </div>
                   )
                 })}
@@ -339,16 +396,24 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
                 aria-label="Search modules or videos"
               />
             </div>
+            <div className="label-actions">
+              <span>Course labels</span>
+              {['watched', 'bookmarked', 'mark_for_delete'].map(label => (
+                <button key={label} className={activeCourse.labels?.includes(label) ? 'active' : ''} onClick={() => toggleCourseLabel(label)} aria-label={`Toggle ${label.replaceAll('_', ' ')}`} title={label.replaceAll('_', ' ')}>
+                  <LabelIcon label={label} />
+                </button>
+              ))}
+            </div>
             {selectedVideoIds.length > 0 && (
               <div className="bulk-video-actions">
                 <span>{selectedVideoIds.length} selected</span>
-                <button className="btn btn-secondary btn-sm" onClick={() => applyBulkVideoUpdate({ bookmarked: true })}>
+                <button className="btn btn-secondary btn-sm" onClick={() => applyBulkVideoLabel('bookmarked')}>
                   Bookmark
                 </button>
-                <button className="btn btn-success btn-sm" onClick={() => applyBulkVideoUpdate({ watched: true })}>
+                <button className="btn btn-success btn-sm" onClick={() => applyBulkVideoLabel('watched')}>
                   Mark complete
                 </button>
-                <button className="btn btn-danger btn-sm" onClick={() => applyBulkVideoUpdate({ marked_for_delete: true })}>
+                <button className="btn btn-danger btn-sm" onClick={() => applyBulkVideoLabel('mark_for_delete')}>
                   Mark for delete
                 </button>
               </div>
@@ -363,13 +428,20 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
                   <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     {module.videos?.length || 0}
                   </span>
+                  <div className="module-label-actions" onClick={event => event.stopPropagation()}>
+                    {['watched', 'bookmarked', 'mark_for_delete'].map(label => (
+                      <button key={label} className={module.labels?.includes(label) ? 'active' : ''} onClick={() => toggleModuleLabel(module, label)} aria-label={`Toggle ${label.replaceAll('_', ' ')}`} title={label.replaceAll('_', ' ')}>
+                        <LabelIcon label={label} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 {isExpanded && (
                   <div className="module-videos" style={{ maxHeight: 300, overflowY: 'auto' }}>
                     {module.videos?.map(video => (
                       <div
                         key={video.video_id}
-                        className={`module-video-item ${activeVideo?.video_id === video.video_id ? 'active' : ''} ${video.marked_for_delete ? 'marked-for-delete' : ''}`}
+                        className={`module-video-item ${activeVideo?.video_id === video.video_id ? 'active' : ''} ${video.labels?.includes('mark_for_delete') ? 'marked-for-delete' : ''}`}
                         onClick={() => handleVideoSelect(video)}
                       >
                         <input
@@ -386,12 +458,25 @@ export default function PlanDetail({ plan, onUpdate, onDelete }) {
                           <div className="module-video-thumbnail module-video-thumbnail-placeholder" />
                         )}
                         <div className="module-video-content">
-                          <div className={video.watched ? 'watched' : ''}>{video.title}</div>
+                          <div className={video.labels?.includes('watched') ? 'watched' : ''}>{video.title}</div>
                           {video.description && <p>{video.description}</p>}
                           <div className="module-video-flags">
-                            {video.bookmarked && <span>Bookmarked</span>}
-                            {video.marked_for_delete && <span>Marked for deletion</span>}
+                            {video.labels?.includes('bookmarked') && <span>Bookmarked</span>}
+                            {video.labels?.includes('mark_for_delete') && <span>Marked for deletion</span>}
                           </div>
+                        </div>
+                        <div className="video-label-actions" onClick={event => event.stopPropagation()}>
+                          {['watched', 'bookmarked', 'mark_for_delete'].map(label => (
+                            <button
+                              key={label}
+                              className={video.labels?.includes(label) ? 'active' : ''}
+                              onClick={() => toggleVideoLabel(video, label)}
+                              aria-label={`Toggle ${label.replaceAll('_', ' ')} for ${video.title}`}
+                              title={label.replaceAll('_', ' ')}
+                            >
+                              <LabelIcon label={label} />
+                            </button>
+                          ))}
                         </div>
                         {video.duration_secs > 0 && (
                           <span className="video-duration">{formatDuration(video.duration_secs)}</span>

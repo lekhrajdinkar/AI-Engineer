@@ -51,12 +51,31 @@ export function deletePlan(planId) {
   return request(`/api/plans/${planId}`, { method: 'DELETE' })
 }
 
+export function updatePlanMetadata(planId, data) { return request(`/api/plans/${planId}`, { method: 'PATCH', body: JSON.stringify(data) }) }
+export function updateCourseMetadata(planId, courseId, data) { return request(`/api/plans/${planId}/courses/${courseId}`, { method: 'PATCH', body: JSON.stringify(data) }) }
+
 export function addManualCourse(planId, course) {
   return request(`/api/plans/${planId}/add-course-manually`, { method: 'PATCH', body: JSON.stringify(course) })
 }
 
 export function addAiSuggestedCourse(planId, videos) {
   return request(`/api/plans/${planId}/add-course-ai-suggested`, { method: 'POST', body: JSON.stringify(videos) })
+}
+
+export function deleteCourses(planId, courseIds) {
+  return request(`/api/courses/${planId}`, { method: 'DELETE', body: JSON.stringify({ course_ids: courseIds }) })
+}
+
+export function updateCourseLabels(planId, courseId, labels) {
+  return request(`/api/plans/${planId}/courses/${courseId}/labels`, { method: 'PATCH', body: JSON.stringify({ labels }) })
+}
+
+export function updateModuleLabels(planId, courseId, moduleId, labels) {
+  return request(`/api/plans/${planId}/courses/${courseId}/modules/${moduleId}/labels`, { method: 'PATCH', body: JSON.stringify({ labels }) })
+}
+
+export function updateVideoLabels(planId, courseId, moduleId, videoId, labels) {
+  return request(`/api/plans/${planId}/courses/${courseId}/modules/${moduleId}/videos/${videoId}/labels`, { method: 'PATCH', body: JSON.stringify({ labels }) })
 }
 
 export function getPlan(planId) {

@@ -1,23 +1,30 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import PlanDetail from '../components/PlanDetail'
+import { useNavigate } from 'react-router-dom'
 import { createPlan, deletePlan as deletePlanRequest } from '../api/client'
+import { updatePlanMetadata } from '../api/client'
+import EditMetadataDrawer from '../components/EditMetadataDrawer'
+import { EditIcon } from '../components/Icons'
 import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
 
 export default function Plans({ newPlanRequest }) {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const plans = useSelector(state => state.plans.items)
-  const selectedId = useSelector(state => state.plans.selectedId)
   const [showDrawer, setShowDrawer] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', logoUrl: '' })
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
+  const [planToDelete, setPlanToDelete] = useState(null)
+  const [planToEdit, setPlanToEdit] = useState(null)
+  const [query, setQuery] = useState('')
+  const [sortBy, setSortBy] = useState('updated')
+  const visiblePlans = [...plans].filter(plan => `${plan.name} ${plan.description || ''}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : new Date(b.updated_at) - new Date(a.updated_at))
 
   useEffect(() => {
     if (newPlanRequest > 0) setShowDrawer(true)
   }, [newPlanRequest])
 
-  const selectedPlan = selectedId ? plans.find(plan => plan.id === selectedId) : null
 
   function closeDrawer() {
     setShowDrawer(false)
@@ -119,47 +126,41 @@ export default function Plans({ newPlanRequest }) {
         </>
       )}
 
-      {selectedPlan ? (
-        <div>
-          <div className="page-header">
-            <h1>{selectedPlan.name}</h1>
-            <button className="btn btn-secondary btn-sm" onClick={() => dispatch(clearSelection())}>
-              &larr; Back to Plans
-            </button>
-          </div>
-          <PlanDetail plan={selectedPlan} onUpdate={handleUpdatePlan} onDelete={handleDelete} />
-        </div>
-      ) : (
-        <div>
+      <div>
+          <div className="catalog-controls"><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search learning plans..." /><select value={sortBy} onChange={event => setSortBy(event.target.value)}><option value="updated">Recently updated</option><option value="name">Name</option></select></div>
           {plans.length === 0 && (
             <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>
               <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>No learning plans yet</p>
               <p>Click "+ New Plan" to create your first learning plan.</p>
             </div>
           )}
-          {plans.map(plan => {
+          <div className="plan-card-list">{visiblePlans.map(plan => {
             const logoUrl = plan.logo_url || plan.logo
             return (
-              <div className="card" key={plan.id} style={{ cursor: 'pointer' }} onClick={() => dispatch(selectPlan(plan.id))}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    {logoUrl && <img src={logoUrl} alt="" style={{ width: 40, height: 40, border: '1px solid var(--border-color)', objectFit: 'cover' }} />}
-                    <div>
-                      <h3 style={{ margin: 0 }}>{plan.name}</h3>
-                      {plan.description && <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.3rem' }}>{plan.description}</p>}
-                      <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <span className="badge badge-green">{plan.courses?.length || 0} courses</span>
-                        <span className="badge badge-gray">{new Date(plan.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <button className="btn btn-danger btn-sm" onClick={event => { event.stopPropagation(); handleDelete(plan.id) }}>
-                    Delete
-                  </button>
-                </div>
-              </div>
+              <article className="card catalog-tile" key={plan.id} onClick={() => navigate(`/plans/${plan.id}`)}>
+                <header className="catalog-tile-header">
+                    {logoUrl ? <img src={logoUrl} alt="" className="tile-logo" /> : <div className="tile-logo tile-logo-fallback">{plan.name?.charAt(0).toUpperCase() || '?'}</div>}
+                    <div><h3>{plan.name}</h3><p>{plan.description || 'No description provided.'}</p></div>
+                </header>
+                <footer className="catalog-tile-footer"><div><span className="badge badge-green">{plan.courses?.length || 0} courses</span><span className="badge badge-gray">{new Date(plan.created_at).toLocaleDateString()}</span></div><button className="btn btn-secondary btn-sm icon-button" title="Edit" onClick={event => { event.stopPropagation(); setPlanToEdit(plan) }}><EditIcon /></button>
+                </footer>
+              </article>
             )
-          })}
+          })}</div>
+      </div>
+      {planToEdit && <EditMetadataDrawer item={planToEdit} type="plan" onClose={() => setPlanToEdit(null)} onSave={async form => { const response = await updatePlanMetadata(planToEdit.id, form); dispatch(updatePlan(response.plan)); setPlanToEdit(null) }} onDelete={() => { setPlanToEdit(null); setPlanToDelete(planToEdit) }} />}
+      {planToDelete && (
+        <div className="confirm-overlay" onClick={() => setPlanToDelete(null)}>
+          <div className="confirm-dialog" onClick={event => event.stopPropagation()}>
+            <h3>Delete Learning Plan</h3>
+            <p>Delete “{planToDelete.name}”? This permanently removes the plan and all of its courses.</p>
+            <div className="confirm-actions">
+              <button className="btn btn-secondary" onClick={() => setPlanToDelete(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={async () => {
+                if (await handleDelete(planToDelete.id)) setPlanToDelete(null)
+              }}>Delete Plan</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

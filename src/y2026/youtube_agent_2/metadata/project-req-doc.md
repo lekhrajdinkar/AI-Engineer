@@ -57,6 +57,8 @@ YouTube subscriptions are useful but unstructured for intentional learning:
         "title": "string",
         "sequence": 1,
         "description": "string",
+        "created_at": "ISO8601",
+        "updated_at": "ISO8601",
         "source_channels": [
           {
             "channel_id": "string",
@@ -73,6 +75,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
             "id": "uuid",
             "title": "string",
             "sequence": 1,
+            "labels": ["watched", "mark_for_delete", "bookmarked"]
             "videos": [
               {
                 "video_id": "string",
@@ -81,7 +84,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
                 "url": "string",
                 "duration_secs": 0,
                 "thumbnail":  "string",
-                "watched": false
+                "labels": ["watched", "mark_for_delete", "bookmarked"]
               }
             ]
           }
@@ -116,7 +119,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
       - Action: mutli-select then >  mark for delete, mark as bookmark, mark as complete.
 
 ## Phase-2 
-1) Add course (manual)
+1) Add course (manual) ✔️
 - show 3 steps form as side drawer dialog from left.
     - step-1 : name, desc and logo
     - step-2 : multi-select channels `GET /api/channels`
@@ -124,7 +127,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - refresh learning object in redux 
 - submit `POST /api/plans/{plan_id}/add-course-manually` — Add course object  passed in request body, into leaning plan
 
-2) Add course  (AI-assisted)
+2) Add course  (AI-assisted) ⚠️
 - show 4 steps form as side drawer dialog from left.
     - step-1 : name, desc and logo
     - step-2 : multi-select channels (subscribed channels list) `GET /api/channels`
@@ -135,9 +138,21 @@ YouTube subscriptions are useful but unstructured for intentional learning:
     - Add course into plan. 
 - refresh learning plan object into redux. `GET /api/plans/{plan_id}` 
 
-3) Delete plan
+3) Delete plan ✔️
 - delete learning plan object from backend
 - `DELETE /api/plans/{plan_id}`
+
+4) Delete Course in Plan
+- `DELETE /api/courses/{plan_id}`, need to create it first.
+- request body will get list of course_id
+
+5) patch 
+- At Module level,  just update "labels": ["watched", "mark_for_delete", "bookmarked"]
+- At course level,  just update "labels": ["watched", "mark_for_delete", "bookmarked"]
+
+these will be used to filter module and videos on screen then.
+
+
 
 ### Phase-3 (future)
 1) Update / Refresh Learning Plan

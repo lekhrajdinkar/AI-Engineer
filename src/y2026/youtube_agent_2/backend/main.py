@@ -52,16 +52,19 @@ class Video(BaseModel):
     video_id: str
     title: str
     revised_title_from_ai: str
+    description: Optional[str] = None
     url: Optional[str] = None
     sequence: int = 1
     thumbnail: str
     duration_secs: Optional[int] = None
     watched: bool = False
+    labels: List[str] = Field(default_factory=list)
 
 class Module(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
     sequence: int = 1
+    labels: List[str] = Field(default_factory=list)
     videos: List[Video] = Field(default_factory=list)
 
 class Playlist(BaseModel):
@@ -81,8 +84,14 @@ class Course(BaseModel):
     title: str
     sequence: int = 1
     description: Optional[str] = None
+    logo_url: str = ""
+    labels: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     modules: List[Module] = Field(default_factory=list)
     source_channels: List[Channel]
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class LearningPlan(BaseModel):
     logo_url: str = ""
@@ -93,6 +102,50 @@ class LearningPlan(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     courses: List[Course] = Field(default_factory=list)
     source_channels : List[Channel] = Field(default_factory=list)
+
+class CourseDeleteRequest(BaseModel):
+    course_ids: List[str] = Field(min_length=1)
+
+class LabelsUpdateRequest(BaseModel):
+    labels: List[str] = Field(default_factory=list)
+
+class MetadataUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+
+ALLOWED_LABELS = {"watched", "mark_for_delete", "bookmarked"}
+
+def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video_id: Optional[str], labels: List[str]) -> LearningPlan:
+    invalid_labels = set(labels) - ALLOWED_LABELS
+    if invalid_labels:
+        raise HTTPException(status_code=422, detail=f"Unsupported labels: {', '.join(sorted(invalid_labels))}")
+
+    row = db.load_plan(plan_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    plan = LearningPlan.model_validate(row)
+    course = next((item for item in plan.courses if item.id == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if module_id is None:
+        course.labels = labels
+    else:
+        module = next((item for item in course.modules if item.id == module_id), None)
+        if not module:
+            raise HTTPException(status_code=404, detail="Module not found")
+        if video_id is None:
+            module.labels = labels
+        else:
+            video = next((item for item in module.videos if item.video_id == video_id), None)
+            if not video:
+                raise HTTPException(status_code=404, detail="Video not found")
+            video.labels = labels
+            video.watched = "watched" in labels
+    plan.updated_at = datetime.now(timezone.utc)
+    db.save_plan(plan.model_dump())
+    return plan
 
 #=====================================
 # API
@@ -248,12 +301,75 @@ def get_plan(plan_id: str):
     # pydantic will parse datetimes
     return LearningPlan.model_validate(row)
 
+@app.patch("/api/plans/{plan_id}", tags=["plans"])
+def update_plan_metadata(plan_id: str, request: MetadataUpdateRequest):
+    row = db.load_plan(plan_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    plan = LearningPlan.model_validate(row)
+    if request.name is not None: plan.name = request.name
+    if request.description is not None: plan.description = request.description
+    if request.logo_url is not None: plan.logo_url = request.logo_url
+    plan.updated_at = datetime.now(timezone.utc)
+    db.save_plan(plan.model_dump())
+    return {"plan": plan}
+
+@app.patch("/api/plans/{plan_id}/courses/{course_id}", tags=["courses"])
+def update_course_metadata(plan_id: str, course_id: str, request: MetadataUpdateRequest):
+    row = db.load_plan(plan_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    plan = LearningPlan.model_validate(row)
+    course = next((item for item in plan.courses if item.id == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if request.title is not None: course.title = request.title
+    if request.description is not None: course.description = request.description
+    if request.logo_url is not None: course.logo_url = request.logo_url
+    course.updated_at = datetime.now(timezone.utc)
+    plan.updated_at = datetime.now(timezone.utc)
+    db.save_plan(plan.model_dump())
+    return {"plan": plan}
+
 ###### VIEW ALL PLAN #######
 @app.delete("/api/plans/{plan_id}", tags=["plans"])
 def delete_plan(plan_id: str):
     if not db.delete_plan(plan_id):
         raise HTTPException(status_code=404, detail="Plan not found")
     return {"message": "Plan deleted"}
+
+@app.delete("/api/courses/{plan_id}", tags=["courses"])
+def delete_courses(plan_id: str, request: CourseDeleteRequest):
+    row = db.load_plan(plan_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    plan = LearningPlan.model_validate(row)
+    course_ids = set(request.course_ids)
+    existing_ids = {course.id for course in plan.courses}
+    missing_ids = course_ids - existing_ids
+    if missing_ids:
+        raise HTTPException(status_code=404, detail=f"Course not found: {', '.join(sorted(missing_ids))}")
+
+    plan.courses = [course for course in plan.courses if course.id not in course_ids]
+    plan.updated_at = datetime.now(timezone.utc)
+    db.save_plan(plan.model_dump())
+    return {"message": "Courses deleted", "plan": plan}
+
+@app.patch("/api/plans/{plan_id}/courses/{course_id}/labels", tags=["labels"])
+def update_course_labels(plan_id: str, course_id: str, request: LabelsUpdateRequest):
+    plan = _update_labels(plan_id, course_id, None, None, request.labels)
+    return {"plan": plan}
+
+@app.patch("/api/plans/{plan_id}/courses/{course_id}/modules/{module_id}/labels", tags=["labels"])
+def update_module_labels(plan_id: str, course_id: str, module_id: str, request: LabelsUpdateRequest):
+    plan = _update_labels(plan_id, course_id, module_id, None, request.labels)
+    return {"plan": plan}
+
+@app.patch("/api/plans/{plan_id}/courses/{course_id}/modules/{module_id}/videos/{video_id}/labels", tags=["labels"])
+def update_video_labels(plan_id: str, course_id: str, module_id: str, video_id: str, request: LabelsUpdateRequest):
+    plan = _update_labels(plan_id, course_id, module_id, video_id, request.labels)
+    return {"plan": plan}
 
 ####################
 ### Add COURSES
