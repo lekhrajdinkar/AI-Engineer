@@ -77,7 +77,9 @@ function AppLayout() {
     <div className="app-layout">
       <aside className="right-nav">
         <div className="right-nav-actions">
+          <div className="right-nav-top">
           {auth && <span className="auth-status" title="Signed in" aria-label="Signed in" />}
+          <button type="button" className="home-nav-button" title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" /></svg></button>
           <button
             type="button"
             className="refresh-plans"
@@ -95,10 +97,13 @@ function AppLayout() {
           }}>
             +
           </button>
+          </div>
+          <div className="right-nav-bottom">
           <div className="font-size-selector" aria-label="Global font size">
             {[['small', 'small'], ['medium', 'medium'], ['large', 'large']].map(([size, label]) => <button key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} title={`${label} font size`} aria-label={`${label} font size`}>A</button>)}
           </div>
           <div className="theme-selector" aria-label="Theme">{['light', 'pale', 'dark'].map(value => <button key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} title={`${value} theme`} aria-label={`${value} theme`}><ThemeIcon theme={value} /></button>)}</div>
+          </div>
         </div>
       </aside>
       {showPlanSwitcher && <><div className="drawer-overlay" onClick={() => setShowPlanSwitcher(false)} /><aside className="drawer quick-plan-drawer"><div className="drawer-header"><h2>Learning Plans</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowPlanSwitcher(false)}>×</button></div><div className="drawer-body"><div className="quick-plan-list">{plans.length ? plans.map(plan => <button key={plan.id} className="quick-plan-item" onClick={() => { navigate(`/plans/${plan.id}`); setShowPlanSwitcher(false) }}><strong>{plan.name}</strong><span>{plan.courses?.length || 0} courses</span></button>) : <p>No learning plans yet.</p>}</div></div></aside></>}

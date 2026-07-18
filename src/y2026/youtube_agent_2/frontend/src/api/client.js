@@ -58,8 +58,8 @@ export function addManualCourse(planId, course) {
   return request(`/api/plans/${planId}/add-course-manually`, { method: 'PATCH', body: JSON.stringify(course) })
 }
 
-export function addAiSuggestedCourse(planId, videos) {
-  return request(`/api/plans/${planId}/add-course-ai-suggested`, { method: 'POST', body: JSON.stringify(videos) })
+export function addAiSuggestedCourse(planId, data) {
+  return request(`/api/plans/${planId}/add-course-ai-suggested`, { method: 'POST', body: JSON.stringify(data) })
 }
 
 export function deleteCourses(planId, courseIds) {

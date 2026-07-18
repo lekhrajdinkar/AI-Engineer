@@ -115,6 +115,10 @@ class MetadataUpdateRequest(BaseModel):
     description: Optional[str] = None
     logo_url: Optional[str] = None
 
+class AiCourseRequest(BaseModel):
+    videos: List[Video]
+    source_channels: List[Channel] = Field(default_factory=list)
+
 ALLOWED_LABELS = {"watched", "mark_for_delete", "bookmarked"}
 
 def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video_id: Optional[str], labels: List[str]) -> LearningPlan:
@@ -391,22 +395,32 @@ def refresh_plan(plan_id: str, course: Course):
 
 ###### todo :: add-course-ai-suggested #######
 @app.post("/api/plans/{plan_id}/add-course-ai-suggested", tags=["plans"])
-def ai_suggest(plan_id: str, videos: List[Video]):
+def ai_suggest(plan_id: str, request: AiCourseRequest):
     row = db.load_plan(plan_id)
     if not row:
         raise HTTPException(status_code=404, detail="Plan not found")
 
     plan = LearningPlan.model_validate(row)
 
-    if not videos:
+    if not request.videos:
         raise HTTPException(status_code=400, detail="At least one video is required")
+
+    # Temporary UI-test grouping: replace with LLM-generated modules later.
+    modules = [
+        Module(
+            title=f"Chapter {index // 10 + 1}",
+            sequence=index // 10 + 1,
+            videos=request.videos[index:index + 10],
+        )
+        for index in range(0, len(request.videos), 10)
+    ]
 
     course = Course(
         title="AI Suggested Course",
         sequence=len(plan.courses) + 1,
         description="Course generated from the selected YouTube videos.",
-        source_channels=[],
-        modules=[Module(title="Suggested learning path", sequence=1, videos=videos)],
+        source_channels=request.source_channels,
+        modules=modules,
     )
     plan.courses.append(course)
     plan.updated_at = datetime.now(timezone.utc)

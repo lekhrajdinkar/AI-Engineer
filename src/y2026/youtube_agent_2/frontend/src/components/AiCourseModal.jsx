@@ -74,14 +74,16 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
         }
       }
       if (!videos.length) throw new Error('No videos found for the selected sources')
-      await addAiSuggestedCourse(plan.id, videos.map(video => ({
-        video_id: video.video_id || video.id,
-        title: video.title,
-        revised_title_from_ai: video.title,
-        thumbnail: video.thumbnail || '',
-        url: video.url || null,
-        duration_secs: video.duration_secs || null,
-      })))
+      await addAiSuggestedCourse(plan.id, {
+        videos: videos.map(video => ({ video_id: video.video_id || video.id, title: video.title, revised_title_from_ai: video.title, thumbnail: video.thumbnail || '', url: video.url || null, duration_secs: video.duration_secs || null })),
+        source_channels: selectedChannels.map(channel => ({
+          channel_id: channel.channel_id,
+          title: channel.title,
+          url: channel.url || '',
+          video_count: channel.video_count || channel.videos_count || 0,
+          playlists: selectedPlaylists.filter(playlist => playlists[channel.channel_id]?.some(item => item.playlist_id === playlist.playlist_id)).map(playlist => ({ id: playlist.playlist_id, title: playlist.title, thumbnail: playlist.thumbnail || '' })),
+        })),
+      })
       onCourseCreated(await getPlan(plan.id))
       onClose()
     } catch (err) {

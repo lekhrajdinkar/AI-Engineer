@@ -127,6 +127,7 @@ export default function Plans({ newPlanRequest }) {
       )}
 
       <div>
+          <div className="page-header"><h1>YouTube Learning</h1></div>
           <div className="catalog-controls"><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search learning plans..." /><select value={sortBy} onChange={event => setSortBy(event.target.value)}><option value="updated">Recently updated</option><option value="name">Name</option></select></div>
           {plans.length === 0 && (
             <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>

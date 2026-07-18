@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import AddCourseModal from './AddCourseModal'
 import AiCourseModal from './AiCourseModal'
 import { deleteCourses, getPlan, updateCourseLabels, updateModuleLabels, updateVideoLabels } from '../api/client'
@@ -14,6 +15,9 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   const [courseSearch, setCourseSearch] = useState('')
   const [selectedVideoIds, setSelectedVideoIds] = useState([])
   const [labelError, setLabelError] = useState('')
+  const [videoLabelFilters, setVideoLabelFilters] = useState([])
+  const [showVideoFilter, setShowVideoFilter] = useState(false)
+  const [moduleFilters, setModuleFilters] = useState([])
 
   // Build tab list: Overview + each course
   const tabs = [
@@ -28,12 +32,13 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     ?.map(module => {
       const moduleMatches = module.title?.toLowerCase().includes(normalizedCourseSearch)
       const matchingVideos = module.videos?.filter(video =>
-        video.title?.toLowerCase().includes(normalizedCourseSearch)
+        video.title?.toLowerCase().includes(normalizedCourseSearch) &&
+        (videoLabelFilters.length === 0 || videoLabelFilters.every(label => video.labels?.includes(label)))
       ) || []
 
-      return moduleMatches ? module : { ...module, videos: matchingVideos }
+      return moduleMatches && videoLabelFilters.length === 0 ? module : { ...module, videos: matchingVideos }
     })
-    .filter(module => !normalizedCourseSearch || module.videos?.length > 0) || []
+    .filter(module => (!normalizedCourseSearch || module.videos?.length > 0) && (moduleFilters.length === 0 || moduleFilters.includes(module.id))) || []
 
   function handleCourseCreated(updatedPlan) {
     onUpdate(updatedPlan)
@@ -183,9 +188,11 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   ) || 0
 
   const embedUrl = activeVideo ? getYoutubeEmbedUrl(activeVideo.url || activeVideo.video_id) : null
+  const workspaceActionHost = typeof document !== 'undefined' ? document.getElementById('workspace-actions') : null
+  const workspaceActions = activeCourse && <><div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" /></div><div className="workspace-course-labels">{['watched', 'bookmarked', 'mark_for_delete'].map(label => <button key={label} className={activeCourse.labels?.includes(label) ? 'active' : ''} onClick={() => toggleCourseLabel(label)} title={label.replaceAll('_', ' ')}><LabelIcon label={label} /></button>)}</div><button className="btn btn-secondary btn-sm icon-button" title="Filter videos" onClick={() => setShowVideoFilter(true)}>≡</button></>
 
   return (
-    <div>
+    <div>{workspaceCourseId && workspaceActionHost && createPortal(workspaceActions, workspaceActionHost)}{showVideoFilter && <><div className="drawer-overlay" onClick={() => setShowVideoFilter(false)} /><aside className="drawer"><div className="drawer-header"><h2>Filters</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowVideoFilter(false)}>×</button></div><div className="drawer-body"><div className="material-select"><label>Filter by video label</label><select multiple value={videoLabelFilters} onChange={event => setVideoLabelFilters([...event.target.selectedOptions].map(option => option.value))}><option value="watched">Watched</option><option value="bookmarked">Bookmarked</option><option value="mark_for_delete">Marked for delete</option></select></div><div className="material-select"><label>Filter by modules</label><select multiple value={moduleFilters} onChange={event => setModuleFilters([...event.target.selectedOptions].map(option => option.value))}>{activeCourse?.modules?.map(module => <option key={module.id} value={module.id}>{module.title}</option>)}</select></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => { setVideoLabelFilters([]); setModuleFilters([]) }}>Clear</button><button className="btn btn-primary" onClick={() => setShowVideoFilter(false)}>Apply</button></div></aside></>}
       {/* Tab bar: Overview + per-course tabs */}
       {!workspaceCourseId && <div className="plan-tab-bar" style={{ overflowX: 'auto' }}>
         {tabs.map(tab => (
@@ -387,7 +394,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
 
           {/* Right panel: Course modules with expandable videos */}
           <div className="course-right">
-            <div className="course-module-search">
+            {!workspaceCourseId && <div className="course-module-search">
               <input
                 type="search"
                 value={courseSearch}
@@ -395,15 +402,15 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                 placeholder="Search modules or videos..."
                 aria-label="Search modules or videos"
               />
-            </div>
-            <div className="label-actions">
+            </div>}
+            {!workspaceCourseId && <div className="label-actions">
               <span>Course labels</span>
               {['watched', 'bookmarked', 'mark_for_delete'].map(label => (
                 <button key={label} className={activeCourse.labels?.includes(label) ? 'active' : ''} onClick={() => toggleCourseLabel(label)} aria-label={`Toggle ${label.replaceAll('_', ' ')}`} title={label.replaceAll('_', ' ')}>
                   <LabelIcon label={label} />
                 </button>
               ))}
-            </div>
+            </div>}
             {selectedVideoIds.length > 0 && (
               <div className="bulk-video-actions">
                 <span>{selectedVideoIds.length} selected</span>
