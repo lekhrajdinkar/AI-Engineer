@@ -43,7 +43,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 
 - proposed learning-plan object:
 ```json
-{
+[
   "learning_plan": {
     "id": "uuid",
     "name": "string",
@@ -55,7 +55,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
       {
         "id": "uuid",
         "title": "string",
-        "sequence": 1,
+        "sequence": "number",
         "description": "string",
         "created_at": "ISO8601",
         "updated_at": "ISO8601",
@@ -74,8 +74,8 @@ YouTube subscriptions are useful but unstructured for intentional learning:
           {
             "id": "uuid",
             "title": "string",
-            "sequence": 1,
-            "labels": ["watched", "mark_for_delete", "bookmarked"]
+            "sequence": "number",
+            "labels": ["watched", "mark_for_delete", "bookmarked"],
             "videos": [
               {
                 "video_id": "string",
@@ -84,7 +84,8 @@ YouTube subscriptions are useful but unstructured for intentional learning:
                 "url": "string",
                 "duration_secs": 0,
                 "thumbnail":  "string",
-                "labels": ["watched", "mark_for_delete", "bookmarked"]
+                "labels": ["watched", "mark_for_delete", "bookmarked"],
+                "sequence": "number"
               }
             ]
           }
@@ -92,7 +93,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
       }
     ]
   }
-}
+]
 ```
 
 3) Create Learning Plan ✔️
