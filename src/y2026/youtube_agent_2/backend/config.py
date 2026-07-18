@@ -9,3 +9,5 @@ GOOGLE_OAUTH_TOKEN = "https://oauth2.googleapis.com/token"
 YOUTUBE_SUBSCRIPTIONS_API = "https://www.googleapis.com/youtube/v3/subscriptions"
 
 TRIM_VIDEO_DESC = True
+
+ALLOWED_PREBUILT_LABELS = {"watched", "mark_for_delete", "bookmarked"}

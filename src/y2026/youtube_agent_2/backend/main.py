@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from starlette.responses import RedirectResponse
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import ValidationError
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
@@ -8,10 +8,14 @@ import os
 import sqlite3
 import json
 from dotenv import load_dotenv
-from src.y2026.youtube_agent_2.backend import db
+from src.y2026.youtube_agent_2.backend import db_sqlLite as db
 from src.y2026.youtube_agent_2.backend import youtube_client
 from src.y2026.youtube_agent_2.backend import config
 from pathlib import Path
+
+from src.y2026.youtube_agent_2.backend.config import ALLOWED_PREBUILT_LABELS
+from src.y2026.youtube_agent_2.backend.entities import Video, LearningPlan, Channel, MetadataUpdateRequest, \
+    CourseDeleteRequest, LabelsUpdateRequest, VideoReorderRequest, Course, AiCourseRequest, Module
 
 load_dotenv()
 
@@ -49,91 +53,6 @@ def process_videos(videos: List[dict]) -> List[dict]:
 def get_channels():
     return youtube_client.list_subscribed_channels()
 
-#=====================================
-# Model / DTO / EEntity
-#=====================================
-class Video(BaseModel):
-    video_id: str
-    title: str
-    revised_title_from_ai: str
-    description: Optional[str] = None
-    url: Optional[str] = None
-    sequence: int = 1
-    thumbnail: str
-    duration_secs: Optional[int] = None
-    watched: bool = False
-    labels: List[str] = Field(default_factory=list)
-
-class Module(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    title: str
-    sequence: int = 1
-    labels: List[str] = Field(default_factory=list)
-    videos: List[Video] = Field(default_factory=list)
-
-class Playlist(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    title: str
-    thumbnail: str
-
-class Channel(BaseModel):
-    channel_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    title: str
-    url: str
-    video_count: int = 1
-    playlists: List[Playlist] = Field(default_factory=list)
-
-class Course(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    title: str
-    sequence: int = 1
-    description: Optional[str] = None
-    logo_url: str = ""
-    labels: List[str] = Field(default_factory=list)
-    last_played_video_id: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    modules: List[Module] = Field(default_factory=list)
-    source_channels: List[Channel]
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class LearningPlan(BaseModel):
-    logo_url: str = ""
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    description: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    courses: List[Course] = Field(default_factory=list)
-    source_channels : List[Channel] = Field(default_factory=list)
-    labels: List[str] = Field(default_factory=list)
-
-class CourseDeleteRequest(BaseModel):
-    course_ids: List[str] = Field(min_length=1)
-
-class LabelsUpdateRequest(BaseModel):
-    labels: List[str] = Field(default_factory=list)
-
-class VideoReorderRequest(BaseModel):
-    video_id: str
-    source_module_id: str
-    target_module_id: str
-    target_index: int = Field(ge=0)
-
-class MetadataUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
-    logo_url: Optional[str] = None
-    last_played_video_id: Optional[str] = None
-
-class AiCourseRequest(BaseModel):
-    videos: List[Video]
-    source_channels: List[Channel] = Field(default_factory=list)
-
-ALLOWED_LABELS = {"watched", "mark_for_delete", "bookmarked"}
-
 def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video_id: Optional[str], labels: List[str]) -> LearningPlan:
     row = db.load_plan(plan_id)
     if not row:
@@ -150,7 +69,7 @@ def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video
         if not module:
             raise HTTPException(status_code=404, detail="Module not found")
         if video_id is None:
-            invalid_labels = (set(labels) - ALLOWED_LABELS) - (set(module.labels) - ALLOWED_LABELS)
+            invalid_labels = (set(labels) - ALLOWED_PREBUILT_LABELS) - (set(module.labels) - ALLOWED_PREBUILT_LABELS)
             if invalid_labels:
                 raise HTTPException(status_code=422, detail=f"Unsupported module labels: {', '.join(sorted(invalid_labels))}")
             module.labels = labels
@@ -158,7 +77,7 @@ def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video
             video = next((item for item in module.videos if item.video_id == video_id), None)
             if not video:
                 raise HTTPException(status_code=404, detail="Video not found")
-            invalid_labels = (set(labels) - ALLOWED_LABELS) - (set(video.labels) - ALLOWED_LABELS)
+            invalid_labels = (set(labels) - ALLOWED_PREBUILT_LABELS) - (set(video.labels) - ALLOWED_PREBUILT_LABELS)
             if invalid_labels:
                 raise HTTPException(status_code=422, detail=f"Unsupported video labels: {', '.join(sorted(invalid_labels))}")
             video.labels = labels
@@ -330,6 +249,7 @@ def update_plan_metadata(plan_id: str, request: MetadataUpdateRequest):
     if request.name is not None: plan.name = request.name
     if request.description is not None: plan.description = request.description
     if request.logo_url is not None: plan.logo_url = request.logo_url
+    if request.icon_key is not None: plan.icon_key = request.icon_key
     plan.updated_at = datetime.now(timezone.utc)
     db.save_plan(plan.model_dump())
     return {"plan": plan}
@@ -346,6 +266,7 @@ def update_course_metadata(plan_id: str, course_id: str, request: MetadataUpdate
     if request.title is not None: course.title = request.title
     if request.description is not None: course.description = request.description
     if request.logo_url is not None: course.logo_url = request.logo_url
+    if request.icon_key is not None: course.icon_key = request.icon_key
     if request.last_played_video_id is not None:
         video_exists = any(
             video.video_id == request.last_played_video_id
