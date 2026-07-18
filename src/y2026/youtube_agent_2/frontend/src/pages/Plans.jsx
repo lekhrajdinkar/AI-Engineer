@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { createPlan, deletePlan as deletePlanRequest } from '../api/client'
-import { updatePlanMetadata } from '../api/client'
+import { updatePlanLabels, updatePlanMetadata } from '../api/client'
 import EditMetadataDrawer from '../components/EditMetadataDrawer'
-import { EditIcon, WorkspaceIcon } from '../components/Icons'
+import { EditIcon, LabelIcon, WorkspaceIcon } from '../components/Icons'
 import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
 
 export default function Plans({ newPlanRequest }) {
@@ -20,7 +20,9 @@ export default function Plans({ newPlanRequest }) {
   const [query, setQuery] = useState('')
   const [sortBy, setSortBy] = useState('updated')
   const [showSort, setShowSort] = useState(false)
-  const visiblePlans = [...plans].filter(plan => `${plan.name} ${plan.description || ''}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : new Date(b.updated_at) - new Date(a.updated_at))
+  const [planLabelTab, setPlanLabelTab] = useState('ALL')
+  const planLabels = [...new Set(plans.flatMap(plan => plan.labels || []))]
+  const visiblePlans = [...plans].filter(plan => `${plan.name} ${plan.description || ''}`.toLowerCase().includes(query.toLowerCase()) && (planLabelTab === 'ALL' || plan.labels?.includes(planLabelTab))).sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : new Date(b.updated_at) - new Date(a.updated_at))
 
   useEffect(() => {
     if (newPlanRequest > 0) setShowDrawer(true)
@@ -130,6 +132,7 @@ export default function Plans({ newPlanRequest }) {
       <div>
           <div className="page-header plan-overview-header"><h1>YouTube Learning</h1><div className="plan-action-panel"><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search learning plans..." aria-label="Search learning plans" /><button className="btn btn-secondary btn-sm icon-button" title="Sort learning plans" aria-label="Sort learning plans" onClick={() => setShowSort(true)}><WorkspaceIcon name="sort" /></button><div className="add-course-group"><button className="btn btn-secondary btn-sm" onClick={() => setShowDrawer(true)}><WorkspaceIcon name="manual" />New plan</button></div></div></div>
           <div className="page-header course-toolbar"><h4>Learning plans <span className="badge badge-green">{plans.length}</span></h4></div>
+          <div className="label-tabs" role="tablist"><button className={planLabelTab === 'ALL' ? 'active' : ''} onClick={() => setPlanLabelTab('ALL')}>All <span>{plans.length}</span></button>{planLabels.map(label => <button key={label} className={planLabelTab === label ? 'active' : ''} onClick={() => setPlanLabelTab(label)}>{label.replaceAll('_', ' ')} <span>{plans.filter(plan => plan.labels?.includes(label)).length}</span></button>)}</div>
           {plans.length === 0 && (
             <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>
               <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>No learning plans yet</p>
@@ -138,20 +141,25 @@ export default function Plans({ newPlanRequest }) {
           )}
           <div className="plan-card-list">{visiblePlans.map(plan => {
             const logoUrl = plan.logo_url || plan.logo
+            const modules = plan.courses?.flatMap(course => course.modules || []) || []
+            const videos = modules.flatMap(module => module.videos || [])
+            const watchedVideos = videos.filter(video => video.watched || video.labels?.includes('watched')).length
+            const progress = videos.length ? Math.round((watchedVideos / videos.length) * 100) : 0
             return (
               <article className="card catalog-tile" key={plan.id} onClick={() => navigate(`/plans/${plan.id}`)}>
                 <header className="catalog-tile-header">
                     {logoUrl ? <img src={logoUrl} alt="" className="tile-logo" /> : <div className="tile-logo tile-logo-fallback">{plan.name?.charAt(0).toUpperCase() || '?'}</div>}
                     <div><h3>{plan.name}</h3><p>{plan.description || 'No description provided.'}</p></div>
                 </header>
-                <footer className="catalog-tile-footer"><div><span className="badge badge-green">{plan.courses?.length || 0} courses</span><span className="badge badge-gray">{new Date(plan.created_at).toLocaleDateString()}</span></div><button className="btn btn-secondary btn-sm icon-button" title="Edit" onClick={event => { event.stopPropagation(); setPlanToEdit(plan) }}><EditIcon /></button>
-                </footer>
+                <section className="plan-card-progress"><div className="plan-progress-heading"><span>Learning progress</span><strong>{progress}%</strong></div><div className="plan-progress-track"><span style={{ width: `${progress}%` }} /></div><div className="plan-card-counters"><span>{plan.courses?.length || 0} courses</span><span>{modules.length} modules</span><span>{watchedVideos}/{videos.length} videos</span></div><div className="plan-card-timestamps"><span>Created: {plan.created_at ? new Date(plan.created_at).toLocaleString() : '—'}</span><span>Updated: {plan.updated_at ? new Date(plan.updated_at).toLocaleString() : '—'}</span></div></section>
+                <section className="plan-card-labels">{plan.labels?.length ? plan.labels.map(label => <span className="badge badge-green" key={label}>{label.replaceAll('_', ' ')}</span>) : <span className="tile-date">No labels</span>}</section>
+                <footer className="catalog-tile-footer plan-card-actions"><div className="course-label-toggle">{['watched', 'bookmarked', 'mark_for_delete'].map(label => <button key={label} className={plan.labels?.includes(label) ? 'active' : ''} title={label.replaceAll('_', ' ')} onClick={async event => { event.stopPropagation(); const labels = plan.labels?.includes(label) ? plan.labels.filter(item => item !== label) : [...(plan.labels || []), label]; const response = await updatePlanLabels(plan.id, labels); dispatch(updatePlan(response.plan)) }}><LabelIcon label={label} /></button>)}</div><button className="btn btn-secondary btn-sm icon-button" title="Edit" onClick={event => { event.stopPropagation(); setPlanToEdit(plan) }}><EditIcon /></button></footer>
               </article>
             )
           })}</div>
       </div>
       {showSort && <><div className="drawer-overlay" onClick={() => setShowSort(false)} /><aside className="drawer"><div className="drawer-header"><h2>Sort learning plans</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowSort(false)}>×</button></div><div className="drawer-body"><div className="material-select"><label>Sort learning plans</label><div className="sort-toggle" role="group" aria-label="Sort learning plans"><button className={sortBy === 'updated' ? 'active' : ''} onClick={() => setSortBy('updated')}>Recently updated</button><button className={sortBy === 'name' ? 'active' : ''} onClick={() => setSortBy('name')}>Name</button></div></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => setSortBy('updated')}>Reset</button><button className="btn btn-primary" onClick={() => setShowSort(false)}>Apply</button></div></aside></>}
-      {planToEdit && <EditMetadataDrawer item={planToEdit} type="plan" onClose={() => setPlanToEdit(null)} onSave={async form => { const response = await updatePlanMetadata(planToEdit.id, form); dispatch(updatePlan(response.plan)); setPlanToEdit(null) }} onDelete={() => { setPlanToEdit(null); setPlanToDelete(planToEdit) }} />}
+      {planToEdit && <EditMetadataDrawer item={planToEdit} type="plan" onClose={() => setPlanToEdit(null)} onSave={async form => { await updatePlanMetadata(planToEdit.id, { name: form.name, description: form.description, logo_url: form.logo_url }); const response = await updatePlanLabels(planToEdit.id, form.labels); dispatch(updatePlan(response.plan)); setPlanToEdit(null) }} onDelete={() => { setPlanToEdit(null); setPlanToDelete(planToEdit) }} />}
       {planToDelete && (
         <div className="confirm-overlay" onClick={() => setPlanToDelete(null)}>
           <div className="confirm-dialog" onClick={event => event.stopPropagation()}>

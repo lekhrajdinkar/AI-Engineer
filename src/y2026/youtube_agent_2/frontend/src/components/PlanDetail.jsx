@@ -37,8 +37,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     if (lastPlayedVideo) {
       setActiveVideo(lastPlayedVideo)
       const module = activeCourse.modules?.find(item => item.videos?.some(video => video.video_id === lastPlayedVideo.video_id))
-      onActiveModuleChange?.(module?.title || '')
-      onActiveVideoChange?.(lastPlayedVideo.title || '')
+      onActiveModuleChange?.(module ? `${module.sequence || activeCourse.modules.indexOf(module) + 1}. ${module.title}` : '')
+      onActiveVideoChange?.(`${lastPlayedVideo.sequence || module?.videos?.indexOf(lastPlayedVideo) + 1}. ${lastPlayedVideo.title || ''}`)
     }
   }, [workspaceCourseId, activeCourse, activeVideo, onActiveModuleChange])
   const normalizedCourseSearch = courseSearch.trim().toLowerCase()
@@ -88,7 +88,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
 
   function toggleModule(moduleId) {
     setExpandedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }))
-    onActiveModuleChange?.(activeCourse?.modules?.find(module => module.id === moduleId)?.title || '')
+    const module = activeCourse?.modules?.find(item => item.id === moduleId)
+    onActiveModuleChange?.(module ? `${module.sequence || activeCourse.modules.indexOf(module) + 1}. ${module.title}` : '')
   }
 
   function expandAllModules() {
@@ -183,8 +184,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
       setActiveTab(course.id)
       setActiveCourseId(course.id)
       const module = course.modules?.find(item => item.videos?.some(item => item.video_id === video.video_id))
-      onActiveModuleChange?.(module?.title || '')
-      onActiveVideoChange?.(video.title || '')
+      onActiveModuleChange?.(module ? `${module.sequence || course.modules.indexOf(module) + 1}. ${module.title}` : '')
+      onActiveVideoChange?.(`${video.sequence || module?.videos?.indexOf(video) + 1}. ${video.title || ''}`)
       try {
         const response = await updateCourseMetadata(plan.id, course.id, { last_played_video_id: video.video_id })
         onUpdate(response.plan)
@@ -257,6 +258,9 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   ) || 0
 
   const embedUrl = activeVideo ? getYoutubeEmbedUrl(activeVideo.url || activeVideo.video_id) : null
+  const activeModule = activeCourse?.modules?.find(module => module.videos?.some(video => video.video_id === activeVideo?.video_id))
+  const activeModuleSequence = activeModule ? (activeModule.sequence || activeCourse.modules.indexOf(activeModule) + 1) : null
+  const activeVideoSequence = activeVideo && activeModule ? (activeVideo.sequence || activeModule.videos.findIndex(video => video.video_id === activeVideo.video_id) + 1) : null
   const workspaceActionHost = typeof document !== 'undefined' ? document.getElementById('workspace-actions') : null
   const allModulesExpanded = Boolean(activeCourse?.modules?.length) && activeCourse.modules.every(module => expandedModules[module.id])
   const workspaceActions = activeCourse && <><div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" /></div><div className="workspace-course-labels">{['watched', 'bookmarked', 'mark_for_delete'].map(label => <button key={label} className={activeCourse.labels?.includes(label) ? 'active' : ''} onClick={() => toggleCourseLabel(label)} title={label.replaceAll('_', ' ')}><LabelIcon label={label} /></button>)}</div><button className="btn btn-secondary btn-sm workspace-action-button" title={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} onClick={allModulesExpanded ? collapseAllModules : expandAllModules}><WorkspaceIcon name={allModulesExpanded ? 'collapse' : 'expand'} /></button><button className="btn btn-secondary btn-sm icon-button" title="Filter videos" onClick={() => setShowVideoFilter(true)}><WorkspaceIcon name="filter" /></button></>
@@ -433,6 +437,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                   allowFullScreen
                 />
                 <div className="video-player-info">
+                  {activeModule && <div className="video-player-sequence">Module {activeModuleSequence}: {activeModule.title} <span>·</span> Video {activeVideoSequence}</div>}
                   <h3>{activeVideo?.title}</h3>
                   <p>{activeVideo?.description || ''}</p>
                   <div className="video-player-actions">
@@ -495,13 +500,13 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                 </button>
               </div>
             )}
-            {visibleModules.map(module => {
+            {visibleModules.map((module, moduleIndex) => {
               const isExpanded = expandedModules[module.id] || Boolean(normalizedCourseSearch)
               return (
               <div key={module.id}>
                 <div className="module-header" onClick={() => toggleModule(module.id)}>
                   <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▶</span>
-                  <span>{module.title}</span>
+                  <span className="module-tree-title"><small>Module {module.sequence || moduleIndex + 1}</small>{module.title}</span>
                   <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     {module.videos?.length || 0}
                   </span>
@@ -540,7 +545,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                           <div className="module-video-thumbnail module-video-thumbnail-placeholder" />
                         )}
                         <div className="module-video-content">
-                          <div className={video.labels?.includes('watched') ? 'watched' : ''}>{video.title}</div>
+                          <div className={`video-tree-title ${video.labels?.includes('watched') ? 'watched' : ''}`}>{video.sequence || videoIndex + 1}. {video.title}</div>
                           {video.description && <p>{video.description}</p>}
                           <div className="module-video-flags">
                             {video.labels?.includes('bookmarked') && <span>Bookmarked</span>}

@@ -107,6 +107,7 @@ class LearningPlan(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     courses: List[Course] = Field(default_factory=list)
     source_channels : List[Channel] = Field(default_factory=list)
+    labels: List[str] = Field(default_factory=list)
 
 class CourseDeleteRequest(BaseModel):
     course_ids: List[str] = Field(min_length=1)
@@ -134,10 +135,6 @@ class AiCourseRequest(BaseModel):
 ALLOWED_LABELS = {"watched", "mark_for_delete", "bookmarked"}
 
 def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video_id: Optional[str], labels: List[str]) -> LearningPlan:
-    invalid_labels = set(labels) - ALLOWED_LABELS
-    if invalid_labels:
-        raise HTTPException(status_code=422, detail=f"Unsupported labels: {', '.join(sorted(invalid_labels))}")
-
     row = db.load_plan(plan_id)
     if not row:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -146,17 +143,24 @@ def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     if module_id is None:
+        # Courses may use predefined labels as well as user-created labels.
         course.labels = labels
     else:
         module = next((item for item in course.modules if item.id == module_id), None)
         if not module:
             raise HTTPException(status_code=404, detail="Module not found")
         if video_id is None:
+            invalid_labels = (set(labels) - ALLOWED_LABELS) - (set(module.labels) - ALLOWED_LABELS)
+            if invalid_labels:
+                raise HTTPException(status_code=422, detail=f"Unsupported module labels: {', '.join(sorted(invalid_labels))}")
             module.labels = labels
         else:
             video = next((item for item in module.videos if item.video_id == video_id), None)
             if not video:
                 raise HTTPException(status_code=404, detail="Video not found")
+            invalid_labels = (set(labels) - ALLOWED_LABELS) - (set(video.labels) - ALLOWED_LABELS)
+            if invalid_labels:
+                raise HTTPException(status_code=422, detail=f"Unsupported video labels: {', '.join(sorted(invalid_labels))}")
             video.labels = labels
             video.watched = "watched" in labels
     plan.updated_at = datetime.now(timezone.utc)
@@ -384,6 +388,18 @@ def delete_courses(plan_id: str, request: CourseDeleteRequest):
 @app.patch("/api/plans/{plan_id}/courses/{course_id}/labels", tags=["labels"])
 def update_course_labels(plan_id: str, course_id: str, request: LabelsUpdateRequest):
     plan = _update_labels(plan_id, course_id, None, None, request.labels)
+    return {"plan": plan}
+
+@app.patch("/api/plans/{plan_id}/labels", tags=["labels"])
+def update_plan_labels(plan_id: str, request: LabelsUpdateRequest):
+    row = db.load_plan(plan_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    plan = LearningPlan.model_validate(row)
+    # Learning plans may use predefined labels as well as user-created labels.
+    plan.labels = request.labels
+    plan.updated_at = datetime.now(timezone.utc)
+    db.save_plan(plan.model_dump())
     return {"plan": plan}
 
 @app.patch("/api/plans/{plan_id}/courses/{course_id}/modules/{module_id}/labels", tags=["labels"])

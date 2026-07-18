@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { getChannels, getPlaylists, getVideos, addManualCourse, getPlan } from '../api/client'
+import { setChannelPlaylists, setSubscribedChannels } from '../store/sourcesSlice'
 
 function ChannelAvatar({ title }) {
   const letter = (title || '?').charAt(0).toUpperCase()
@@ -7,6 +9,9 @@ function ChannelAvatar({ title }) {
 }
 
 export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
+  const dispatch = useDispatch()
+  const cachedChannels = useSelector(state => state.sources.subscribedChannels)
+  const cachedPlaylists = useSelector(state => state.sources.playlistsByChannel)
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({ name: '', description: '', logo: '' })
   const [channels, setChannels] = useState([])
@@ -23,8 +28,16 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
   const [activePlaylistTab, setActivePlaylistTab] = useState('ALL')
 
   useEffect(() => {
-    getChannels().then(d => setChannels(d.channels || [])).catch(() => {})
-  }, [])
+    if (cachedChannels !== null) {
+      setChannels(cachedChannels)
+      return
+    }
+    getChannels().then(data => {
+      const fetchedChannels = data.channels || []
+      dispatch(setSubscribedChannels(fetchedChannels))
+      setChannels(fetchedChannels)
+    }).catch(() => {})
+  }, [cachedChannels, dispatch])
 
   function toggleChannel(ch) {
     setSelectedChannels(prev =>
@@ -36,11 +49,16 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
 
   async function loadPlaylists() {
     setLoading(true)
-    const all = {}
+    const all = { ...playlists }
     for (const ch of selectedChannels) {
+      if (Object.prototype.hasOwnProperty.call(cachedPlaylists, ch.channel_id)) {
+        all[ch.channel_id] = cachedPlaylists[ch.channel_id]
+        continue
+      }
       try {
         const data = await getPlaylists(ch.channel_id)
         all[ch.channel_id] = data.playlists || []
+        dispatch(setChannelPlaylists({ channelId: ch.channel_id, playlists: all[ch.channel_id] }))
       } catch { all[ch.channel_id] = [] }
     }
     setPlaylists(all)

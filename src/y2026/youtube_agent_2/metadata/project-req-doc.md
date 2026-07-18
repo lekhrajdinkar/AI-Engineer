@@ -50,7 +50,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
     "description": "string",
     "created_at": "ISO8601",
     "updated_at": "ISO8601",
-    
+    "labels": [],
     "courses": [
       {
         "id": "uuid",

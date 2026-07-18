@@ -70,6 +70,10 @@ export function updateCourseLabels(planId, courseId, labels) {
   return request(`/api/plans/${planId}/courses/${courseId}/labels`, { method: 'PATCH', body: JSON.stringify({ labels }) })
 }
 
+export function updatePlanLabels(planId, labels) {
+  return request(`/api/plans/${planId}/labels`, { method: 'PATCH', body: JSON.stringify({ labels }) })
+}
+
 export function updateModuleLabels(planId, courseId, moduleId, labels) {
   return request(`/api/plans/${planId}/courses/${courseId}/modules/${moduleId}/labels`, { method: 'PATCH', body: JSON.stringify({ labels }) })
 }
