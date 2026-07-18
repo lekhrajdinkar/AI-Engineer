@@ -86,6 +86,7 @@ class Course(BaseModel):
     description: Optional[str] = None
     logo_url: str = ""
     labels: List[str] = Field(default_factory=list)
+    last_played_video_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     modules: List[Module] = Field(default_factory=list)
@@ -109,11 +110,18 @@ class CourseDeleteRequest(BaseModel):
 class LabelsUpdateRequest(BaseModel):
     labels: List[str] = Field(default_factory=list)
 
+class VideoReorderRequest(BaseModel):
+    video_id: str
+    source_module_id: str
+    target_module_id: str
+    target_index: int = Field(ge=0)
+
 class MetadataUpdateRequest(BaseModel):
     name: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
     logo_url: Optional[str] = None
+    last_played_video_id: Optional[str] = None
 
 class AiCourseRequest(BaseModel):
     videos: List[Video]
@@ -330,6 +338,15 @@ def update_course_metadata(plan_id: str, course_id: str, request: MetadataUpdate
     if request.title is not None: course.title = request.title
     if request.description is not None: course.description = request.description
     if request.logo_url is not None: course.logo_url = request.logo_url
+    if request.last_played_video_id is not None:
+        video_exists = any(
+            video.video_id == request.last_played_video_id
+            for module in course.modules
+            for video in module.videos
+        )
+        if not video_exists:
+            raise HTTPException(status_code=422, detail="Video does not belong to this course")
+        course.last_played_video_id = request.last_played_video_id
     course.updated_at = datetime.now(timezone.utc)
     plan.updated_at = datetime.now(timezone.utc)
     db.save_plan(plan.model_dump())
@@ -373,6 +390,37 @@ def update_module_labels(plan_id: str, course_id: str, module_id: str, request: 
 @app.patch("/api/plans/{plan_id}/courses/{course_id}/modules/{module_id}/videos/{video_id}/labels", tags=["labels"])
 def update_video_labels(plan_id: str, course_id: str, module_id: str, video_id: str, request: LabelsUpdateRequest):
     plan = _update_labels(plan_id, course_id, module_id, video_id, request.labels)
+    return {"plan": plan}
+
+@app.patch("/api/plans/{plan_id}/courses/{course_id}/videos/reorder", tags=["courses"])
+def reorder_course_videos(plan_id: str, course_id: str, request: VideoReorderRequest):
+    row = db.load_plan(plan_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    plan = LearningPlan.model_validate(row)
+    course = next((item for item in plan.courses if item.id == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    source_module = next((item for item in course.modules if item.id == request.source_module_id), None)
+    target_module = next((item for item in course.modules if item.id == request.target_module_id), None)
+    if not source_module or not target_module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    source_index = next((index for index, video in enumerate(source_module.videos) if video.video_id == request.video_id), None)
+    if source_index is None:
+        raise HTTPException(status_code=404, detail="Video not found in source module")
+
+    video = source_module.videos.pop(source_index)
+    target_index = request.target_index
+    if source_module.id == target_module.id and source_index < target_index:
+        target_index -= 1
+    target_index = max(0, min(target_index, len(target_module.videos)))
+    target_module.videos.insert(target_index, video)
+    for module in course.modules:
+        for index, item in enumerate(module.videos, start=1):
+            item.sequence = index
+    course.updated_at = datetime.now(timezone.utc)
+    plan.updated_at = datetime.now(timezone.utc)
+    db.save_plan(plan.model_dump())
     return {"plan": plan}
 
 ####################

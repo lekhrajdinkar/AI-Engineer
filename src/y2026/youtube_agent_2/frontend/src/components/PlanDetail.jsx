@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import AddCourseModal from './AddCourseModal'
 import AiCourseModal from './AiCourseModal'
-import { deleteCourses, getPlan, updateCourseLabels, updateModuleLabels, updateVideoLabels } from '../api/client'
-import { LabelIcon } from './Icons'
+import { deleteCourses, getPlan, reorderCourseVideos, updateCourseLabels, updateCourseMetadata, updateModuleLabels, updateVideoLabels } from '../api/client'
+import { LabelIcon, WorkspaceIcon } from './Icons'
 
-export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId }) {
+export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId, isCourseEditing = false, onActiveModuleChange, onActiveVideoChange }) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -18,6 +18,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   const [videoLabelFilters, setVideoLabelFilters] = useState([])
   const [showVideoFilter, setShowVideoFilter] = useState(false)
   const [moduleFilters, setModuleFilters] = useState([])
+  const [draggedVideo, setDraggedVideo] = useState(null)
+  const [pendingVideoMove, setPendingVideoMove] = useState(null)
 
   // Build tab list: Overview + each course
   const tabs = [
@@ -27,6 +29,18 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   const [activeTab, setActiveTab] = useState(workspaceCourseId || 'overview')
 
   const activeCourse = plan.courses?.find(c => c.id === activeCourseId) || null
+  useEffect(() => {
+    if (!workspaceCourseId || activeVideo || !activeCourse?.last_played_video_id) return
+    const lastPlayedVideo = activeCourse.modules
+      ?.flatMap(module => module.videos || [])
+      .find(video => video.video_id === activeCourse.last_played_video_id)
+    if (lastPlayedVideo) {
+      setActiveVideo(lastPlayedVideo)
+      const module = activeCourse.modules?.find(item => item.videos?.some(video => video.video_id === lastPlayedVideo.video_id))
+      onActiveModuleChange?.(module?.title || '')
+      onActiveVideoChange?.(lastPlayedVideo.title || '')
+    }
+  }, [workspaceCourseId, activeCourse, activeVideo, onActiveModuleChange])
   const normalizedCourseSearch = courseSearch.trim().toLowerCase()
   const visibleModules = activeCourse?.modules
     ?.map(module => {
@@ -74,6 +88,15 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
 
   function toggleModule(moduleId) {
     setExpandedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }))
+    onActiveModuleChange?.(activeCourse?.modules?.find(module => module.id === moduleId)?.title || '')
+  }
+
+  function expandAllModules() {
+    setExpandedModules(Object.fromEntries((activeCourse?.modules || []).map(module => [module.id, true])))
+  }
+
+  function collapseAllModules() {
+    setExpandedModules({})
   }
 
   function toggleVideoSelection(videoId) {
@@ -151,7 +174,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     }
   }
 
-  function handleVideoSelect(video) {
+  async function handleVideoSelect(video) {
     setActiveVideo(video)
     const course = plan.courses?.find(c =>
       c.modules?.some(m => m.videos?.some(v => v.video_id === video.video_id))
@@ -159,6 +182,52 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     if (course) {
       setActiveTab(course.id)
       setActiveCourseId(course.id)
+      const module = course.modules?.find(item => item.videos?.some(item => item.video_id === video.video_id))
+      onActiveModuleChange?.(module?.title || '')
+      onActiveVideoChange?.(video.title || '')
+      try {
+        const response = await updateCourseMetadata(plan.id, course.id, { last_played_video_id: video.video_id })
+        onUpdate(response.plan)
+      } catch (error) {
+        setLabelError(error.message || 'Unable to save the last played video')
+      }
+    }
+  }
+
+  function handleVideoDragStart(event, sourceModuleId, video) {
+    setDraggedVideo({ sourceModuleId, video })
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', video.video_id)
+  }
+
+  async function persistVideoMove(move) {
+    if (!activeCourse) return
+    try {
+      setLabelError('')
+      const response = await reorderCourseVideos(plan.id, activeCourse.id, {
+        video_id: move.video.video_id,
+        source_module_id: move.sourceModuleId,
+        target_module_id: move.targetModuleId,
+        target_index: move.targetIndex,
+      })
+      onUpdate(response.plan)
+    } catch (error) {
+      setLabelError(error.message || 'Unable to reorder video')
+    } finally {
+      setDraggedVideo(null)
+      setPendingVideoMove(null)
+    }
+  }
+
+  function handleVideoDrop(event, targetModuleId, targetIndex) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!draggedVideo || draggedVideo.sourceModuleId === targetModuleId && draggedVideo.video.video_id === activeCourse?.modules?.find(module => module.id === targetModuleId)?.videos?.[targetIndex]?.video_id) return
+    const move = { ...draggedVideo, targetModuleId, targetIndex }
+    if (move.sourceModuleId === targetModuleId) {
+      persistVideoMove(move)
+    } else {
+      setPendingVideoMove(move)
     }
   }
 
@@ -189,10 +258,11 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
 
   const embedUrl = activeVideo ? getYoutubeEmbedUrl(activeVideo.url || activeVideo.video_id) : null
   const workspaceActionHost = typeof document !== 'undefined' ? document.getElementById('workspace-actions') : null
-  const workspaceActions = activeCourse && <><div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" /></div><div className="workspace-course-labels">{['watched', 'bookmarked', 'mark_for_delete'].map(label => <button key={label} className={activeCourse.labels?.includes(label) ? 'active' : ''} onClick={() => toggleCourseLabel(label)} title={label.replaceAll('_', ' ')}><LabelIcon label={label} /></button>)}</div><button className="btn btn-secondary btn-sm icon-button" title="Filter videos" onClick={() => setShowVideoFilter(true)}>≡</button></>
+  const allModulesExpanded = Boolean(activeCourse?.modules?.length) && activeCourse.modules.every(module => expandedModules[module.id])
+  const workspaceActions = activeCourse && <><div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" /></div><div className="workspace-course-labels">{['watched', 'bookmarked', 'mark_for_delete'].map(label => <button key={label} className={activeCourse.labels?.includes(label) ? 'active' : ''} onClick={() => toggleCourseLabel(label)} title={label.replaceAll('_', ' ')}><LabelIcon label={label} /></button>)}</div><button className="btn btn-secondary btn-sm workspace-action-button" title={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} onClick={allModulesExpanded ? collapseAllModules : expandAllModules}><WorkspaceIcon name={allModulesExpanded ? 'collapse' : 'expand'} /></button><button className="btn btn-secondary btn-sm icon-button" title="Filter videos" onClick={() => setShowVideoFilter(true)}><WorkspaceIcon name="filter" /></button></>
 
   return (
-    <div>{workspaceCourseId && workspaceActionHost && createPortal(workspaceActions, workspaceActionHost)}{showVideoFilter && <><div className="drawer-overlay" onClick={() => setShowVideoFilter(false)} /><aside className="drawer"><div className="drawer-header"><h2>Filters</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowVideoFilter(false)}>×</button></div><div className="drawer-body"><div className="material-select"><label>Filter by video label</label><select multiple value={videoLabelFilters} onChange={event => setVideoLabelFilters([...event.target.selectedOptions].map(option => option.value))}><option value="watched">Watched</option><option value="bookmarked">Bookmarked</option><option value="mark_for_delete">Marked for delete</option></select></div><div className="material-select"><label>Filter by modules</label><select multiple value={moduleFilters} onChange={event => setModuleFilters([...event.target.selectedOptions].map(option => option.value))}>{activeCourse?.modules?.map(module => <option key={module.id} value={module.id}>{module.title}</option>)}</select></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => { setVideoLabelFilters([]); setModuleFilters([]) }}>Clear</button><button className="btn btn-primary" onClick={() => setShowVideoFilter(false)}>Apply</button></div></aside></>}
+    <div>{workspaceCourseId && workspaceActionHost && createPortal(workspaceActions, workspaceActionHost)}{showVideoFilter && <><div className="drawer-overlay" onClick={() => setShowVideoFilter(false)} /><aside className="drawer"><div className="drawer-header"><h2>Filters</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowVideoFilter(false)}>×</button></div><div className="drawer-body"><div className="material-select"><label>Filter by video label</label><select multiple value={videoLabelFilters} onChange={event => setVideoLabelFilters([...event.target.selectedOptions].map(option => option.value))}><option value="watched">Watched</option><option value="bookmarked">Bookmarked</option><option value="mark_for_delete">Marked for delete</option></select></div><div className="material-select"><label>Filter by modules</label><select multiple value={moduleFilters} onChange={event => setModuleFilters([...event.target.selectedOptions].map(option => option.value))}>{activeCourse?.modules?.map(module => <option key={module.id} value={module.id}>{module.title}</option>)}</select></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => { setVideoLabelFilters([]); setModuleFilters([]) }}>Clear</button><button className="btn btn-primary" onClick={() => setShowVideoFilter(false)}>Apply</button></div></aside></>}{pendingVideoMove && <><div className="drawer-overlay" onClick={() => setPendingVideoMove(null)} /><div className="confirm-dialog"><h2>Move video to another module?</h2><p>“{pendingVideoMove.video.title}” will be moved to a different module.</p><div className="confirm-actions"><button className="btn btn-secondary" onClick={() => setPendingVideoMove(null)}>Cancel</button><button className="btn btn-primary" onClick={() => persistVideoMove(pendingVideoMove)}>Move video</button></div></div></>}
       {/* Tab bar: Overview + per-course tabs */}
       {!workspaceCourseId && <div className="plan-tab-bar" style={{ overflowX: 'auto' }}>
         {tabs.map(tab => (
@@ -444,12 +514,17 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                   </div>
                 </div>
                 {isExpanded && (
-                  <div className="module-videos" style={{ maxHeight: 300, overflowY: 'auto' }}>
-                    {module.videos?.map(video => (
+                  <div className="module-videos" onDragOver={event => event.preventDefault()} onDrop={event => handleVideoDrop(event, module.id, module.videos?.length || 0)}>
+                    {module.videos?.map((video, videoIndex) => (
                       <div
                         key={video.video_id}
                         className={`module-video-item ${activeVideo?.video_id === video.video_id ? 'active' : ''} ${video.labels?.includes('mark_for_delete') ? 'marked-for-delete' : ''}`}
                         onClick={() => handleVideoSelect(video)}
+                        draggable={isCourseEditing}
+                        onDragStart={isCourseEditing ? event => handleVideoDragStart(event, module.id, video) : undefined}
+                        onDragEnd={isCourseEditing ? () => setDraggedVideo(null) : undefined}
+                        onDragOver={isCourseEditing ? event => event.preventDefault() : undefined}
+                        onDrop={isCourseEditing ? event => handleVideoDrop(event, module.id, videoIndex) : undefined}
                       >
                         <input
                           type="checkbox"

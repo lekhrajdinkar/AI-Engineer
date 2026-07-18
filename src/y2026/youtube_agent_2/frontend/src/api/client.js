@@ -78,6 +78,10 @@ export function updateVideoLabels(planId, courseId, moduleId, videoId, labels) {
   return request(`/api/plans/${planId}/courses/${courseId}/modules/${moduleId}/videos/${videoId}/labels`, { method: 'PATCH', body: JSON.stringify({ labels }) })
 }
 
+export function reorderCourseVideos(planId, courseId, data) {
+  return request(`/api/plans/${planId}/courses/${courseId}/videos/reorder`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
 export function getPlan(planId) {
   return request(`/api/plans/${planId}`)
 }
