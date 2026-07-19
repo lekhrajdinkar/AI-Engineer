@@ -9,13 +9,24 @@ import EditMetadataDrawer from '../components/EditMetadataDrawer'
 import { EditIcon, LabelIcon, WorkspaceIcon } from '../components/Icons'
 
 function LearningPlanOverviewDrawer({ plan, sourceChannels, onClose }) {
+  const [tab, setTab] = React.useState('visual')
   const modules = plan.courses?.flatMap(course => course.modules || []) || []
   const videos = modules.flatMap(module => module.videos || [])
   const watched = videos.filter(video => video.watched || video.labels?.includes('watched')).length
   const bookmarked = videos.filter(video => video.labels?.includes('bookmarked')).length
   const markedForDelete = videos.filter(video => video.labels?.includes('mark_for_delete')).length
   const progress = videos.length ? Math.round((watched / videos.length) * 100) : 0
-  return <><div className="drawer-overlay" onClick={onClose} /><aside className="drawer"><div className="drawer-header"><h2>{plan.name}</h2><button className="btn btn-secondary btn-sm" onClick={onClose}>×</button></div><div className="drawer-body"><section className="overview-summary"><h3>Learning plan overview</h3><p>{plan.description || 'No description provided.'}</p><div className="overview-progress"><div className="plan-progress-heading"><span>Learning progress</span><strong>{progress}%</strong></div><div className="plan-progress-track"><span style={{ width: `${progress}%` }} /></div></div><div className="plan-card-counters"><span>{plan.courses?.length || 0} courses</span><span>{modules.length} modules</span><span>{watched}/{videos.length} watched</span><span>{bookmarked} bookmarked</span><span>{markedForDelete} marked</span></div><div className="plan-card-labels">{plan.labels?.length ? plan.labels.map(label => <span className="badge badge-green" key={label}>{label.replaceAll('_', ' ')}</span>) : <span className="tile-date">No labels</span>}</div><div className="plan-card-timestamps"><span>Created: {plan.created_at ? new Date(plan.created_at).toLocaleString() : '—'}</span><span>Updated: {plan.updated_at ? new Date(plan.updated_at).toLocaleString() : '—'}</span></div></section><div className="workspace-source-section"><h3>Content sources</h3>{sourceChannels.length ? <div className="course-source-list">{sourceChannels.map(channel => <article className="course-source-card" key={channel.channel_id || channel.title}><div className="source-channel-header">{channel.logo_url || channel.thumbnail ? <img src={channel.logo_url || channel.thumbnail} alt="" className="tile-logo" /> : <div className="tile-logo tile-logo-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</div>}<div><strong>{channel.title}</strong><span>{channel.courseCount} course{channel.courseCount === 1 ? '' : 's'} · {channel.video_count || channel.videos_count || 0} videos</span></div></div>{channel.playlists?.length > 0 && <div className="course-source-playlists">{channel.playlists.map(playlist => <div className="course-source-playlist" key={playlist.id || playlist.playlist_id}>{playlist.thumbnail && <img src={playlist.thumbnail} alt="" />}<span>{playlist.title}</span></div>)}</div>}</article>)}</div> : <p>No content sources recorded.</p>}</div></div></aside></>
+  const downloadJson = () => {
+    const file = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(file)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${(plan.name || 'learning-plan').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'learning-plan'}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return <><div className="drawer-overlay" onClick={onClose} /><aside className="drawer learning-plan-overview-drawer"><div className="drawer-header"><h2>{plan.name}</h2><button className="btn btn-secondary btn-sm" onClick={onClose}>×</button></div><div className="refresh-feed-tabs"><button className={tab === 'visual' ? 'active' : ''} onClick={() => setTab('visual')}>Visual</button><button className={tab === 'json' ? 'active' : ''} onClick={() => setTab('json')}>Raw JSON</button>{tab === 'json' && <button className="overview-download-json" onClick={downloadJson}>Download JSON</button>}</div><div className="drawer-body">{tab === 'visual' ? <><section className="overview-summary"><h3>Learning plan overview</h3><p>{plan.description || 'No description provided.'}</p><div className="overview-progress"><div className="plan-progress-heading"><span>Learning progress</span><strong>{progress}%</strong></div><div className="plan-progress-track"><span style={{ width: `${progress}%` }} /></div></div><div className="plan-card-counters"><span>{plan.courses?.length || 0} courses</span><span>{modules.length} modules</span><span>{watched}/{videos.length} watched</span><span>{bookmarked} bookmarked</span><span>{markedForDelete} marked</span></div><div className="plan-card-labels">{plan.labels?.length ? plan.labels.map(label => <span className="badge badge-green" key={label}>{label.replaceAll('_', ' ')}</span>) : <span className="tile-date">No labels</span>}</div><div className="plan-card-timestamps"><span>Created: {plan.created_at ? new Date(plan.created_at).toLocaleString() : '—'}</span><span>Updated: {plan.updated_at ? new Date(plan.updated_at).toLocaleString() : '—'}</span></div></section><hr className="overview-section-divider" /><section className="workspace-source-section plan-overview-sources"><h3>Content sources</h3>{sourceChannels.length ? <div className="course-source-list">{sourceChannels.map(channel => <article className="course-source-card" key={channel.channel_id || channel.title}><div className="source-channel-header">{channel.logo_url || channel.thumbnail ? <img src={channel.logo_url || channel.thumbnail} alt="" className="tile-logo" /> : <div className="tile-logo tile-logo-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</div>}<div><strong>{channel.title}</strong><span>{channel.courseCount} course{channel.courseCount === 1 ? '' : 's'} · {channel.video_count || channel.videos_count || 0} videos</span></div></div>{channel.playlists?.length > 0 ? <div className="course-source-playlists">{channel.playlists.map(playlist => <div className="course-source-playlist" key={playlist.id || playlist.playlist_id}>{playlist.thumbnail && <img src={playlist.thumbnail} alt="" />}<span>{playlist.title}</span></div>)}</div> : <span className="course-source-meta">All channel videos</span>}</article>)}</div> : <p>No content sources recorded.</p>}</section></> : <pre className="refresh-feed-json">{JSON.stringify(plan, null, 2)}</pre>}</div></aside></>
 }
 
 export default function PlanOverview() {
@@ -35,16 +46,18 @@ export default function PlanOverview() {
   const courseLabels = [...new Set((plan?.courses || []).flatMap(course => course.labels || []))]
   const visibleCourses = [...(plan?.courses || [])].filter(course => `${course.title} ${course.description || ''}`.toLowerCase().includes(query.toLowerCase()) && (courseLabelTab === 'ALL' || course.labels?.includes(courseLabelTab)) && (labelFilters.length === 0 || labelFilters.some(label => course.labels?.includes(label)))).sort((a, b) => sortBy === 'name' ? a.title.localeCompare(b.title) : new Date(b.updated_at) - new Date(a.updated_at))
   const sourceChannels = Object.values((plan?.courses || []).reduce((sources, course) => {
+    const courseVideos = course.modules?.flatMap(module => module.videos || []) || []
     for (const channel of course.source_channels || []) {
       const key = channel.channel_id || channel.url || channel.title
-      if (!sources[key]) sources[key] = { ...channel, courseCount: 0, playlists: [] }
+      if (!sources[key]) sources[key] = { ...channel, courseCount: 0, playlists: [], videoIds: new Set() }
       sources[key].courseCount += 1
+      courseVideos.forEach(video => sources[key].videoIds.add(video.video_id))
       for (const playlist of channel.playlists || []) {
         if (!sources[key].playlists.some(item => (item.id || item.playlist_id) === (playlist.id || playlist.playlist_id))) sources[key].playlists.push(playlist)
       }
     }
     return sources
-  }, {}))
+  }, {})).map(({ videoIds, ...channel }) => ({ ...channel, videos_count: videoIds.size }))
 
   if (!plan) return <div className="alert alert-info">Learning plan not found. <button className="btn btn-secondary btn-sm" onClick={() => navigate('/plans')}>Back to plans</button></div>
 

@@ -32,6 +32,7 @@
           "source_created_at": "ISO8601 | null",
           "last_video_published_at": "ISO8601 | null",
           "last_synced_at": "ISO8601 | null",
+          "last_feed_checked_at": "ISO8601 | null",
 
           "playlists": [
             {
@@ -42,7 +43,8 @@
               "videos_count": "number",
               "source_created_at": "ISO8601 | null",
               "last_video_published_at": "ISO8601 | null",
-              "last_synced_at": "ISO8601 | null"
+              "last_synced_at": "ISO8601 | null",
+              "last_feed_checked_at": "ISO8601 | null"
             }
           ]
         }

@@ -103,9 +103,16 @@ these will be used to filter module and videos on screen then.
 
 
 ### Phase-3
-1) Refresh Course with new Video feed
+1) Refresh Course with new Video feed ✔️
 - [sync-metadata.json](schema/sync-metadata.json)
-- Todo
+- On app load, load persisted source sync metadata into Redux: `GET /api/sources/sync-metadata`.
+- Global source-sync action refreshes subscribed channels and playlists: `POST /api/sources/sync-metadata`.
+- Compare source video counts; add/remove course label `refresh_needed` and show a red course-overview indicator.
+- Course overview supports loading all, channel-level, or playlist-level new videos.
+- Store `last_feed_checked_at` per channel/playlist. Refresh scans videos newer than this checkpoint with a 24-hour overlap, then deduplicates by `video_id` across the full learning plan.
+- Stage discovered videos in `course.new_video_feeds`.
+- Review staged videos in a left drawer (Visual / Raw JSON), then submit: `POST /api/plans/{plan_id}/courses/{course_id}/ai-suggest-refresh-feed`.
+- Temporary organizer adds submitted videos to a `New videos` module; replace with LLM chapter assignment later.
 
 
 

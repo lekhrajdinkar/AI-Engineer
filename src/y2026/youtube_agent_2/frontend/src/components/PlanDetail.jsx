@@ -27,6 +27,10 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   const [draggedVideo, setDraggedVideo] = useState(null)
   const [pendingVideoMove, setPendingVideoMove] = useState(null)
 
+  useEffect(() => {
+    if (!isCourseEditing) setSelectedVideoIds([])
+  }, [isCourseEditing])
+
   // Build tab list: Overview + each course
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -250,9 +254,10 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
 
   function formatDuration(secs) {
     if (!secs || secs <= 0) return ''
-    const m = Math.floor(secs / 60)
-    const s = secs % 60
-    return `${m}:${String(s).padStart(2, '0')}`
+    const hours = Math.floor(secs / 3600)
+    const minutes = Math.floor((secs % 3600) / 60)
+    const seconds = secs % 60
+    return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}` : `${minutes}:${String(seconds).padStart(2, '0')}`
   }
 
   const totalVideos = plan.courses?.reduce(
@@ -493,7 +498,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                 </button>
               ))}
             </div>}
-            {selectedVideoIds.length > 0 && (
+            {isCourseEditing && selectedVideoIds.length > 0 && (
               <div className="bulk-video-actions">
                 <span>{selectedVideoIds.length} selected</span>
                 <button className="btn btn-secondary btn-sm" onClick={() => applyBulkVideoLabel('bookmarked')}>
@@ -509,14 +514,13 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
             )}
             {visibleModules.map((module, moduleIndex) => {
               const isExpanded = expandedModules[module.id] || Boolean(normalizedCourseSearch)
+              const moduleTotal = module.videos?.length || 0
+              const moduleWatched = module.videos?.filter(video => video.watched || video.labels?.includes('watched')).length || 0
               return (
               <div key={module.id}>
                 <div className="module-header" onClick={() => toggleModule(module.id)}>
                   <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▶</span>
-                  <span className="module-tree-title"><small>Module {module.sequence || moduleIndex + 1}</small>{module.title}</span>
-                  <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {module.videos?.length || 0}
-                  </span>
+                  <span className="module-tree-title"><small>Module {module.sequence || moduleIndex + 1} · {moduleWatched}/{moduleTotal} watched</small>{module.title}</span>
                   <div className="module-label-actions" onClick={event => event.stopPropagation()}>
                     {['watched', 'bookmarked', 'mark_for_delete'].map(label => (
                       <button key={label} className={module.labels?.includes(label) ? 'active' : ''} onClick={() => toggleModuleLabel(module, label)} aria-label={`Toggle ${label.replaceAll('_', ' ')}`} title={label.replaceAll('_', ' ')}>
@@ -538,14 +542,14 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                         onDragOver={isCourseEditing ? event => event.preventDefault() : undefined}
                         onDrop={isCourseEditing ? event => handleVideoDrop(event, module.id, videoIndex) : undefined}
                       >
-                        <input
+                        {isCourseEditing && <input
                           type="checkbox"
                           checked={selectedVideoIds.includes(video.video_id)}
                           onClick={event => event.stopPropagation()}
                           onChange={() => toggleVideoSelection(video.video_id)}
                           aria-label={`Select ${video.title}`}
                           style={{ flexShrink: 0 }}
-                        />
+                        />}
                         {video.thumbnail ? (
                           <img src={video.thumbnail} alt="" className="module-video-thumbnail" />
                         ) : (
@@ -553,10 +557,11 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                         )}
                         <div className="module-video-content">
                           <div className={`video-tree-title ${video.labels?.includes('watched') ? 'watched' : ''}`}>{video.sequence || videoIndex + 1}. {video.title}</div>
-                          {video.description && <p>{video.description}</p>}
-                          <div className="module-video-flags">
-                            {video.labels?.includes('bookmarked') && <span>Bookmarked</span>}
-                            {video.labels?.includes('mark_for_delete') && <span>Marked for deletion</span>}
+                          <div className="video-tree-metadata">
+                            {video.view_count > 0 && <span title="Views"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>{video.view_count.toLocaleString()}</span>}
+                            {video.like_count > 0 && <span title="Likes"><svg viewBox="0 0 24 24"><path d="M7 10v10H4V10h3Zm2 10h8.1a2 2 0 0 0 1.95-1.55l1.35-6A2 2 0 0 0 18.45 10H15l.55-3.25A2.3 2.3 0 0 0 13.3 4L9 10v10Z" /></svg>{video.like_count.toLocaleString()}</span>}
+                            {video.duration_secs > 0 && <span title="Duration"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3 2" /></svg>{formatDuration(video.duration_secs)}</span>}
+                            {video.published_at && <span title="Published"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="1" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>{new Date(video.published_at).toLocaleDateString()}</span>}
                           </div>
                         </div>
                         <div className="video-label-actions" onClick={event => event.stopPropagation()}>
@@ -572,9 +577,6 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                             </button>
                           ))}
                         </div>
-                        {video.duration_secs > 0 && (
-                          <span className="video-duration">{formatDuration(video.duration_secs)}</span>
-                        )}
                       </div>
                     ))}
                   </div>

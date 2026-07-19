@@ -46,10 +46,16 @@ function AppLayout() {
   const { fontSize, setFontSize } = useFontSize()
   const dispatch = useDispatch()
   const plans = useSelector(state => state.plans.items)
+  const syncMetadata = useSelector(state => state.sources.syncMetadata)
   const [auth, setAuth] = React.useState(null)
   const [newPlanRequest, setNewPlanRequest] = React.useState(0)
   const [plansLoading, setPlansLoading] = React.useState(false)
   const [sourceSyncLoading, setSourceSyncLoading] = React.useState(false)
+  const [sourceSyncError, setSourceSyncError] = React.useState('')
+  const [showSourceSyncDrawer, setShowSourceSyncDrawer] = React.useState(false)
+  const [sourceSyncSearch, setSourceSyncSearch] = React.useState('')
+  const [sourceSyncSort, setSourceSyncSort] = React.useState('name')
+  const [expandedSyncChannels, setExpandedSyncChannels] = React.useState({})
   const [showPlanSwitcher, setShowPlanSwitcher] = React.useState(false)
   const [expandedPlanIds, setExpandedPlanIds] = React.useState({})
   const [expandedCourseIds, setExpandedCourseIds] = React.useState({})
@@ -88,12 +94,14 @@ function AppLayout() {
 
   const refreshSourceMetadata = async () => {
     setSourceSyncLoading(true)
+    setSourceSyncError('')
     try {
       const metadata = await syncSourceMetadata()
       dispatch(setSourceSyncMetadata(metadata))
       await loadPlans()
     } catch (error) {
       console.error('Unable to refresh source metadata:', error)
+      setSourceSyncError(error.message || 'Unable to check subscribed channels.')
     } finally {
       setSourceSyncLoading(false)
     }
@@ -123,6 +131,12 @@ function AppLayout() {
     return () => window.clearTimeout(timer)
   }, [showPlanSwitcher, lastAccessedCourse, plans])
 
+  const sourceSyncChannels = [...(syncMetadata?.channels || [])]
+    .filter(channel => `${channel.title || ''} ${(channel.playlists || []).map(playlist => playlist.title || '').join(' ')}`.toLowerCase().includes(sourceSyncSearch.trim().toLowerCase()))
+    .sort((left, right) => sourceSyncSort === 'date'
+      ? new Date(right.last_synced_at || 0) - new Date(left.last_synced_at || 0)
+      : (left.title || '').localeCompare(right.title || ''))
+
   return (
     <div className="app-layout">
       <aside className="right-nav">
@@ -140,16 +154,10 @@ function AppLayout() {
           >
             {plansLoading ? <span className="spinner" /> : '↻'}
           </button>
-          <button type="button" className="refresh-plans" onClick={refreshSourceMetadata} disabled={sourceSyncLoading} aria-label="Sync content sources" title="Sync content sources">
-            {sourceSyncLoading ? <span className="spinner" /> : <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5.3M20 4v7h-7" /></svg>}
+          <button type="button" className="refresh-plans" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Sync content sources" title="Sync content sources">
+            <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5.3M20 4v7h-7" /></svg>
           </button>
           <button type="button" className="quick-plan-button" onClick={() => setShowPlanSwitcher(true)} aria-label="Switch learning plan" title="Switch learning plan">⇄</button>
-          <button className="btn btn-primary nav-icon" title="New learning plan" aria-label="New learning plan" onClick={() => {
-            navigate('/plans')
-            setNewPlanRequest(request => request + 1)
-          }}>
-            +
-          </button>
           </div>
           <div className="right-nav-bottom">
           <div className="font-size-selector" aria-label="Global font size">
@@ -159,6 +167,13 @@ function AppLayout() {
           </div>
         </div>
       </aside>
+      {showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Content source sync</h2><p>Subscribed channel and playlist metadata</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close">×</button></div><div className="source-sync-toolbar"><input value={sourceSyncSearch} onChange={event => setSourceSyncSearch(event.target.value)} placeholder="Search channels or playlists..." aria-label="Search content sources" /><div className="picker-sort-toggle"><button className={sourceSyncSort === 'name' ? 'active' : ''} onClick={() => setSourceSyncSort('name')}>Name</button><button className={sourceSyncSort === 'date' ? 'active' : ''} onClick={() => setSourceSyncSort('date')}>Last sync</button></div></div><div className="drawer-body source-sync-body">
+        <section className="source-sync-summary"><div><span>Last metadata sync</span><strong>{syncMetadata?.updated_at ? new Date(syncMetadata.updated_at).toLocaleString() : 'Not synced yet'}</strong></div><div><span>Subscribed channels</span><strong>{syncMetadata?.channels?.length || 0}</strong></div></section>
+        {sourceSyncError && <div className="alert alert-error">{sourceSyncError}</div>}
+        <button className="btn btn-primary source-sync-check-button" disabled={sourceSyncLoading} onClick={refreshSourceMetadata}>{sourceSyncLoading ? 'Checking subscribed channels…' : 'Check for new feeds from subscribed channels'}</button>
+        <p className="source-sync-help">Updates saved channel and playlist metadata, then flags courses whose source has more videos than the learning plan contains.</p>
+        <div className="source-sync-channel-list">{sourceSyncChannels.length ? sourceSyncChannels.map(channel => { const expanded = Boolean(expandedSyncChannels[channel.channel_id]); return <article className="source-sync-channel-card" key={channel.channel_id}><button className="source-sync-channel-heading" onClick={() => setExpandedSyncChannels(current => ({ ...current, [channel.channel_id]: !current[channel.channel_id] }))} aria-expanded={expanded}>{channel.thumbnail ? <img src={channel.thumbnail} alt="" /> : <span className="source-sync-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</span>}<span className="source-sync-channel-title"><strong>{channel.title || 'Untitled channel'}</strong><small>{channel.videos_count ?? 0} videos · synced {channel.last_synced_at ? new Date(channel.last_synced_at).toLocaleString() : 'never'}</small></span><span className={`source-sync-expand ${expanded ? 'expanded' : ''}`} aria-hidden="true">›</span></button>{expanded && <div className="source-sync-channel-details">{channel.playlists?.length > 0 && <div className="source-sync-playlists"><strong>Playlists</strong>{channel.playlists.map(playlist => <div key={playlist.playlist_id || playlist.id}><span>{playlist.title || 'Untitled playlist'}</span><small>{playlist.videos_count ?? 0} videos · checked {playlist.last_feed_checked_at ? new Date(playlist.last_feed_checked_at).toLocaleString() : 'not yet'}</small></div>)}</div>}<small className="source-sync-checkpoint">Channel feed last checked: {channel.last_feed_checked_at ? new Date(channel.last_feed_checked_at).toLocaleString() : 'not yet'}</small></div>}</article> }) : <p className="source-sync-empty">{syncMetadata?.channels?.length ? 'No channels match this search.' : 'No subscribed-channel metadata is stored yet. Check for new feeds to load it.'}</p>}</div>
+      </div></aside></>}
       {showPlanSwitcher && <><div className="drawer-overlay" onClick={() => setShowPlanSwitcher(false)} /><aside className="drawer quick-plan-drawer"><div className="drawer-header"><h2>Learning Plans</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowPlanSwitcher(false)}>×</button></div><div className="drawer-body"><div className="quick-plan-list">{plans.length ? plans.map(plan => { const isExpanded = Boolean(expandedPlanIds[plan.id]); const query = (planCourseSearches[plan.id] || '').toLowerCase(); const courses = [...(plan.courses || [])].sort((a, b) => (a.sequence || 0) - (b.sequence || 0)).filter(course => !query || `${course.title} ${course.description || ''} ${(course.source_channels || []).map(channel => channel.title).join(' ')}`.toLowerCase().includes(query)); return <section className="quick-plan-accordion" key={plan.id}><div className="quick-plan-row"><button className="quick-plan-item" onClick={() => { navigate(`/plans/${plan.id}`); setShowPlanSwitcher(false) }}><strong>{plan.name}</strong><span>{plan.courses?.length || 0} courses</span></button><button className={`quick-plan-expand ${isExpanded ? 'expanded' : ''}`} aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${plan.name}`} title={isExpanded ? 'Collapse courses' : 'Expand courses'} onClick={() => setExpandedPlanIds(current => ({ ...current, [plan.id]: !current[plan.id] }))}><span>›</span></button></div>{isExpanded && <div className="quick-course-list"><input className="quick-course-search" value={planCourseSearches[plan.id] || ''} onChange={event => setPlanCourseSearches(current => ({ ...current, [plan.id]: event.target.value }))} placeholder="Search courses..." aria-label={`Search courses in ${plan.name}`} />{courses.length ? courses.map(course => { const courseKey = `${plan.id}:${course.id}`; const courseExpanded = Boolean(expandedCourseIds[courseKey]); const modules = [...(course.modules || [])].sort((a, b) => (a.sequence || 0) - (b.sequence || 0)); return <section className="quick-course-accordion" key={course.id}><div className="quick-course-row"><button className="quick-course-item" onClick={() => { navigate(`/plans/${plan.id}/courses/${course.id}/learn`); setShowPlanSwitcher(false) }}><span>{course.sequence || '—'}</span><div><strong>{course.title}</strong>{course.description && <small>{course.description}</small>}{course.source_channels?.length > 0 && <em>{course.source_channels.map(channel => channel.title).join(', ')}</em>}</div></button><button className={`quick-course-expand ${courseExpanded ? 'expanded' : ''}`} onClick={() => setExpandedCourseIds(current => ({ ...current, [courseKey]: !current[courseKey] }))} title={courseExpanded ? 'Collapse modules' : 'Expand modules'} aria-label={`${courseExpanded ? 'Collapse' : 'Expand'} ${course.title} modules`}><span>›</span></button></div>{courseExpanded && <div className="quick-module-list">{modules.length ? modules.map(module => <div key={module.id}><span>{module.sequence || '—'}</span>{module.title}</div>) : <p>No modules in this course.</p>}</div>}</section> }) : <p>No courses match this search.</p>}</div>}</section> }) : <p>No learning plans yet.</p>}</div></div></aside></>}
       <main className="main-content">
         <Routes>

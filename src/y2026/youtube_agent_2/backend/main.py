@@ -3,7 +3,7 @@ from starlette.responses import RedirectResponse
 from pydantic import ValidationError
 from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os
 import sqlite3
 import json
@@ -76,6 +76,8 @@ def _video_from_source(raw_video: dict, sequence: int) -> Video:
     )
 
 def _sync_source_metadata() -> dict:
+    previous = db.load_source_sync_metadata()
+    previous_channels = {item.get("channel_id"): item for item in previous.get("channels", [])}
     now = datetime.now(timezone.utc).isoformat()
     synced_channels = []
     for channel in get_channels():
@@ -83,14 +85,18 @@ def _sync_source_metadata() -> dict:
         if not channel_id:
             continue
         playlists = youtube_client.get_channel_playlists(channel_id)
+        previous_channel = previous_channels.get(channel_id, {})
+        previous_playlists = {item.get("playlist_id") or item.get("id"): item for item in previous_channel.get("playlists", [])}
         synced_channels.append({
             **channel,
             "source_created_at": channel.get("source_created_at"),
             "last_synced_at": now,
+            "last_feed_checked_at": previous_channel.get("last_feed_checked_at"),
             "playlists": [{
                 **playlist,
                 "source_created_at": playlist.get("source_created_at"),
                 "last_synced_at": now,
+                "last_feed_checked_at": previous_playlists.get(playlist.get("playlist_id") or playlist.get("id"), {}).get("last_feed_checked_at"),
             } for playlist in playlists],
         })
     metadata = {"channels": synced_channels, "updated_at": now}
@@ -101,6 +107,14 @@ def _apply_sync_to_courses(metadata: dict):
     channel_metadata = {item.get("channel_id"): item for item in metadata.get("channels", [])}
     for raw_plan in db.list_plans():
         plan = LearningPlan.model_validate(raw_plan)
+        # Courses created from one source split the same videos across chapters.
+        # Refresh comparison must therefore use the plan-wide unique inventory.
+        plan_video_ids = {
+            video.video_id
+            for course in plan.courses
+            for module in course.modules
+            for video in module.videos
+        }
         changed = False
         for course in plan.courses:
             needs_refresh = False
@@ -108,26 +122,27 @@ def _apply_sync_to_courses(metadata: dict):
                 synced = channel_metadata.get(source.channel_id)
                 if not synced:
                     continue
-                previous_count = source.videos_count or source.video_count
                 current_count = synced.get("videos_count", 0)
-                if current_count > previous_count:
+                if current_count > len(plan_video_ids):
                     needs_refresh = True
                 source.thumbnail = synced.get("thumbnail") or source.thumbnail
                 source.videos_count = current_count
                 source.video_count = current_count
                 source.source_created_at = synced.get("source_created_at") or None
                 source.last_synced_at = synced.get("last_synced_at")
+                source.last_feed_checked_at = synced.get("last_feed_checked_at") or source.last_feed_checked_at
                 playlist_metadata = {item.get("playlist_id") or item.get("id"): item for item in synced.get("playlists", [])}
                 for playlist in source.playlists:
                     playlist_id = playlist.playlist_id or playlist.id
                     playlist_synced = playlist_metadata.get(playlist_id)
                     if not playlist_synced:
                         continue
-                    if playlist_synced.get("videos_count", 0) > playlist.videos_count:
+                    if playlist_synced.get("videos_count", 0) > len(plan_video_ids):
                         needs_refresh = True
                     playlist.videos_count = playlist_synced.get("videos_count", 0)
                     playlist.last_synced_at = playlist_synced.get("last_synced_at")
                     playlist.source_created_at = playlist_synced.get("source_created_at") or None
+                    playlist.last_feed_checked_at = playlist_synced.get("last_feed_checked_at") or playlist.last_feed_checked_at
                 changed = True
             labels = set(course.labels)
             if needs_refresh:
@@ -140,6 +155,34 @@ def _apply_sync_to_courses(metadata: dict):
         if changed:
             plan.updated_at = datetime.now(timezone.utc)
             db.save_plan(plan.model_dump())
+
+def _as_utc_datetime(value) -> Optional[datetime]:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value.astimezone(timezone.utc)
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+def _feed_checkpoint(metadata: dict, channel_id: str, playlist_id: Optional[str], fallback) -> Optional[datetime]:
+    channel = next((item for item in metadata.get("channels", []) if item.get("channel_id") == channel_id), {})
+    if playlist_id:
+        playlist = next((item for item in channel.get("playlists", []) if (item.get("playlist_id") or item.get("id")) == playlist_id), {})
+        return _as_utc_datetime(playlist.get("last_feed_checked_at") or fallback)
+    return _as_utc_datetime(channel.get("last_feed_checked_at") or fallback)
+
+def _mark_feed_checked(metadata: dict, channel_id: str, playlist_id: Optional[str], checked_at: str):
+    channel = next((item for item in metadata.get("channels", []) if item.get("channel_id") == channel_id), None)
+    if not channel:
+        return
+    if playlist_id:
+        playlist = next((item for item in channel.get("playlists", []) if (item.get("playlist_id") or item.get("id")) == playlist_id), None)
+        if playlist:
+            playlist["last_feed_checked_at"] = checked_at
+    else:
+        channel["last_feed_checked_at"] = checked_at
 
 def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video_id: Optional[str], labels: List[str]) -> LearningPlan:
     row = db.load_plan(plan_id)
@@ -268,8 +311,9 @@ def discover_new_videos(plan_id: str, course_id: str, channel_id: Optional[str] 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
-    existing_ids = {video.video_id for module in course.modules for video in module.videos}
     discovered_feeds = []
+    sync_metadata = db.load_source_sync_metadata()
+    checked_at = datetime.now(timezone.utc)
     eligible_sources = [source for source in course.source_channels if not channel_id or source.channel_id == channel_id]
     if channel_id and not eligible_sources:
         raise HTTPException(status_code=404, detail="Channel is not a course content source")
@@ -282,11 +326,21 @@ def discover_new_videos(plan_id: str, course_id: str, channel_id: Optional[str] 
             target_scopes.update((source.channel_id, playlist.playlist_id or playlist.id) for playlist in source.playlists)
         else:
             target_scopes.add((source.channel_id, None))
+    # Course modules may be AI-organized from the same channel across multiple
+    # courses. A video is new only when it is absent from the entire plan.
+    existing_videos = {
+        video.video_id: video
+        for item in plan.courses
+        for module in item.modules
+        for video in module.videos
+    }
+    existing_ids = set(existing_videos)
     # Re-loading a source replaces its prior staged feed, including its metadata.
     staged_ids = {
         video.video_id
-        for feed in course.new_video_feeds
-        if (feed.channel_id, feed.playlist_id) not in target_scopes
+        for item in plan.courses
+        for feed in item.new_video_feeds
+        if item.id != course.id or (feed.channel_id, feed.playlist_id) not in target_scopes
         for video in feed.videos
     }
 
@@ -304,22 +358,53 @@ def discover_new_videos(plan_id: str, course_id: str, channel_id: Optional[str] 
         for playlist in selections:
             selected_playlist_id = (playlist.playlist_id or playlist.id) if playlist else None
             raw_videos = youtube_client.get_playlist_videos(selected_playlist_id) if selected_playlist_id else youtube_client.get_channel_videos(source.channel_id)
+            fallback_checkpoint = playlist.last_feed_checked_at if playlist else source.last_feed_checked_at
+            checkpoint = _feed_checkpoint(sync_metadata, source.channel_id, selected_playlist_id, fallback_checkpoint)
+            # Keep a small overlap to account for delayed YouTube indexing; IDs
+            # are still deduplicated against the complete learning plan.
+            earliest_candidate = checkpoint - timedelta(hours=24) if checkpoint else None
             videos = []
             for index, raw_video in enumerate(process_videos(raw_videos), start=1):
                 video = _video_from_source(raw_video, index)
+                # Existing plans may have been created before we collected rich
+                # YouTube metadata. Refresh it while scanning the shared feed.
+                existing_video = existing_videos.get(video.video_id)
+                if existing_video:
+                    existing_video.thumbnail = video.thumbnail or existing_video.thumbnail
+                    existing_video.duration_secs = video.duration_secs
+                    existing_video.published_at = video.published_at
+                    existing_video.tags = video.tags
+                    existing_video.category_id = video.category_id
+                    existing_video.caption_available = video.caption_available
+                    existing_video.embeddable = video.embeddable
+                    existing_video.view_count = video.view_count
+                    existing_video.like_count = video.like_count
+                    existing_video.recording_date = video.recording_date
+                    continue
+                if earliest_candidate and video.published_at and video.published_at <= earliest_candidate:
+                    continue
                 if video.video_id not in existing_ids and video.video_id not in staged_ids:
                     videos.append(video)
                     staged_ids.add(video.video_id)
             if videos:
                 discovered_feeds.append(NewVideoFeed(channel_id=source.channel_id, playlist_id=selected_playlist_id, videos=videos))
+            _mark_feed_checked(sync_metadata, source.channel_id, selected_playlist_id, checked_at.isoformat())
+            if playlist:
+                playlist.last_feed_checked_at = checked_at
+            else:
+                source.last_feed_checked_at = checked_at
 
     # Replace staging data for the scopes just discovered, while preserving other scopes.
     course.new_video_feeds = [feed for feed in course.new_video_feeds if (feed.channel_id, feed.playlist_id) not in target_scopes] + discovered_feeds
-    if course.new_video_feeds and "refresh_needed" not in course.labels:
-        course.labels.append("refresh_needed")
+    if course.new_video_feeds:
+        if "refresh_needed" not in course.labels:
+            course.labels.append("refresh_needed")
+    else:
+        course.labels = [label for label in course.labels if label != "refresh_needed"]
     course.updated_at = datetime.now(timezone.utc)
     plan.updated_at = datetime.now(timezone.utc)
     db.save_plan(plan.model_dump())
+    db.save_source_sync_metadata(sync_metadata)
     return {"plan": plan, "discovered_videos": sum(len(feed.videos) for feed in discovered_feeds)}
 
 @app.post("/api/plans/{plan_id}/courses/{course_id}/ai-suggest-refresh-feed", tags=["courses"])
@@ -624,7 +709,7 @@ def ai_suggest_2(plan_id: str):
 
     plan = LearningPlan.model_validate(row)
 
-    json_file = BASE_DIR / "json-dumps" / "learning-plan-2.json"
+    json_file = BASE_DIR / "json-dumps" / "04_learning-plan.json"
     try:
         with json_file.open("r", encoding="utf-8") as file:
             data = json.load(file)
@@ -635,9 +720,12 @@ def ai_suggest_2(plan_id: str):
     except OSError as error:
         raise HTTPException(status_code=500, detail=f"Unable to read dummy course fixture: {error}")
 
-    courses = data.get("learning_plan", {}).get("courses")
+    # Fixtures may contain either a direct learning-plan object or the older
+    # {"learning_plan": {...}} wrapper.
+    fixture_plan = data.get("learning_plan", data)
+    courses = fixture_plan.get("courses") if isinstance(fixture_plan, dict) else None
     if not isinstance(courses, list) or not courses:
-        raise HTTPException(status_code=422, detail="Dummy course fixture must contain at least one learning_plan course")
+        raise HTTPException(status_code=422, detail="Dummy course fixture must contain at least one course")
 
     imported_courses = []
     for course_index, course_data in enumerate(courses, start=1):

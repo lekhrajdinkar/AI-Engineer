@@ -49,7 +49,6 @@ export default function Plans({ newPlanRequest }) {
         description: form.description.trim() || null,
         logo_url: form.logoUrl.trim(),
         courses: [],
-        source_channels: [],
       })
       dispatch(addPlan(response.plan))
       closeDrawer()

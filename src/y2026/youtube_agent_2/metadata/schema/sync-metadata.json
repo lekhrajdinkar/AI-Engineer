@@ -7,10 +7,10 @@
       "url": "string",
       "thumbnail": "string",
 
-      "videos_count": "number",
-      "published_at": "ISO8601 | null",
+      "videos_count": 0,
       "source_created_at": "ISO8601 | null",
       "last_synced_at": "ISO8601",
+      "last_feed_checked_at": "ISO8601 | null",
 
       "playlists": [
         {
@@ -20,9 +20,9 @@
           "thumbnail": "string",
 
           "videos_count": 0,
-          "published_at": "ISO8601 | null",
           "source_created_at": "ISO8601 | null",
-          "last_synced_at": "ISO8601"
+          "last_synced_at": "ISO8601",
+          "last_feed_checked_at": "ISO8601 | null"
         }
       ]
     }

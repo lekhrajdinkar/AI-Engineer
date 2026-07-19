@@ -42,6 +42,7 @@ class Playlist(BaseModel):
     source_created_at: Optional[datetime] = None
     last_video_published_at: Optional[datetime] = None
     last_synced_at: Optional[datetime] = None
+    last_feed_checked_at: Optional[datetime] = None
 
 class Channel(BaseModel):
     channel_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -53,6 +54,7 @@ class Channel(BaseModel):
     source_created_at: Optional[datetime] = None
     last_video_published_at: Optional[datetime] = None
     last_synced_at: Optional[datetime] = None
+    last_feed_checked_at: Optional[datetime] = None
     playlists: List[Playlist] = Field(default_factory=list)
 
 class NewVideoFeed(BaseModel):
@@ -87,7 +89,6 @@ class LearningPlan(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     courses: List[Course] = Field(default_factory=list)
-    source_channels : List[Channel] = Field(default_factory=list)
     labels: List[str] = Field(default_factory=list)
 
 class CourseDeleteRequest(BaseModel):

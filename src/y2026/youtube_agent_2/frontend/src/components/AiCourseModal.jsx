@@ -3,9 +3,27 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getChannels, getPlaylists, getVideos, addAiSuggestedCourse, getPlan } from '../api/client'
 import { setChannelPlaylists, setSubscribedChannels } from '../store/sourcesSlice'
 
-function ChannelAvatar({ title }) {
+function ChannelAvatar({ title, thumbnail }) {
   const letter = (title || '?').charAt(0).toUpperCase()
+  if (thumbnail) return <img src={thumbnail} alt="" className="source-picker-thumb" />
   return <div className="channel-avatar">{letter}</div>
+}
+
+function sourceDate(item) {
+  return item.updated_at || item.last_updated || item.source_created_at || item.created_at || ''
+}
+
+function formatSourceDate(item) {
+  const value = sourceDate(item)
+  if (!value) return 'Date unavailable'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'Date unavailable' : `Created ${date.toLocaleDateString()}`
+}
+
+function sortSources(items, sortBy) {
+  return [...items].sort((left, right) => sortBy === 'updated'
+    ? new Date(sourceDate(right) || 0) - new Date(sourceDate(left) || 0)
+    : (left.title || '').localeCompare(right.title || ''))
 }
 
 export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
@@ -23,6 +41,8 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
   const [playlistSearch, setPlaylistSearch] = useState('')
   const [activePlaylistTab, setActivePlaylistTab] = useState('ALL')
   const [showPlaylists, setShowPlaylists] = useState(false)
+  const [channelSortBy, setChannelSortBy] = useState('name')
+  const [playlistSortBy, setPlaylistSortBy] = useState('name')
 
   useEffect(() => {
     if (cachedChannels !== null) {
@@ -43,6 +63,9 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
         : [...prev, ch]
     )
   }
+
+  function selectAllChannels(items) { setSelectedChannels(prev => [...prev, ...items.filter(item => !prev.some(selected => selected.channel_id === item.channel_id))]) }
+  function deselectAllChannels(items) { const ids = new Set(items.map(item => item.channel_id)); setSelectedChannels(prev => prev.filter(item => !ids.has(item.channel_id))) }
 
   async function loadPlaylists() {
     setLoading(true)
@@ -70,6 +93,9 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
         : [...prev, pl]
     )
   }
+
+  function selectAllPlaylists(items) { setSelectedPlaylists(prev => [...prev, ...items.filter(item => !prev.some(selected => selected.playlist_id === item.playlist_id))]) }
+  function deselectAllPlaylists(items) { const ids = new Set(items.map(item => item.playlist_id)); setSelectedPlaylists(prev => prev.filter(item => !ids.has(item.playlist_id))) }
 
   async function handleAiGenerate() {
     if (selectedChannels.length === 0) { setError('Select at least one channel'); return }
@@ -135,19 +161,21 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
     setChannelSearch('')
     setPlaylistSearch('')
     setShowPlaylists(false)
+    setChannelSortBy('name')
+    setPlaylistSortBy('name')
     onClose()
   }
 
-  const filteredChannels = channels.filter(ch =>
+  const filteredChannels = sortSources(channels.filter(ch =>
     !channelSearch || ch.title.toLowerCase().includes(channelSearch.toLowerCase())
-  )
+  ), channelSortBy)
 
   const channelPlaylists = activePlaylistTab === 'ALL'
     ? Object.values(playlists).flat()
     : (playlists[activePlaylistTab] || [])
-  const filteredPlaylists = channelPlaylists.filter(pl =>
+  const filteredPlaylists = sortSources(channelPlaylists.filter(pl =>
     !playlistSearch || pl.title.toLowerCase().includes(playlistSearch.toLowerCase())
-  )
+  ), playlistSortBy)
 
   return (
     <>
@@ -157,13 +185,13 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
           <h2>AI Suggested Course Creation</h2>
           <button className="btn btn-secondary btn-sm" onClick={closeDrawer}>✕</button>
         </div>
-        <div className="drawer-body">
+        <div className="drawer-body add-course-drawer-body">
           {error && <div className="alert alert-error">{error}</div>}
 
           {!result && !showPlaylists && (
-            <div>
+            <div className="add-course-source-step">
               <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                Search and select channels for AI to analyze and suggest course groupings:
+                Search and select YouTube channels as content source:
               </p>
               <div className="search-bar" style={{ marginBottom: '0.75rem' }}>
                 <input
@@ -172,13 +200,14 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
                   placeholder="Search channels by name..."
                 />
               </div>
-              <div className="tile-grid" style={{ maxHeight: 400 }}>
+              <div className="source-picker-toolbar"><span>Sort channels</span><div className="source-picker-actions"><div className="picker-bulk-toggle"><button type="button" onClick={() => selectAllChannels(filteredChannels)}>Select all</button><button type="button" onClick={() => deselectAllChannels(filteredChannels)}>Deselect all</button></div><div className="picker-sort-toggle"><button type="button" className={channelSortBy === 'name' ? 'active' : ''} onClick={() => setChannelSortBy('name')}>Name</button><button type="button" className={channelSortBy === 'updated' ? 'active' : ''} onClick={() => setChannelSortBy('updated')}>Last updated</button></div></div></div>
+              <div className="tile-grid source-picker-grid">
                 {filteredChannels.map(ch => {
                   const isSelected = selectedChannels.find(c => c.channel_id === ch.channel_id)
                   return (
                     <div key={ch.channel_id} className={`channel-tile ${isSelected ? 'selected' : ''}`} onClick={() => toggleChannel(ch)}>
-                      <ChannelAvatar title={ch.title} />
-                      <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{ch.title}</span>
+                      <ChannelAvatar title={ch.title} thumbnail={ch.thumbnail || ch.logo_url || ch.logo} />
+                      <div className="source-picker-tile-content"><strong className="source-picker-tile-title">{ch.title}</strong><span className="source-picker-tile-meta">{formatSourceDate(ch)}</span></div>
                     </div>
                   )
                 })}
@@ -192,7 +221,7 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
           )}
 
           {!result && showPlaylists && (
-            <div>
+            <div className="add-course-source-step">
               <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 Select playlists (optional — leave empty to use all videos):
               </p>
@@ -213,16 +242,15 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
                   placeholder="Search playlists by name..."
                 />
               </div>
+              <div className="source-picker-toolbar"><span>Sort playlists</span><div className="source-picker-actions"><div className="picker-bulk-toggle"><button type="button" onClick={() => selectAllPlaylists(filteredPlaylists)}>Select all</button><button type="button" onClick={() => deselectAllPlaylists(filteredPlaylists)}>Deselect all</button></div><div className="picker-sort-toggle"><button type="button" className={playlistSortBy === 'name' ? 'active' : ''} onClick={() => setPlaylistSortBy('name')}>Name</button><button type="button" className={playlistSortBy === 'updated' ? 'active' : ''} onClick={() => setPlaylistSortBy('updated')}>Last updated</button></div></div></div>
               {filteredPlaylists.length > 0 ? (
-                <div className="tile-grid" style={{ maxHeight: 350 }}>
+                <div className="tile-grid source-picker-grid">
                   {filteredPlaylists.map(pl => {
                     const isSelected = selectedPlaylists.find(p => p.playlist_id === pl.playlist_id)
                     return (
                       <div key={pl.playlist_id} className={`playlist-tile ${isSelected ? 'selected' : ''}`} onClick={() => togglePlaylist(pl)}>
                         {pl.thumbnail ? <img src={pl.thumbnail} alt="" className="playlist-thumb" /> : <div className="playlist-thumb" />}
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 500 }}>{pl.title}</div>
-                        </div>
+                        <div className="source-picker-tile-content"><strong className="source-picker-tile-title">{pl.title}</strong><span className="source-picker-tile-meta">{formatSourceDate(pl)}</span></div>
                       </div>
                     )
                   })}
