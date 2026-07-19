@@ -18,6 +18,8 @@
       "sequence": "number",
       "labels": [],
       "last_played_video_id": "string | null",
+      "last_played_position_secs": "number | null",
+      "last_played_at": "ISO8601 | null",
       "created_at": "ISO8601",
       "updated_at": "ISO8601",
 
@@ -85,7 +87,9 @@
               "recording_date": "ISO8601 | null",
               "sequence": "number",
               "watched": false,
-              "labels": []
+              "labels": [],
+              "last_played_position_secs": "number | null",
+              "last_played_at": "ISO8601 | null"
             }
           ]
         }

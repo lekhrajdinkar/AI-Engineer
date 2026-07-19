@@ -11,3 +11,7 @@ YOUTUBE_SUBSCRIPTIONS_API = "https://www.googleapis.com/youtube/v3/subscriptions
 TRIM_VIDEO_DESC = True
 
 ALLOWED_PREBUILT_LABELS = {"watched", "mark_for_delete", "bookmarked"}
+
+AI_DUMMY_LEARNING_PLAN_BM = Path(__file__).parent / "json-dumps" / "04_learning-plan_bm.json"
+AI_DUMMY_LEARNING_PLAN_BBGO = Path(__file__).parent / "json-dumps" / "04_learning-plan_bbgo.json"
+AI_DUMMY_LEARNING_PLAN = AI_DUMMY_LEARNING_PLAN_BBGO

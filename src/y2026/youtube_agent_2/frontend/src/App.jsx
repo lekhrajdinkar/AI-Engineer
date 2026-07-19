@@ -46,10 +46,6 @@ function SourceInboxIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 14h5l1.5 2h3L15 14h5M12 3v8m0 0-3-3m3 3 3-3" /></svg>
 }
 
-function SwitchPlanIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h12m0 0-3-3m3 3-3 3M20 17H8m0 0 3 3m-3-3 3-3" /></svg>
-}
-
 function AppLayout() {
   const { theme, setTheme } = useTheme()
   const { fontSize, setFontSize } = useFontSize()
@@ -156,6 +152,120 @@ function AppLayout() {
     return () => window.clearTimeout(timer)
   }, [showPlanSwitcher, lastAccessedCourse, plans])
 
+  React.useEffect(() => {
+    const switcherButton = document.querySelector('.quick-plan-button')
+    const openSwitcher = () => setShowPlanSwitcher(true)
+    switcherButton?.addEventListener('mouseenter', openSwitcher)
+    return () => switcherButton?.removeEventListener('mouseenter', openSwitcher)
+  }, [])
+
+  React.useEffect(() => {
+    if (!showPlanSwitcher) return
+    const drawerBody = document.querySelector('.quick-plan-drawer .drawer-body')
+    const planList = drawerBody?.querySelector('.quick-plan-list')
+    if (!drawerBody || !planList) return
+
+    const search = document.createElement('input')
+    search.className = 'quick-plan-global-search'
+    search.type = 'search'
+    search.placeholder = 'Search course title or description...'
+    search.setAttribute('aria-label', 'Search course title or description across all learning plans')
+    const toolbar = document.createElement('div')
+    toolbar.className = 'quick-plan-search-toolbar'
+    const toggleTree = document.createElement('button')
+    toggleTree.type = 'button'
+    toggleTree.className = 'quick-plan-tree-button'
+    const setTreeToggleIcon = expanded => {
+      const action = expanded ? 'Collapse' : 'Expand'
+      toggleTree.title = `${action} all learning plans`
+      toggleTree.setAttribute('aria-label', `${action} all learning plans`)
+      toggleTree.innerHTML = expanded
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5" /></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>'
+    }
+    setTreeToggleIcon(plans.length > 0 && plans.every(plan => expandedPlanIds[plan.id]))
+    const togglePlans = () => setExpandedPlanIds(current => {
+      const shouldExpand = plans.some(plan => !current[plan.id])
+      setTreeToggleIcon(shouldExpand)
+      return shouldExpand ? Object.fromEntries(plans.map(plan => [plan.id, true])) : {}
+    })
+    toggleTree.addEventListener('click', togglePlans)
+    toolbar.append(search, toggleTree)
+    const filterPlans = () => {
+      const query = search.value.trim().toLowerCase()
+      drawerBody.querySelectorAll('.quick-plan-accordion').forEach((item, index) => {
+        const plan = plans[index]
+        const searchable = [
+          plan?.name,
+          plan?.description,
+          ...(plan?.courses || []).flatMap(course => [
+            course.title,
+            course.description,
+            ...(course.source_channels || []).flatMap(channel => [channel.title, ...(channel.playlists || []).map(playlist => playlist.title)]),
+          ]),
+        ].filter(Boolean).join(' ').toLowerCase()
+        const matchingCourseIds = (plan?.courses || [])
+          .filter(course => `${course.title || ''} ${course.description || ''}`.toLowerCase().includes(query))
+          .map(course => course.id)
+        item.hidden = Boolean(query && !searchable.includes(query))
+        if (query && searchable.includes(query) && plan?.id) {
+          setExpandedPlanIds(current => current[plan.id] ? current : { ...current, [plan.id]: true })
+          window.setTimeout(() => {
+            const courses = [...(plan.courses || [])].sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+            item.querySelectorAll('.quick-course-accordion').forEach((courseItem, courseIndex) => {
+              courseItem.hidden = matchingCourseIds.length > 0 && !matchingCourseIds.includes(courses[courseIndex]?.id)
+            })
+          }, 0)
+        }
+        if (!query) item.querySelectorAll('.quick-course-accordion').forEach(courseItem => { courseItem.hidden = false })
+      })
+    }
+    search.addEventListener('input', filterPlans)
+    drawerBody.insertBefore(toolbar, planList)
+    return () => {
+      search.removeEventListener('input', filterPlans)
+      toggleTree.removeEventListener('click', togglePlans)
+      toolbar.remove()
+    }
+  }, [showPlanSwitcher, plans])
+
+  React.useEffect(() => {
+    if (!showPlanSwitcher) return
+    const timer = window.setTimeout(() => {
+      document.querySelectorAll('.quick-plan-item').forEach((button, index) => {
+        const plan = plans[index]
+        if (!plan || button.querySelector('.quick-plan-logo')) return
+        const title = button.querySelector('strong')
+        const count = button.querySelector(':scope > span')
+        if (!title || !count) return
+
+        const copy = document.createElement('span')
+        copy.className = 'quick-plan-item-copy'
+        copy.append(title, count)
+        const logo = plan.logo_url || plan.logo
+        const logoElement = logo ? document.createElement('img') : document.createElement('span')
+        logoElement.className = `quick-plan-logo${logo ? '' : ' quick-plan-logo-fallback'}`
+        if (logo) {
+          logoElement.src = logo
+          logoElement.alt = ''
+          logoElement.onerror = () => {
+            const fallback = document.createElement('span')
+            fallback.className = 'quick-plan-logo quick-plan-logo-fallback'
+            fallback.textContent = plan.name?.charAt(0).toUpperCase() || '?'
+            logoElement.replaceWith(fallback)
+          }
+        } else {
+          logoElement.textContent = plan.name?.charAt(0).toUpperCase() || '?'
+        }
+        const logoWrap = document.createElement('span')
+        logoWrap.className = 'quick-plan-logo-wrap'
+        logoWrap.append(logoElement)
+        button.replaceChildren(logoWrap, copy)
+      })
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [showPlanSwitcher, plans, expandedPlanIds])
+
   const pendingVideosForChannel = channel => (channel.new_videos?.length || 0) + (channel.playlists || []).reduce((count, playlist) => count + (playlist.new_videos?.length || 0), 0)
   const sourceSyncPendingCount = (syncMetadata?.channels || []).reduce((count, channel) => count + pendingVideosForChannel(channel), 0)
   const sourceSyncChannels = [...(syncMetadata?.channels || [])]
@@ -185,7 +295,7 @@ function AppLayout() {
           <button type="button" className="refresh-plans" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
             <SourceInboxIcon />
           </button>
-          <button type="button" className="quick-plan-button" onClick={() => setShowPlanSwitcher(true)} aria-label="Switch learning plan" title="Switch learning plan"><SwitchPlanIcon /></button>
+          <button type="button" className="quick-plan-button" onClick={() => setShowPlanSwitcher(true)} aria-label="Switch learning plan" title="Switch learning plan">⇄</button>
           </div>
           <div className="right-nav-bottom">
           <div className="font-size-selector" aria-label="Global font size">
@@ -196,12 +306,10 @@ function AppLayout() {
         </div>
       </aside>
       {showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close">×</button></div><div className="drawer-body source-sync-body">
-        <section className="source-sync-summary"><div><span>Last pull from YouTube</span><strong>{syncMetadata?.updated_at ? new Date(syncMetadata.updated_at).toLocaleString() : 'Not synced yet'}</strong></div><div><span>Subscribed channels</span><strong>{syncMetadata?.channels?.length || 0}</strong></div><div className={sourceSyncPendingCount ? 'source-sync-pending-summary' : ''}><span>Feeds ready to push</span><strong>{sourceSyncPendingCount}</strong></div></section>
+        <section className="source-sync-summary"><div><span>Last pull from YouTube</span><strong>{syncMetadata?.updated_at ? new Date(syncMetadata.updated_at).toLocaleString() : 'Not synced yet'}</strong></div><div><span>Subscribed channels</span><strong>{syncMetadata?.channels?.length || 0}</strong></div><div className={sourceSyncPendingCount ? 'source-sync-pending-summary' : ''}><span>Videos ready to push</span><strong>{sourceSyncPendingCount}</strong></div></section>
         {sourceSyncError && <div className="alert alert-error">{sourceSyncError}</div>}
         <div className="source-sync-steps"><div className="source-sync-step-card"><div><b>1. Pull from YouTube</b><span>Read subscribed channel and playlist feeds.</span></div><button className="btn btn-primary btn-sm" disabled={sourceSyncLoading} onClick={refreshSourceMetadata}>{sourceSyncLoading ? 'Pulling…' : 'Pull new feeds'}</button></div><div className="source-sync-step-card"><div><b>2. Push to targets</b><span>Temporarily route each feed to its first target course.</span></div><button className="btn btn-secondary btn-sm" disabled={sourcePushLoading || !sourceSyncPendingCount} onClick={() => pushSourceFeeds()}>{sourcePushLoading ? 'Pushing…' : `Push ${sourceSyncPendingCount} videos`}</button></div></div>
-        <section className="source-sync-channel-section"><div className="source-sync-channel-controls"><input value={sourceSyncSearch} onChange={event => setSourceSyncSearch(event.target.value)} placeholder="Search channels or playlists..." aria-label="Search content sources" /><div className="picker-sort-toggle"><button className={sourceSyncFilter === 'all' ? 'active' : ''} onClick={() => setSourceSyncFilter('all')}>All ({syncMetadata?.channels?.length || 0})</button><button className={sourceSyncFilter === 'pending' ? 'active' : ''} onClick={() => setSourceSyncFilter('pending')}>Pending ({sourceSyncPendingCount})</button></div><div className="picker-sort-toggle"><button className={sourceSyncSort === 'name' ? 'active' : ''} onClick={() => setSourceSyncSort('name')}>Name</button><button className={sourceSyncSort === 'date' ? 'active' : ''} onClick={() => setSourceSyncSort('date')}>Last sync</button></div></div>
-        <div className="source-sync-channel-list">{sourceSyncChannels.length ? sourceSyncChannels.map(channel => { const expanded = Boolean(expandedSyncChannels[channel.channel_id]); const channelNewCount = channel.new_videos?.length || 0; const pendingCount = pendingVideosForChannel(channel); return <article className={`source-sync-channel-card ${pendingCount ? 'has-pending-feed' : ''}`} key={channel.channel_id}><button className="source-sync-channel-heading" onClick={() => setExpandedSyncChannels(current => ({ ...current, [channel.channel_id]: !current[channel.channel_id] }))} aria-expanded={expanded}>{channel.thumbnail ? <img src={channel.thumbnail} alt="" /> : <span className="source-sync-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</span>}<span className="source-sync-channel-title"><strong>{channel.title || 'Untitled channel'}</strong><small>{channel.videos_count ?? 0} videos · {channel.target_courses?.length || 0} direct targets</small></span>{pendingCount > 0 && <span className="source-sync-pending-badge">{pendingCount} ready</span>}<span className={`source-sync-expand ${expanded ? 'expanded' : ''}`} aria-hidden="true">›</span></button>{expanded && <div className="source-sync-channel-details"><div className="source-sync-push-row"><span>{channelNewCount} new channel-feed videos</span><button className="btn btn-secondary btn-sm" disabled={sourcePushLoading || !channelNewCount} onClick={() => pushSourceFeeds({ channelId: channel.channel_id })}>Push to first target</button></div>{channel.playlists?.length > 0 && <div className="source-sync-playlists"><strong>Playlists</strong>{channel.playlists.map(playlist => { const playlistId = playlist.playlist_id || playlist.id; const newCount = playlist.new_videos?.length || 0; return <div key={playlistId}><span>{playlist.title || 'Untitled playlist'}<small>{playlist.videos_count ?? 0} videos · {newCount} ready · {playlist.target_courses?.length || 0} targets</small></span><button className="btn btn-secondary btn-sm" disabled={sourcePushLoading || !newCount} onClick={() => pushSourceFeeds({ channelId: channel.channel_id, playlistId })}>Push</button></div> })}</div>}<small className="source-sync-checkpoint">Last source check: {channel.last_feed_checked_at ? new Date(channel.last_feed_checked_at).toLocaleString() : 'not yet'}</small></div>}</article> }) : <p className="source-sync-empty">{syncMetadata?.channels?.length ? 'No channels match this filter.' : 'No subscribed-channel metadata is stored yet. Pull new feeds from YouTube to start.'}</p>}</div>
-        </section>
+        <section className="source-sync-channel-section"><div className="source-sync-channel-controls"><input value={sourceSyncSearch} onChange={event => setSourceSyncSearch(event.target.value)} placeholder="Search channels or playlists..." aria-label="Search content sources" /><div className="picker-sort-toggle"><button className={sourceSyncFilter === 'all' ? 'active' : ''} onClick={() => setSourceSyncFilter('all')}>All ({syncMetadata?.channels?.length || 0})</button><button className={sourceSyncFilter === 'pending' ? 'active' : ''} onClick={() => setSourceSyncFilter('pending')}>Pending ({sourceSyncPendingCount})</button></div><div className="picker-sort-toggle"><button className={sourceSyncSort === 'name' ? 'active' : ''} onClick={() => setSourceSyncSort('name')}>Name</button><button className={sourceSyncSort === 'date' ? 'active' : ''} onClick={() => setSourceSyncSort('date')}>Last sync</button></div></div><div className="source-sync-channel-list">{sourceSyncChannels.length ? sourceSyncChannels.map(channel => { const expanded = Boolean(expandedSyncChannels[channel.channel_id]); const channelNewCount = channel.new_videos?.length || 0; const pendingCount = pendingVideosForChannel(channel); return <article className={`source-sync-channel-card ${pendingCount ? 'has-pending-feed' : ''}`} key={channel.channel_id}><button className="source-sync-channel-heading" onClick={() => setExpandedSyncChannels(current => ({ ...current, [channel.channel_id]: !current[channel.channel_id] }))} aria-expanded={expanded}>{channel.thumbnail ? <img src={channel.thumbnail} alt="" /> : <span className="source-sync-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</span>}<span className="source-sync-channel-title"><strong>{channel.title || 'Untitled channel'}</strong><small>{channel.videos_count ?? 0} videos · {channel.target_courses?.length || 0} direct target courses</small></span>{pendingCount > 0 && <span className="source-sync-pending-badge">{pendingCount} ready</span>}<span className={`source-sync-expand ${expanded ? 'expanded' : ''}`} aria-hidden="true">›</span></button>{expanded && <div className="source-sync-channel-details"><div className="source-sync-push-row"><span>{channelNewCount} new channel-feed videos</span><div className="source-sync-channel-quick-actions">{channel.url && <a className="btn btn-secondary btn-sm" href={channel.url} target="_blank" rel="noreferrer">Open YouTube ↗</a>}<button className="btn btn-secondary btn-sm" disabled={sourcePushLoading || !channelNewCount} onClick={() => pushSourceFeeds({ channelId: channel.channel_id })}>Push to first target</button></div></div>{channel.playlists?.length > 0 && <div className="source-sync-playlists"><strong>Playlists</strong>{channel.playlists.map(playlist => { const playlistId = playlist.playlist_id || playlist.id; const newCount = playlist.new_videos?.length || 0; return <div key={playlistId}><span>{playlist.title || 'Untitled playlist'}<small>{playlist.videos_count ?? 0} videos · {newCount} ready · {playlist.target_courses?.length || 0} target courses</small></span><button className="btn btn-secondary btn-sm" disabled={sourcePushLoading || !newCount} onClick={() => pushSourceFeeds({ channelId: channel.channel_id, playlistId })}>Push</button></div> })}</div>}<small className="source-sync-checkpoint">Last source check: {channel.last_feed_checked_at ? new Date(channel.last_feed_checked_at).toLocaleString() : 'not yet'}</small></div>}</article> }) : <p className="source-sync-empty">{syncMetadata?.channels?.length ? 'No channels match this filter.' : 'No subscribed-channel metadata is stored yet. Pull new feeds from YouTube to start.'}</p>}</div></section>
       </div></aside></>}
       {showPlanSwitcher && <><div className="drawer-overlay" onClick={() => setShowPlanSwitcher(false)} /><aside className="drawer quick-plan-drawer"><div className="drawer-header"><h2>Learning Plans</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowPlanSwitcher(false)}>×</button></div><div className="drawer-body"><div className="quick-plan-list">{plans.length ? plans.map(plan => { const isExpanded = Boolean(expandedPlanIds[plan.id]); const query = (planCourseSearches[plan.id] || '').toLowerCase(); const courses = [...(plan.courses || [])].sort((a, b) => (a.sequence || 0) - (b.sequence || 0)).filter(course => !query || `${course.title} ${course.description || ''} ${(course.source_channels || []).map(channel => channel.title).join(' ')}`.toLowerCase().includes(query)); return <section className="quick-plan-accordion" key={plan.id}><div className="quick-plan-row"><button className="quick-plan-item" onClick={() => { navigate(`/plans/${plan.id}`); setShowPlanSwitcher(false) }}><strong>{plan.name}</strong><span>{plan.courses?.length || 0} courses</span></button><button className={`quick-plan-expand ${isExpanded ? 'expanded' : ''}`} aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${plan.name}`} title={isExpanded ? 'Collapse courses' : 'Expand courses'} onClick={() => setExpandedPlanIds(current => ({ ...current, [plan.id]: !current[plan.id] }))}><span>›</span></button></div>{isExpanded && <div className="quick-course-list"><input className="quick-course-search" value={planCourseSearches[plan.id] || ''} onChange={event => setPlanCourseSearches(current => ({ ...current, [plan.id]: event.target.value }))} placeholder="Search courses..." aria-label={`Search courses in ${plan.name}`} />{courses.length ? courses.map(course => { const courseKey = `${plan.id}:${course.id}`; const courseExpanded = Boolean(expandedCourseIds[courseKey]); const modules = [...(course.modules || [])].sort((a, b) => (a.sequence || 0) - (b.sequence || 0)); return <section className="quick-course-accordion" key={course.id}><div className="quick-course-row"><button className="quick-course-item" onClick={() => { navigate(`/plans/${plan.id}/courses/${course.id}/learn`); setShowPlanSwitcher(false) }}><span>{course.sequence || '—'}</span><div><strong>{course.title}</strong>{course.description && <small>{course.description}</small>}{course.source_channels?.length > 0 && <em>{course.source_channels.map(channel => channel.title).join(', ')}</em>}</div></button><button className={`quick-course-expand ${courseExpanded ? 'expanded' : ''}`} onClick={() => setExpandedCourseIds(current => ({ ...current, [courseKey]: !current[courseKey] }))} title={courseExpanded ? 'Collapse modules' : 'Expand modules'} aria-label={`${courseExpanded ? 'Collapse' : 'Expand'} ${course.title} modules`}><span>›</span></button></div>{courseExpanded && <div className="quick-module-list">{modules.length ? modules.map(module => <div key={module.id}><span>{module.sequence || '—'}</span>{module.title}</div>) : <p>No modules in this course.</p>}</div>}</section> }) : <p>No courses match this search.</p>}</div>}</section> }) : <p>No learning plans yet.</p>}</div></div></aside></>}
       <main className="main-content">

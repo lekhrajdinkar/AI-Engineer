@@ -372,11 +372,11 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
 
           {/* Step 4: Review videos & create */}
           {step === 4 && (
-            <div>
+            <div className="add-course-video-preview-step">
               <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 <strong>{videos.length}</strong> video(s) loaded. Review and create the course.
               </p>
-              <div style={{ maxHeight: 400, overflowY: 'auto', border: '1px solid var(--border-color)', padding: '0.5rem' }}>
+              <div className="add-course-video-preview-list">
                 {videos.map((v, i) => (
                   <div className="video-card" key={v.video_id || i} style={{ marginBottom: '0.4rem' }}>
                     {v.thumbnail ? (

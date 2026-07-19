@@ -25,6 +25,8 @@ class Video(BaseModel):
     recording_date: Optional[datetime] = None
     watched: bool = False
     labels: List[str] = Field(default_factory=list)
+    last_played_position_secs: Optional[float] = None
+    last_played_at: Optional[datetime] = None
 
 class Module(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -72,6 +74,8 @@ class Course(BaseModel):
     icon_key: str = ""
     labels: List[str] = Field(default_factory=list)
     last_played_video_id: Optional[str] = None
+    last_played_position_secs: Optional[float] = None
+    last_played_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     modules: List[Module] = Field(default_factory=list)
@@ -103,6 +107,9 @@ class VideoReorderRequest(BaseModel):
     target_module_id: str
     target_index: int = Field(ge=0)
 
+class PlaybackUpdateRequest(BaseModel):
+    position_secs: float = Field(ge=0)
+
 class MetadataUpdateRequest(BaseModel):
     name: Optional[str] = None
     title: Optional[str] = None
@@ -110,6 +117,8 @@ class MetadataUpdateRequest(BaseModel):
     logo_url: Optional[str] = None
     icon_key: Optional[str] = None
     last_played_video_id: Optional[str] = None
+    last_played_position_secs: Optional[float] = Field(default=None, ge=0)
+    last_played_at: Optional[datetime] = None
 
 class AiCourseRequest(BaseModel):
     videos: List[Video]

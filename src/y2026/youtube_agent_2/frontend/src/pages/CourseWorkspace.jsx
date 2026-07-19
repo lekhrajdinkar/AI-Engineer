@@ -14,14 +14,19 @@ export default function CourseWorkspace() {
   const syncMetadata = useSelector(state => state.sources.syncMetadata)
   const [showOverview, setShowOverview] = React.useState(false)
   const [isCourseEditing, setIsCourseEditing] = React.useState(false)
-  const [activeModuleName, setActiveModuleName] = React.useState('')
-  const [activeVideoTitle, setActiveVideoTitle] = React.useState('')
   const [refreshLoading, setRefreshLoading] = React.useState(false)
   const [refreshError, setRefreshError] = React.useState('')
   const [showFeedReview, setShowFeedReview] = React.useState(false)
   const [feedReviewTab, setFeedReviewTab] = React.useState('visual')
   const [feedReviewSearch, setFeedReviewSearch] = React.useState('')
   const [feedReviewSort, setFeedReviewSort] = React.useState('name')
+
+  React.useEffect(() => {
+    setShowOverview(false)
+    setShowFeedReview(false)
+    setIsCourseEditing(false)
+    setRefreshError('')
+  }, [planId, courseId])
 
   if (!plan || !plan.courses?.some(course => course.id === courseId)) return <div className="alert alert-info">Course not found.</div>
 
@@ -58,10 +63,10 @@ export default function CourseWorkspace() {
 
   return <div>
     <div className="page-header workspace-header">
-      <nav className="workspace-breadcrumb" aria-label="Workspace breadcrumb"><span>Learning Workspace</span><span aria-hidden="true">›</span><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}`)}>{breadcrumbLabel(plan.name)}</button><span aria-hidden="true">›</span><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}/courses/${courseId}`)}>{breadcrumbLabel(course.title)}</button><span aria-hidden="true">›</span><strong>{breadcrumbLabel(activeModuleName || 'Module')}</strong></nav>
+      <nav className="workspace-breadcrumb" aria-label="Workspace breadcrumb"><div className="workspace-breadcrumb-line"><span>Learning Workspace</span><span aria-hidden="true">›</span><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}`)}>Plan: {breadcrumbLabel(plan.name)}</button></div><div className="workspace-breadcrumb-line"><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}/courses/${courseId}`)}>Course: {breadcrumbLabel(course.title)}</button></div></nav>
       <div id="workspace-actions" className="workspace-action-panel"><button className={`btn btn-secondary btn-sm icon-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button><button className={`btn btn-secondary btn-sm icon-button course-edit-mode-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-label={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-pressed={isCourseEditing} onClick={() => setIsCourseEditing(value => !value)}><WorkspaceIcon name="edit" /></button></div>
     </div>
-    <PlanDetail plan={plan} workspaceCourseId={courseId} isCourseEditing={isCourseEditing} onActiveModuleChange={setActiveModuleName} onActiveVideoChange={setActiveVideoTitle} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
+    <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} isCourseEditing={isCourseEditing} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
     {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header course-overview-drawer-header"><div><h2>{course.title}</h2>{course.description && <p>{course.description}</p>}</div><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}>×</button></div><div className="drawer-body">
       {refreshError && <div className="alert alert-error">{refreshError}</div>}
       {stagedVideoCount > 0 && <section className="refresh-review refresh-review-notification"><div><h3>⚠️ New video feed ready</h3><p>{stagedVideoCount} new video{stagedVideoCount === 1 ? '' : 's'} staged across {stagedFeeds.length} source{stagedFeeds.length === 1 ? '' : 's'}.</p></div><button className="btn btn-secondary btn-sm" onClick={() => { setFeedReviewTab('visual'); setFeedReviewSearch(''); setFeedReviewSort('name'); setShowFeedReview(true) }}>Review new videos</button></section>}

@@ -81,3 +81,25 @@ after sync content, 1 new vidor added for channel-1, now become 501 video.
 current change : will make 10 course > red info icon.
 course-1 > open > load new video > it will staged for course-1 + still have red info icon
 course-2 > open > load new video > never stage, since already stage for course-1 + still have red icon icon. so could have have pulled for course-2 first. we dont know to which course it belong go. it should be decided by after LLm call. correct ?
+
+
+scenario-1 (above):
+channel 1 (500) --> feeds to 2 diff course in plan-1
+1channel 1 (500 + 1 new) --> LLM decide --> course-1 or course-2 or both
+scenario-2 (same as scenario-1 but for playlist):
+channel 1  playlist 1 (500) --> feeds to 2 diff course in plan-1
+channel 1  playlist 1 (500 + 1 new) --> LLM decide --> course-1 or course-2 or both
+Current change: courses pull froms from source.
+new fix
+I would say lets do other way around, PUSH MODEL.
+source will push to target (course's new_video_feeds collection + refresh_needed label )
+can update sync meta data:
+syncMetadata object >  channels > taget_courses [ course_id_1, course_id_5, etc]
+syncMetadata object >  channels > playlists[x]  >  taget_courses [ course_id_1, course_id_5, etc]
+So will update  Content source sync page, with 2 actions:
+pull from youTube  (Check for new feeds from subscribed channels btn) -> already impleted
+push to target, button : will add, at individual channel or at playlist level
+global level
+
+if refresh_needed is present, overview icon --> yellow flashing.
+remove red con code and consition

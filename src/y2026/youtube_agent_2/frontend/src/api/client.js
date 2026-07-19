@@ -99,6 +99,9 @@ export function updateModuleLabels(planId, courseId, moduleId, labels) {
 export function updateVideoLabels(planId, courseId, moduleId, videoId, labels) {
   return request(`/api/plans/${planId}/courses/${courseId}/modules/${moduleId}/videos/${videoId}/labels`, { method: 'PATCH', body: JSON.stringify({ labels }) })
 }
+export function updateVideoPlayback(planId, courseId, moduleId, videoId, positionSecs) {
+  return request(`/api/plans/${planId}/courses/${courseId}/modules/${moduleId}/videos/${videoId}/playback`, { method: 'PATCH', body: JSON.stringify({ position_secs: positionSecs }) })
+}
 
 export function reorderCourseVideos(planId, courseId, data) {
   return request(`/api/plans/${planId}/courses/${courseId}/videos/reorder`, { method: 'PATCH', body: JSON.stringify(data) })

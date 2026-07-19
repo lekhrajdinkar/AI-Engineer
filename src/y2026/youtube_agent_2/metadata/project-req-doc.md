@@ -104,15 +104,21 @@ these will be used to filter module and videos on screen then.
 
 ### Phase-3
 1) Refresh Course with new Video feed ✔️
-- [sync-metadata.json](schema/sync-metadata.json)
-- On app load, load persisted source sync metadata into Redux: `GET /api/sources/sync-metadata`.
-- Global source-sync action refreshes subscribed channels and playlists: `POST /api/sources/sync-metadata`.
-- Compare source video counts; add/remove course label `refresh_needed` and show a red course-overview indicator.
-- Course overview supports loading all, channel-level, or playlist-level new videos.
-- Store `last_feed_checked_at` per channel/playlist. Refresh scans videos newer than this checkpoint with a 24-hour overlap, then deduplicates by `video_id` across the full learning plan.
-- Stage discovered videos in `course.new_video_feeds`.
-- Review staged videos in a left drawer (Visual / Raw JSON), then submit: `POST /api/plans/{plan_id}/courses/{course_id}/ai-suggest-refresh-feed`.
-- Temporary organizer adds submitted videos to a `New videos` module; replace with LLM chapter assignment later.
+- [source-feed-inbox.json](schema/source-feed-inbox.json)
+- On app load, load persisted source-sync metadata into Redux: `GET /api/sources/sync-metadata`.
+- The **Source feed inbox** lets the user search, filter, sort, and inspect subscribed channels and playlists.
+- Pull from YouTube: `POST /api/sources/sync-metadata`. It records `last_feed_checked_at`, scans incrementally with a 24-hour overlap, and deduplicates by `video_id` across the learning plan.
+- Sync metadata maps each channel or playlist to its `target_courses` and stores undispatched `new_videos` in the source inbox.
+- Push to target: `POST /api/sources/sync-metadata/push-new-feeds` globally, per channel, or per playlist. Until LLM assignment is available, the feed is pushed to the first target course by sequence.
+- The pushed course receives `new_video_feeds` and the `refresh_needed` label. Its overview icon uses a yellow notification state; unrelated courses are not flagged.
+- Course overview can review staged videos in a left drawer with **Visual** and **Raw JSON** tabs, then submit: `POST /api/plans/{plan_id}/courses/{course_id}/ai-suggest-refresh-feed`.
+- The temporary organizer adds submitted videos to a `New videos` module; replace with LLM chapter assignment later.
+
+2) Video playback progress âœ”ï¸
+- Store last played video, position, and timestamp for each course and video.
+- Restore the last video and timestamp when the learning workspace opens.
+- Persist progress only when the video is paused: `PATCH /api/plans/{plan_id}/courses/{course_id}/modules/{module_id}/videos/{video_id}/playback`.
+- Completing a video automatically adds the `watched` label.
 
 
 

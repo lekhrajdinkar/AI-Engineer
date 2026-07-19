@@ -1,0 +1,48 @@
+{
+  "updated_at": "ISO8601",
+  "channels": [
+    {
+      "channel_id": "string",
+      "title": "string",
+      "url": "string",
+      "thumbnail": "string",
+
+      "videos_count": 0,
+      "source_created_at": "ISO8601 | null",
+      "last_synced_at": "ISO8601",
+      "last_feed_checked_at": "ISO8601 | null",
+      "last_pushed_at": "ISO8601 | null",
+      "target_courses": [
+        {
+          "plan_id": "uuid",
+          "course_id": "uuid",
+          "course_sequence": "number"
+        }
+      ],
+      "new_videos": ["video object (same schema as learning-plan.json modules[].videos[])"] ,
+
+      "playlists": [
+        {
+          "playlist_id": "string",
+          "title": "string",
+          "description": "string | null",
+          "thumbnail": "string",
+
+          "videos_count": 0,
+          "source_created_at": "ISO8601 | null",
+          "last_synced_at": "ISO8601",
+          "last_feed_checked_at": "ISO8601 | null",
+          "last_pushed_at": "ISO8601 | null",
+          "target_courses": [
+            {
+              "plan_id": "uuid",
+              "course_id": "uuid",
+              "course_sequence": "number"
+            }
+          ],
+          "new_videos": ["video object (same schema as learning-plan.json modules[].videos[])"]
+        }
+      ]
+    }
+  ]
+}

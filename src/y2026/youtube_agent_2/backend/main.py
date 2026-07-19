@@ -15,7 +15,7 @@ from pathlib import Path
 
 from src.y2026.youtube_agent_2.backend.config import ALLOWED_PREBUILT_LABELS
 from src.y2026.youtube_agent_2.backend.entities import Video, LearningPlan, Channel, MetadataUpdateRequest, \
-    CourseDeleteRequest, LabelsUpdateRequest, VideoReorderRequest, Course, AiCourseRequest, Module, NewVideoFeed
+    CourseDeleteRequest, LabelsUpdateRequest, VideoReorderRequest, PlaybackUpdateRequest, Course, AiCourseRequest, Module, NewVideoFeed
 
 load_dotenv()
 
@@ -659,6 +659,12 @@ def update_course_metadata(plan_id: str, course_id: str, request: MetadataUpdate
         if not video_exists:
             raise HTTPException(status_code=422, detail="Video does not belong to this course")
         course.last_played_video_id = request.last_played_video_id
+    if request.last_played_position_secs is not None:
+        if not course.last_played_video_id:
+            raise HTTPException(status_code=422, detail="A last played video is required before saving its position")
+        course.last_played_position_secs = request.last_played_position_secs
+    if request.last_played_at is not None:
+        course.last_played_at = request.last_played_at
     course.updated_at = datetime.now(timezone.utc)
     plan.updated_at = datetime.now(timezone.utc)
     db.save_plan(plan.model_dump())
@@ -714,6 +720,28 @@ def update_module_labels(plan_id: str, course_id: str, module_id: str, request: 
 @app.patch("/api/plans/{plan_id}/courses/{course_id}/modules/{module_id}/videos/{video_id}/labels", tags=["labels"])
 def update_video_labels(plan_id: str, course_id: str, module_id: str, video_id: str, request: LabelsUpdateRequest):
     plan = _update_labels(plan_id, course_id, module_id, video_id, request.labels)
+    return {"plan": plan}
+
+@app.patch("/api/plans/{plan_id}/courses/{course_id}/modules/{module_id}/videos/{video_id}/playback", tags=["videos"])
+def update_video_playback(plan_id: str, course_id: str, module_id: str, video_id: str, request: PlaybackUpdateRequest):
+    row = db.load_plan(plan_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    plan = LearningPlan.model_validate(row)
+    course = next((item for item in plan.courses if item.id == course_id), None)
+    module = next((item for item in course.modules if item.id == module_id), None) if course else None
+    video = next((item for item in module.videos if item.video_id == video_id), None) if module else None
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    now = datetime.now(timezone.utc)
+    video.last_played_position_secs = request.position_secs
+    video.last_played_at = now
+    course.last_played_video_id = video.video_id
+    course.last_played_position_secs = request.position_secs
+    course.last_played_at = now
+    course.updated_at = now
+    plan.updated_at = now
+    db.save_plan(plan.model_dump())
     return {"plan": plan}
 
 @app.patch("/api/plans/{plan_id}/courses/{course_id}/videos/reorder", tags=["courses"])
@@ -811,7 +839,8 @@ def ai_suggest_2(plan_id: str):
 
     plan = LearningPlan.model_validate(row)
 
-    json_file = BASE_DIR / "json-dumps" / "04_learning-plan.json"
+    json_file = config.AI_DUMMY_LEARNING_PLAN
+    
     try:
         with json_file.open("r", encoding="utf-8") as file:
             data = json.load(file)
