@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
 import PlanDetail from '../components/PlanDetail'
 import { WorkspaceIcon } from '../components/Icons'
+import { discoverNewCourseVideos, submitCourseRefreshFeed } from '../api/client'
 import { updatePlan } from '../store/plansSlice'
 
 export default function CourseWorkspace() {
@@ -10,10 +11,17 @@ export default function CourseWorkspace() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const plan = useSelector(state => state.plans.items.find(item => item.id === planId))
+  const syncMetadata = useSelector(state => state.sources.syncMetadata)
   const [showOverview, setShowOverview] = React.useState(false)
   const [isCourseEditing, setIsCourseEditing] = React.useState(false)
   const [activeModuleName, setActiveModuleName] = React.useState('')
   const [activeVideoTitle, setActiveVideoTitle] = React.useState('')
+  const [refreshLoading, setRefreshLoading] = React.useState(false)
+  const [refreshError, setRefreshError] = React.useState('')
+  const [showFeedReview, setShowFeedReview] = React.useState(false)
+  const [feedReviewTab, setFeedReviewTab] = React.useState('visual')
+  const [feedReviewSearch, setFeedReviewSearch] = React.useState('')
+  const [feedReviewSort, setFeedReviewSort] = React.useState('name')
 
   if (!plan || !plan.courses?.some(course => course.id === courseId)) return <div className="alert alert-info">Course not found.</div>
 
@@ -24,10 +32,60 @@ export default function CourseWorkspace() {
   const markedForDelete = videos.filter(video => video.labels?.includes('mark_for_delete')).length
   const progress = videos.length ? Math.round((watched / videos.length) * 100) : 0
   const breadcrumbLabel = value => value?.length > 100 ? `${value.slice(0, 100)}…` : value
+  const syncedChannels = syncMetadata?.channels || []
+  const metadataSuggestsRefresh = course.source_channels?.some(source => {
+    const synced = syncedChannels.find(item => item.channel_id === source.channel_id)
+    return synced && (synced.videos_count || 0) > (source.videos_count || source.video_count || 0)
+  })
+  const refreshNeeded = course.labels?.includes('refresh_needed') || metadataSuggestsRefresh
+  const stagedFeeds = course.new_video_feeds || []
+  const stagedVideoCount = stagedFeeds.reduce((count, feed) => count + (feed.videos?.length || 0), 0)
+  const reviewVideos = stagedFeeds.flatMap(feed => (feed.videos || []).map(video => ({ ...video, feed })))
+    .filter(video => `${video.title || ''} ${video.description || ''}`.toLowerCase().includes(feedReviewSearch.trim().toLowerCase()))
+    .sort((left, right) => feedReviewSort === 'date'
+      ? new Date(right.published_at || 0) - new Date(left.published_at || 0)
+      : (left.title || '').localeCompare(right.title || ''))
+  const formatDuration = seconds => seconds ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` : '—'
+
+  async function discover(scope = {}) {
+    setRefreshLoading(true)
+    setRefreshError('')
+    try {
+      const response = await discoverNewCourseVideos(planId, courseId, scope)
+      dispatch(updatePlan(response.plan))
+    } catch (error) {
+      setRefreshError(error.message || 'Unable to load new videos')
+    } finally {
+      setRefreshLoading(false)
+    }
+  }
+
+  async function submitRefresh() {
+    setRefreshLoading(true)
+    setRefreshError('')
+    try {
+      const response = await submitCourseRefreshFeed(planId, courseId)
+      dispatch(updatePlan(response.plan))
+      setShowFeedReview(false)
+    } catch (error) {
+      setRefreshError(error.message || 'Unable to submit new video feed')
+    } finally {
+      setRefreshLoading(false)
+    }
+  }
 
   return <div>
-    <div className="page-header workspace-header"><nav className="workspace-breadcrumb" aria-label="Workspace breadcrumb"><span>Learning Workspace</span><span aria-hidden="true">›</span><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}`)}>{breadcrumbLabel(plan.name)}</button><span aria-hidden="true">›</span><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}/courses/${courseId}`)}>{breadcrumbLabel(course.title)}</button><span aria-hidden="true">›</span><span>{breadcrumbLabel(activeModuleName || 'Module')}</span><span aria-hidden="true">›</span><strong>{breadcrumbLabel(activeVideoTitle || 'Video')}</strong></nav><div id="workspace-actions" className="workspace-action-panel"><button className="btn btn-secondary btn-sm icon-button" title="Course overview" aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button><button className={`btn btn-secondary btn-sm icon-button course-edit-mode-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-label={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-pressed={isCourseEditing} onClick={() => setIsCourseEditing(value => !value)}><WorkspaceIcon name="edit" /></button></div></div>
+    <div className="page-header workspace-header">
+      <nav className="workspace-breadcrumb" aria-label="Workspace breadcrumb"><span>Learning Workspace</span><span aria-hidden="true">›</span><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}`)}>{breadcrumbLabel(plan.name)}</button><span aria-hidden="true">›</span><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}/courses/${courseId}`)}>{breadcrumbLabel(course.title)}</button><span aria-hidden="true">›</span><strong>{breadcrumbLabel(activeModuleName || 'Module')}</strong></nav>
+      <div id="workspace-actions" className="workspace-action-panel"><button className={`btn btn-secondary btn-sm icon-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button><button className={`btn btn-secondary btn-sm icon-button course-edit-mode-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-label={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-pressed={isCourseEditing} onClick={() => setIsCourseEditing(value => !value)}><WorkspaceIcon name="edit" /></button></div>
+    </div>
     <PlanDetail plan={plan} workspaceCourseId={courseId} isCourseEditing={isCourseEditing} onActiveModuleChange={setActiveModuleName} onActiveVideoChange={setActiveVideoTitle} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
-    {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header"><h2>{course.title}</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}>×</button></div><div className="drawer-body"><section className="overview-summary"><h3>Course overview</h3><p>{course.description || 'No description provided.'}</p><div className="overview-progress"><div className="plan-progress-heading"><span>Learning progress</span><strong>{progress}%</strong></div><div className="plan-progress-track"><span style={{ width: `${progress}%` }} /></div></div><div className="plan-card-counters"><span>{course.modules?.length || 0} modules</span><span>{watched}/{videos.length} watched</span><span>{bookmarked} bookmarked</span><span>{markedForDelete} marked</span></div><div className="plan-card-labels">{course.labels?.length ? course.labels.map(label => <span className="badge badge-green" key={label}>{label.replaceAll('_', ' ')}</span>) : <span className="tile-date">No labels</span>}</div><div className="plan-card-timestamps"><span>Created: {course.created_at ? new Date(course.created_at).toLocaleString() : '—'}</span><span>Updated: {course.updated_at ? new Date(course.updated_at).toLocaleString() : '—'}</span></div></section><div className="workspace-source-section"><h3>Content sources</h3>{course.source_channels?.length ? <div className="course-source-list">{course.source_channels.map(channel => { const logo = channel.thumbnail || channel.logo || channel.logo_url; return <div className="course-source-item" key={channel.channel_id}>{logo ? <img src={logo} alt="" className="course-source-logo" /> : <div className="course-source-logo course-source-logo-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</div>}<div className="course-source-details"><div className="course-source-title">{channel.url ? <a href={channel.url} target="_blank" rel="noreferrer">{channel.title}</a> : channel.title}</div><div className="course-source-meta">{channel.video_count ?? channel.videos_count ?? 0} videos</div><div className="course-source-playlists"><strong>Playlists</strong>{channel.playlists?.length ? channel.playlists.map(playlist => <div className="course-source-playlist" key={playlist.id || playlist.playlist_id}>{playlist.thumbnail && <img src={playlist.thumbnail} alt="" />}<span>{playlist.title}</span></div>) : <span className="course-source-meta">All channel videos</span>}</div></div></div> })}</div> : <p>No sources recorded.</p>}</div></div></aside></>}
+    {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header"><h2>{course.title}</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}>×</button></div><div className="drawer-body">
+      {refreshError && <div className="alert alert-error">{refreshError}</div>}
+      <section className="overview-summary"><h3>Course overview</h3><p>{course.description || 'No description provided.'}</p><div className="overview-progress"><div className="plan-progress-heading"><span>Learning progress</span><strong>{progress}%</strong></div><div className="plan-progress-track"><span style={{ width: `${progress}%` }} /></div></div><div className="plan-card-counters"><span>{course.modules?.length || 0} modules</span><span>{watched}/{videos.length} watched</span><span>{bookmarked} bookmarked</span><span>{markedForDelete} marked</span></div></section>
+      <section className="workspace-source-section"><div className="source-section-heading"><h3>Content sources</h3><button className="btn btn-primary btn-sm" disabled={refreshLoading} onClick={() => discover()}>{refreshLoading ? 'Loading…' : 'Load all new videos'}</button></div><p className="course-source-meta">Last sync: {syncMetadata?.updated_at ? new Date(syncMetadata.updated_at).toLocaleString() : 'Not synced yet'}</p>{course.source_channels?.length ? <div className="course-source-list">{course.source_channels.map(channel => { const logo = channel.thumbnail || channel.logo || channel.logo_url; return <div className="course-source-item" key={channel.channel_id}>{logo ? <img src={logo} alt="" className="course-source-logo" /> : <div className="course-source-logo course-source-logo-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</div>}<div className="course-source-details"><div className="course-source-title">{channel.url ? <a href={channel.url} target="_blank" rel="noreferrer">{channel.title}</a> : channel.title}<button className="btn btn-secondary btn-sm source-refresh-button" disabled={refreshLoading} onClick={() => discover({ channelId: channel.channel_id })}>Load new videos</button></div><div className="course-source-meta">{channel.videos_count ?? channel.video_count ?? 0} videos</div><div className="course-source-playlists"><strong>Playlists</strong>{channel.playlists?.length ? channel.playlists.map(playlist => <div className="course-source-playlist" key={playlist.id || playlist.playlist_id}>{playlist.thumbnail && <img src={playlist.thumbnail} alt="" />}<span>{playlist.title}</span><button className="btn btn-secondary btn-sm" disabled={refreshLoading} onClick={() => discover({ channelId: channel.channel_id, playlistId: playlist.playlist_id || playlist.id })}>Load</button></div>) : <span className="course-source-meta">All channel videos</span>}</div></div></div> })}</div> : <p>No sources recorded.</p>}</section>
+      {stagedVideoCount > 0 && <section className="refresh-review"><h3>New video feed ready</h3><p>{stagedVideoCount} new video{stagedVideoCount === 1 ? '' : 's'} staged across {stagedFeeds.length} source{stagedFeeds.length === 1 ? '' : 's'}.</p><button className="btn btn-secondary" onClick={() => { setFeedReviewTab('visual'); setFeedReviewSearch(''); setFeedReviewSort('name'); setShowFeedReview(true) }}>Review new videos</button></section>}
+    </div></aside></>}
+    {showFeedReview && <><div className="drawer-overlay" onClick={() => setShowFeedReview(false)} /><aside className="drawer left-refresh-feed-drawer"><div className="drawer-header"><h2>Review new video feed</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowFeedReview(false)}>×</button></div><div className="refresh-feed-tabs"><button className={feedReviewTab === 'visual' ? 'active' : ''} onClick={() => setFeedReviewTab('visual')}>Visual</button><button className={feedReviewTab === 'json' ? 'active' : ''} onClick={() => setFeedReviewTab('json')}>Raw JSON</button></div><div className="refresh-feed-dialog-body">{feedReviewTab === 'visual' ? <><div className="refresh-feed-toolbar"><input value={feedReviewSearch} onChange={event => setFeedReviewSearch(event.target.value)} placeholder="Search new videos..." /><div className="picker-sort-toggle"><button className={feedReviewSort === 'name' ? 'active' : ''} onClick={() => setFeedReviewSort('name')}>Name</button><button className={feedReviewSort === 'date' ? 'active' : ''} onClick={() => setFeedReviewSort('date')}>Date</button></div></div><div className="refresh-feed-visual-list">{reviewVideos.map(video => <article className="refresh-feed-video-card" key={video.video_id}>{video.thumbnail ? <img src={video.thumbnail} alt="" /> : <div className="refresh-feed-video-thumb" />}<div><strong><em>{video.sequence || '—'}.</em> {video.title || 'Untitled video'}</strong><span>{video.feed.playlist_id ? `Playlist: ${video.feed.playlist_id}` : 'Channel feed'} · {video.published_at ? new Date(video.published_at).toLocaleDateString() : 'Date unavailable'} · {formatDuration(video.duration_secs)}</span>{video.description && <p>{video.description}</p>}</div></article>)}{reviewVideos.length === 0 && <p className="refresh-feed-empty">No videos match this search.</p>}</div></> : <pre className="refresh-feed-json">{JSON.stringify(stagedFeeds, null, 2)}</pre>}</div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => setShowFeedReview(false)}>Cancel</button><button className="btn btn-success" disabled={refreshLoading} onClick={submitRefresh}>{refreshLoading ? 'Submitting…' : 'Submit to course'}</button></div></aside></>}
   </div>
 }

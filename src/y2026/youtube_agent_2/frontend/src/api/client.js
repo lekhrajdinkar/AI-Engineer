@@ -43,6 +43,17 @@ export function createPlan(data) {
   return request('/api/plans', { method: 'POST', body: JSON.stringify(data) })
 }
 
+export function getSourceSyncMetadata() { return request('/api/sources/sync-metadata') }
+export function syncSourceMetadata() { return request('/api/sources/sync-metadata', { method: 'POST' }) }
+export function discoverNewCourseVideos(planId, courseId, { channelId, playlistId } = {}) {
+  const params = new URLSearchParams()
+  if (channelId) params.set('channel_id', channelId)
+  if (playlistId) params.set('playlist_id', playlistId)
+  const query = params.toString()
+  return request(`/api/plans/${planId}/courses/${courseId}/discover-new-videos${query ? `?${query}` : ''}`, { method: 'POST' })
+}
+export function submitCourseRefreshFeed(planId, courseId) { return request(`/api/plans/${planId}/courses/${courseId}/ai-suggest-refresh-feed`, { method: 'POST' }) }
+
 export function getPlans() {
   return request('/api/plans')
 }

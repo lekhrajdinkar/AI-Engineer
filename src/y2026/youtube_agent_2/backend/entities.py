@@ -15,6 +15,7 @@ class Video(BaseModel):
     sequence: int = 1
     thumbnail: str
     duration_secs: Optional[int] = None
+    published_at: Optional[datetime] = None
     watched: bool = False
     labels: List[str] = Field(default_factory=list)
 
@@ -27,15 +28,31 @@ class Module(BaseModel):
 
 class Playlist(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    playlist_id: Optional[str] = None
     title: str
-    thumbnail: str
+    thumbnail: str = ""
+    videos_count: int = 0
+    source_created_at: Optional[datetime] = None
+    last_video_published_at: Optional[datetime] = None
+    last_synced_at: Optional[datetime] = None
 
 class Channel(BaseModel):
     channel_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
     url: str
     video_count: int = 1
+    videos_count: int = 0
+    thumbnail: str = ""
+    source_created_at: Optional[datetime] = None
+    last_video_published_at: Optional[datetime] = None
+    last_synced_at: Optional[datetime] = None
     playlists: List[Playlist] = Field(default_factory=list)
+
+class NewVideoFeed(BaseModel):
+    channel_id: str
+    playlist_id: Optional[str] = None
+    discovered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    videos: List[Video] = Field(default_factory=list)
 
 class Course(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -50,6 +67,7 @@ class Course(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     modules: List[Module] = Field(default_factory=list)
     source_channels: List[Channel]
+    new_video_feeds: List[NewVideoFeed] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

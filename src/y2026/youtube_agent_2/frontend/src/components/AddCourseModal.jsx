@@ -9,20 +9,23 @@ function ChannelAvatar({ title, thumbnail }) {
   return <div className="channel-avatar">{letter}</div>
 }
 
-function getLastUpdated(item) {
-  return item.updated_at || item.last_updated || item.published_at || item.created_at || ''
+function getSourceDate(item) {
+  if (item.updated_at || item.last_updated) return { value: item.updated_at || item.last_updated, label: 'Updated' }
+  if (item.published_at) return { value: item.published_at, label: 'Published' }
+  if (item.created_at) return { value: item.created_at, label: 'Created' }
+  return { value: '', label: '' }
 }
 
 function formatLastUpdated(item) {
-  const value = getLastUpdated(item)
-  if (!value) return 'Update date unavailable'
+  const { value, label } = getSourceDate(item)
+  if (!value) return 'Date unavailable'
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 'Update date unavailable' : `Updated ${date.toLocaleDateString()}`
+  return Number.isNaN(date.getTime()) ? 'Date unavailable' : `${label} ${date.toLocaleDateString()}`
 }
 
 function sortSourceItems(items, sortBy) {
   return [...items].sort((a, b) => {
-    if (sortBy === 'updated') return new Date(getLastUpdated(b) || 0) - new Date(getLastUpdated(a) || 0)
+    if (sortBy === 'updated') return new Date(getSourceDate(b).value || 0) - new Date(getSourceDate(a).value || 0)
     return (a.title || '').localeCompare(b.title || '')
   })
 }

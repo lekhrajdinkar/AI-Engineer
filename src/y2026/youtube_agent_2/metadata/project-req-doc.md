@@ -40,61 +40,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - call `GET /api/plans` — Get all plan detail and store in redux store.
 - redux first, else fallback to API load.
 - Add refresh icon, to load again from backend and refresh redux store.
-
-- proposed learning-plan object:
-```json
-[
-  "learning_plan": {
-    "id": "uuid",
-    "name": "string",
-    "description": "string",
-    "created_at": "ISO8601",
-    "updated_at": "ISO8601",
-    "labels": [],
-    "courses": [
-      {
-        "id": "uuid",
-        "title": "string",
-        "sequence": "number",
-        "description": "string",
-        "created_at": "ISO8601",
-        "updated_at": "ISO8601",
-        "source_channels": [
-          {
-            "channel_id": "string",
-            "title": "string",
-            "url": "string",
-            "videos_count": 0,
-            "playlists": [
-              {"playlist_id": "string","title": "string", "thumbnail":  "string"}
-            ]
-          }
-        ],
-        "modules": [
-          {
-            "id": "uuid",
-            "title": "string",
-            "sequence": "number",
-            "labels": ["watched", "mark_for_delete", "bookmarked"],
-            "videos": [
-              {
-                "video_id": "string",
-                "title": "string",
-                "description": "String",
-                "url": "string",
-                "duration_secs": 0,
-                "thumbnail":  "string",
-                "labels": ["watched", "mark_for_delete", "bookmarked"],
-                "sequence": "number"
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-]
-```
+- [proposed learning-plan object](leaning-plan-schema.json)
 
 3) Create Learning Plan ✔️
 - create Learning plan form (1 Step form - with name, desc, optinal logo).
@@ -119,7 +65,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
       - thin borders
       - Action: mutli-select then >  mark for delete, mark as bookmark, mark as complete.
 
-## Phase-2 
+### Phase-2 
 1) Add course (manual) ✔️
 - show 3 steps form as side drawer dialog from left.
     - step-1 : name, desc and logo
@@ -147,23 +93,18 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - `DELETE /api/courses/{plan_id}`, need to create it first.
 - request body will get list of course_id
 
-5) patch 
-- At Module level,  just update "labels": ["watched", "mark_for_delete", "bookmarked"]
-- At course level,  just update "labels": ["watched", "mark_for_delete", "bookmarked"]
+5) label
+- At Plan level,     ["watched", "mark_for_delete", "bookmarked"] + custom
+- At course level,   ["watched", "mark_for_delete", "bookmarked"] + custom + refresh_needed
+- At Module level,   ["watched", "mark_for_delete", "bookmarked"]
+- At video level,    ["watched", "mark_for_delete", "bookmarked"]
 
 these will be used to filter module and videos on screen then.
 
 
+### Phase-3
+1) Refresh Course
 
-### Phase-3 (future)
-1) Update / Refresh Learning Plan
-- Incremental refresh: fetch only videos published after the plan's last update
-- Channel-level refresh: re-scan a channel or a playlist
-- When new videos are found, AI Agent-1 (if enabled) proposes where they fit or flags for manual review
 
-2) Search, Sort & Filters
-- Search at plan, course, module, and video levels
-- Filters: age (1 day / 1 week / 1 month), channel, duration, watched/unwatched
-- Acceptance: results return within acceptable latency for local dataset (e.g., <2s for 50–500 items)
 
 

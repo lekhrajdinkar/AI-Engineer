@@ -15,7 +15,7 @@ from pathlib import Path
 
 from src.y2026.youtube_agent_2.backend.config import ALLOWED_PREBUILT_LABELS
 from src.y2026.youtube_agent_2.backend.entities import Video, LearningPlan, Channel, MetadataUpdateRequest, \
-    CourseDeleteRequest, LabelsUpdateRequest, VideoReorderRequest, Course, AiCourseRequest, Module
+    CourseDeleteRequest, LabelsUpdateRequest, VideoReorderRequest, Course, AiCourseRequest, Module, NewVideoFeed
 
 load_dotenv()
 
@@ -52,6 +52,87 @@ def process_videos(videos: List[dict]) -> List[dict]:
 
 def get_channels():
     return youtube_client.list_subscribed_channels()
+
+def _video_from_source(raw_video: dict, sequence: int) -> Video:
+    return Video(
+        video_id=raw_video.get("video_id") or raw_video.get("id") or str(uuid.uuid4()),
+        title=raw_video.get("title") or "Untitled video",
+        revised_title_from_ai=raw_video.get("revised_title_from_ai") or raw_video.get("title") or "Untitled video",
+        description=raw_video.get("description") or "",
+        url=raw_video.get("url") or "",
+        sequence=sequence,
+        thumbnail=raw_video.get("thumbnail") or "",
+        duration_secs=raw_video.get("duration_secs") or 0,
+        published_at=raw_video.get("published_at") or None,
+        watched=False,
+        labels=[],
+    )
+
+def _sync_source_metadata() -> dict:
+    now = datetime.now(timezone.utc).isoformat()
+    synced_channels = []
+    for channel in get_channels():
+        channel_id = channel.get("channel_id")
+        if not channel_id:
+            continue
+        playlists = youtube_client.get_channel_playlists(channel_id)
+        synced_channels.append({
+            **channel,
+            "source_created_at": channel.get("published_at"),
+            "last_synced_at": now,
+            "playlists": [{
+                **playlist,
+                "source_created_at": playlist.get("published_at"),
+                "last_synced_at": now,
+            } for playlist in playlists],
+        })
+    metadata = {"channels": synced_channels, "updated_at": now}
+    db.save_source_sync_metadata(metadata)
+    return metadata
+
+def _apply_sync_to_courses(metadata: dict):
+    channel_metadata = {item.get("channel_id"): item for item in metadata.get("channels", [])}
+    for raw_plan in db.list_plans():
+        plan = LearningPlan.model_validate(raw_plan)
+        changed = False
+        for course in plan.courses:
+            needs_refresh = False
+            for source in course.source_channels:
+                synced = channel_metadata.get(source.channel_id)
+                if not synced:
+                    continue
+                previous_count = source.videos_count or source.video_count
+                current_count = synced.get("videos_count", 0)
+                if current_count > previous_count:
+                    needs_refresh = True
+                source.thumbnail = synced.get("thumbnail") or source.thumbnail
+                source.videos_count = current_count
+                source.video_count = current_count
+                source.source_created_at = synced.get("source_created_at") or None
+                source.last_synced_at = synced.get("last_synced_at")
+                playlist_metadata = {item.get("playlist_id") or item.get("id"): item for item in synced.get("playlists", [])}
+                for playlist in source.playlists:
+                    playlist_id = playlist.playlist_id or playlist.id
+                    playlist_synced = playlist_metadata.get(playlist_id)
+                    if not playlist_synced:
+                        continue
+                    if playlist_synced.get("videos_count", 0) > playlist.videos_count:
+                        needs_refresh = True
+                    playlist.videos_count = playlist_synced.get("videos_count", 0)
+                    playlist.last_synced_at = playlist_synced.get("last_synced_at")
+                    playlist.source_created_at = playlist_synced.get("source_created_at") or None
+                changed = True
+            labels = set(course.labels)
+            if needs_refresh:
+                labels.add("refresh_needed")
+            else:
+                labels.discard("refresh_needed")
+            if labels != set(course.labels):
+                course.labels = list(labels)
+                changed = True
+        if changed:
+            plan.updated_at = datetime.now(timezone.utc)
+            db.save_plan(plan.model_dump())
 
 def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video_id: Optional[str], labels: List[str]) -> LearningPlan:
     row = db.load_plan(plan_id)
@@ -108,6 +189,18 @@ def list_channels():
         print(f"   First channel: {channels[0].get('title', 'N/A')}")
     return {"channels": channels}
 
+@app.get("/api/sources/sync-metadata", tags=["sources"])
+def get_source_sync_metadata():
+    """Return the last persisted source sync without making YouTube calls."""
+    return db.load_source_sync_metadata()
+
+@app.post("/api/sources/sync-metadata", tags=["sources"])
+def sync_source_metadata():
+    """Refresh subscribed channel and playlist metadata, then flag stale courses."""
+    metadata = _sync_source_metadata()
+    _apply_sync_to_courses(metadata)
+    return metadata
+
 #### PLAYLIST #####
 @app.get("/api/{channel_id}/playlists", tags=["playlists"])
 def get_channel_playlists(channel_id: str):
@@ -157,6 +250,102 @@ def get_videos(channel_id: Optional[str] = None, playlist_id: Optional[str] = No
         return {"channel_id": channel_id, "playlist_id": playlist_id, "videos": videos}
     else:
         return {"channel_id": channel_id, "videos": videos}
+
+@app.post("/api/plans/{plan_id}/courses/{course_id}/discover-new-videos", tags=["courses"])
+def discover_new_videos(plan_id: str, course_id: str, channel_id: Optional[str] = None, playlist_id: Optional[str] = None):
+    row = db.load_plan(plan_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    plan = LearningPlan.model_validate(row)
+    course = next((item for item in plan.courses if item.id == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    existing_ids = {video.video_id for module in course.modules for video in module.videos}
+    discovered_feeds = []
+    eligible_sources = [source for source in course.source_channels if not channel_id or source.channel_id == channel_id]
+    if channel_id and not eligible_sources:
+        raise HTTPException(status_code=404, detail="Channel is not a course content source")
+
+    target_scopes = set()
+    for source in eligible_sources:
+        if playlist_id:
+            target_scopes.add((source.channel_id, playlist_id))
+        elif source.playlists:
+            target_scopes.update((source.channel_id, playlist.playlist_id or playlist.id) for playlist in source.playlists)
+        else:
+            target_scopes.add((source.channel_id, None))
+    # Re-loading a source replaces its prior staged feed, including its metadata.
+    staged_ids = {
+        video.video_id
+        for feed in course.new_video_feeds
+        if (feed.channel_id, feed.playlist_id) not in target_scopes
+        for video in feed.videos
+    }
+
+    for source in eligible_sources:
+        selections = []
+        if playlist_id:
+            selections = [playlist for playlist in source.playlists if (playlist.playlist_id or playlist.id) == playlist_id]
+            if not selections:
+                continue
+        elif source.playlists:
+            selections = source.playlists
+        else:
+            selections = [None]
+
+        for playlist in selections:
+            selected_playlist_id = (playlist.playlist_id or playlist.id) if playlist else None
+            raw_videos = youtube_client.get_playlist_videos(selected_playlist_id) if selected_playlist_id else youtube_client.get_channel_videos(source.channel_id)
+            videos = []
+            for index, raw_video in enumerate(process_videos(raw_videos), start=1):
+                video = _video_from_source(raw_video, index)
+                if video.video_id not in existing_ids and video.video_id not in staged_ids:
+                    videos.append(video)
+                    staged_ids.add(video.video_id)
+            if videos:
+                discovered_feeds.append(NewVideoFeed(channel_id=source.channel_id, playlist_id=selected_playlist_id, videos=videos))
+
+    # Replace staging data for the scopes just discovered, while preserving other scopes.
+    course.new_video_feeds = [feed for feed in course.new_video_feeds if (feed.channel_id, feed.playlist_id) not in target_scopes] + discovered_feeds
+    if course.new_video_feeds and "refresh_needed" not in course.labels:
+        course.labels.append("refresh_needed")
+    course.updated_at = datetime.now(timezone.utc)
+    plan.updated_at = datetime.now(timezone.utc)
+    db.save_plan(plan.model_dump())
+    return {"plan": plan, "discovered_videos": sum(len(feed.videos) for feed in discovered_feeds)}
+
+@app.post("/api/plans/{plan_id}/courses/{course_id}/ai-suggest-refresh-feed", tags=["courses"])
+def ai_suggest_refresh_feed(plan_id: str, course_id: str):
+    """Temporary organizer: append staged feeds to a New videos module."""
+    row = db.load_plan(plan_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    plan = LearningPlan.model_validate(row)
+    course = next((item for item in plan.courses if item.id == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    incoming = [video for feed in course.new_video_feeds for video in feed.videos]
+    if not incoming:
+        raise HTTPException(status_code=422, detail="There are no staged new videos to organize")
+    module = next((item for item in course.modules if item.title == "New videos"), None)
+    if not module:
+        module = Module(title="New videos", sequence=len(course.modules) + 1, videos=[])
+        course.modules.append(module)
+    seen_ids = {video.video_id for item in course.modules for video in item.videos}
+    added = 0
+    for video in incoming:
+        if video.video_id not in seen_ids:
+            video.sequence = len(module.videos) + 1
+            module.videos.append(video)
+            seen_ids.add(video.video_id)
+            added += 1
+    course.new_video_feeds = []
+    course.labels = [label for label in course.labels if label != "refresh_needed"]
+    course.updated_at = datetime.now(timezone.utc)
+    plan.updated_at = datetime.now(timezone.utc)
+    db.save_plan(plan.model_dump())
+    return {"plan": plan, "added_videos": added}
 
 
 ####################

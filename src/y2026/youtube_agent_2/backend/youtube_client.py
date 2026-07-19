@@ -3,8 +3,85 @@ from typing import List, Optional
 import requests
 from urllib.parse import urlencode
 from datetime import datetime
+import re
 from src.y2026.youtube_agent_2.backend import db
 from src.y2026.youtube_agent_2.backend import config
+
+
+def _best_thumbnail(snippet: dict) -> str:
+    """Return the largest available YouTube thumbnail URL for a resource."""
+    thumbnails = snippet.get("thumbnails", {})
+    for size in ("high", "medium", "default"):
+        url = thumbnails.get(size, {}).get("url")
+        if url:
+            return url
+    return ""
+
+
+def _get_channel_details(channel_ids: List[str], headers: dict) -> dict:
+    """Fetch channel-owned branding thumbnails in batches of fifty."""
+    details = {}
+    for offset in range(0, len(channel_ids), 50):
+        batch = channel_ids[offset:offset + 50]
+        try:
+            response = requests.get(
+                "https://www.googleapis.com/youtube/v3/channels",
+                headers=headers,
+                params={"part": "snippet,statistics", "id": ",".join(batch), "maxResults": 50},
+                timeout=10,
+            )
+        except requests.RequestException:
+            continue
+        if response.status_code != 200:
+            continue
+        for item in response.json().get("items", []):
+            snippet = item.get("snippet", {})
+            details[item.get("id")] = {
+                "title": snippet.get("title", ""),
+                "thumbnail": _best_thumbnail(snippet),
+                "published_at": snippet.get("publishedAt", ""),
+                "videos_count": int(item.get("statistics", {}).get("videoCount") or 0),
+            }
+    return details
+
+
+def _parse_iso_duration(value: str) -> int:
+    match = re.fullmatch(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", value or "")
+    if not match:
+        return 0
+    hours, minutes, seconds = (int(group or 0) for group in match.groups())
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def _enrich_video_details(videos: List[dict], headers: dict) -> List[dict]:
+    """Video duration is not included in playlistItems, so fetch it in batches."""
+    details = {}
+    ids = [video["video_id"] for video in videos if video.get("video_id")]
+    for offset in range(0, len(ids), 50):
+        try:
+            response = requests.get(
+                "https://www.googleapis.com/youtube/v3/videos",
+                headers=headers,
+                params={"part": "snippet,contentDetails", "id": ",".join(ids[offset:offset + 50]), "maxResults": 50},
+                timeout=10,
+            )
+        except requests.RequestException:
+            continue
+        if response.status_code != 200:
+            continue
+        for item in response.json().get("items", []):
+            snippet = item.get("snippet", {})
+            details[item.get("id")] = {
+                "duration_secs": _parse_iso_duration(item.get("contentDetails", {}).get("duration", "")),
+                "published_at": snippet.get("publishedAt", ""),
+                "thumbnail": _best_thumbnail(snippet),
+            }
+    for video in videos:
+        detail = details.get(video.get("video_id"), {})
+        video["duration_secs"] = detail.get("duration_secs", 0)
+        video["published_at"] = detail.get("published_at") or video.get("published_at", "")
+        video["thumbnail"] = detail.get("thumbnail") or video.get("thumbnail", "")
+    return videos
 
 def get_oauth_authorize_url(client_id: str, redirect_uri: str, scope: str):
     params = {
@@ -114,13 +191,28 @@ def list_subscribed_channels() -> List[dict]:
             resId = snip.get("resourceId", {})
             channelId = resId.get("channelId")
             title = snip.get("title")
-            items.append({"channel_id": channelId, "title": title, "url": f"https://youtube.com/channel/{channelId}"})
+            items.append({
+                "channel_id": channelId,
+                "title": title,
+                "url": f"https://youtube.com/channel/{channelId}",
+                "thumbnail": _best_thumbnail(snip),
+                "published_at": snip.get("publishedAt", ""),
+            })
         
         nextPage = data.get("nextPageToken")
         if not nextPage:
             break
 
     print(f"📦 Returning {len(items)} real channels from YouTube API")
+    # Subscription thumbnails are available as a fallback; this call supplies
+    # the channel's own branding thumbnail and source date when available.
+    details = _get_channel_details([item["channel_id"] for item in items if item.get("channel_id")], headers)
+    for item in items:
+        detail = details.get(item.get("channel_id"), {})
+        item["title"] = detail.get("title") or item["title"]
+        item["thumbnail"] = detail.get("thumbnail") or item["thumbnail"]
+        item["published_at"] = detail.get("published_at") or item["published_at"]
+        item["videos_count"] = detail.get("videos_count", 0)
     return items if items else config.DEMO_CHANNELS
 
 
@@ -136,7 +228,7 @@ def get_channel_playlists(channel_id: str) -> List[dict]:
     
     access_token = tokens["access_token"]
     headers = {"Authorization": f"Bearer {access_token}"}
-    params = {"part": "snippet", "channelId": channel_id, "maxResults": 50}
+    params = {"part": "snippet,contentDetails", "channelId": channel_id, "maxResults": 50}
     items = []
     nextPage = None
     
@@ -171,7 +263,9 @@ def get_channel_playlists(channel_id: str) -> List[dict]:
                 "playlist_id": it.get("id"),
                 "title": snip.get("title"),
                 "description": snip.get("description"),
-                "thumbnail": snip.get("thumbnails", {}).get("default", {}).get("url")
+                "thumbnail": _best_thumbnail(snip),
+                "published_at": snip.get("publishedAt", ""),
+                "videos_count": int(it.get("contentDetails", {}).get("itemCount") or 0),
             })
         
         nextPage = data.get("nextPageToken")
@@ -233,13 +327,15 @@ def get_playlist_videos(playlist_id: str) -> List[dict]:
                     "description": snip.get("description"),
                     "thumbnail": snip.get("thumbnails", {}).get("default", {}).get("url"),
                     "url": f"https://youtube.com/watch?v={vid_id}",
-                    "position": it.get("position")
+                    "position": it.get("position"),
+                    "published_at": snip.get("publishedAt", ""),
                 })
         
         nextPage = data.get("nextPageToken")
         if not nextPage:
             break
     
+    items = _enrich_video_details(items, headers)
     print(f"✅ Found {len(items)} videos in playlist {playlist_id}")
     return items
 

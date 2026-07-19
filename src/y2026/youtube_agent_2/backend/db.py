@@ -16,6 +16,15 @@ def init_db():
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS source_sync_metadata (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            data TEXT NOT NULL,
+            updated_at TEXT
+        )
+        """
+    )
     # tokens table for storing OAuth tokens (single-user MVP)
     cur.execute(
         """
@@ -90,6 +99,24 @@ def list_plans() -> List[dict]:
     rows = cur.fetchall()
     conn.close()
     return [json.loads(r[0]) for r in rows]
+
+def save_source_sync_metadata(metadata: dict):
+    conn = sqlite3.connect(config.DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT OR REPLACE INTO source_sync_metadata (id, data, updated_at) VALUES (1, ?, ?)",
+        (json.dumps(metadata, default=str), metadata.get("updated_at")),
+    )
+    conn.commit()
+    conn.close()
+
+def load_source_sync_metadata() -> dict:
+    conn = sqlite3.connect(config.DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT data FROM source_sync_metadata WHERE id = 1")
+    row = cur.fetchone()
+    conn.close()
+    return json.loads(row[0]) if row else {"channels": [], "updated_at": None}
 
 
 init_db()

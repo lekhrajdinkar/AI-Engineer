@@ -7,8 +7,9 @@ import Plans from './pages/Plans'
 import PlanOverview from './pages/PlanOverview'
 import CourseOverview from './pages/CourseOverview'
 import CourseWorkspace from './pages/CourseWorkspace'
-import { getAuthDebug, getPlans } from './api/client'
+import { getAuthDebug, getPlans, getSourceSyncMetadata, syncSourceMetadata } from './api/client'
 import { setPlans } from './store/plansSlice'
+import { setSourceSyncMetadata } from './store/sourcesSlice'
 
 function useTheme() {
   const [theme, setTheme] = React.useState(() => localStorage.getItem('yt_theme') || 'light')
@@ -48,6 +49,7 @@ function AppLayout() {
   const [auth, setAuth] = React.useState(null)
   const [newPlanRequest, setNewPlanRequest] = React.useState(0)
   const [plansLoading, setPlansLoading] = React.useState(false)
+  const [sourceSyncLoading, setSourceSyncLoading] = React.useState(false)
   const [showPlanSwitcher, setShowPlanSwitcher] = React.useState(false)
   const [expandedPlanIds, setExpandedPlanIds] = React.useState({})
   const [expandedCourseIds, setExpandedCourseIds] = React.useState({})
@@ -79,6 +81,23 @@ function AppLayout() {
   React.useEffect(() => {
     if (plans.length === 0) loadPlans()
   }, [])
+
+  React.useEffect(() => {
+    getSourceSyncMetadata().then(data => dispatch(setSourceSyncMetadata(data))).catch(() => {})
+  }, [dispatch])
+
+  const refreshSourceMetadata = async () => {
+    setSourceSyncLoading(true)
+    try {
+      const metadata = await syncSourceMetadata()
+      dispatch(setSourceSyncMetadata(metadata))
+      await loadPlans()
+    } catch (error) {
+      console.error('Unable to refresh source metadata:', error)
+    } finally {
+      setSourceSyncLoading(false)
+    }
+  }
 
   React.useEffect(() => {
     const match = location.pathname.match(/^\/plans\/([^/]+)\/courses\/([^/]+)/)
@@ -120,6 +139,9 @@ function AppLayout() {
             title="Refresh learning plans"
           >
             {plansLoading ? <span className="spinner" /> : '↻'}
+          </button>
+          <button type="button" className="refresh-plans" onClick={refreshSourceMetadata} disabled={sourceSyncLoading} aria-label="Sync content sources" title="Sync content sources">
+            {sourceSyncLoading ? <span className="spinner" /> : <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5.3M20 4v7h-7" /></svg>}
           </button>
           <button type="button" className="quick-plan-button" onClick={() => setShowPlanSwitcher(true)} aria-label="Switch learning plan" title="Switch learning plan">⇄</button>
           <button className="btn btn-primary nav-icon" title="New learning plan" aria-label="New learning plan" onClick={() => {

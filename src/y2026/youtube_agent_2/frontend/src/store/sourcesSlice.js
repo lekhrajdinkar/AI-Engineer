@@ -5,6 +5,7 @@ const sourcesSlice = createSlice({
   initialState: {
     subscribedChannels: null,
     playlistsByChannel: {},
+    syncMetadata: { channels: [], updated_at: null },
   },
   reducers: {
     setSubscribedChannels: (state, action) => {
@@ -13,8 +14,11 @@ const sourcesSlice = createSlice({
     setChannelPlaylists: (state, action) => {
       state.playlistsByChannel[action.payload.channelId] = action.payload.playlists
     },
+    setSourceSyncMetadata: (state, action) => {
+      state.syncMetadata = action.payload || { channels: [], updated_at: null }
+    },
   },
 })
 
-export const { setSubscribedChannels, setChannelPlaylists } = sourcesSlice.actions
+export const { setSubscribedChannels, setChannelPlaylists, setSourceSyncMetadata } = sourcesSlice.actions
 export default sourcesSlice.reducer
