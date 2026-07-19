@@ -45,6 +45,13 @@ export function createPlan(data) {
 
 export function getSourceSyncMetadata() { return request('/api/sources/sync-metadata') }
 export function syncSourceMetadata() { return request('/api/sources/sync-metadata', { method: 'POST' }) }
+export function pushNewSourceFeeds({ channelId, playlistId } = {}) {
+  const params = new URLSearchParams()
+  if (channelId) params.set('channel_id', channelId)
+  if (playlistId) params.set('playlist_id', playlistId)
+  const query = params.toString()
+  return request(`/api/sources/sync-metadata/push-new-feeds${query ? `?${query}` : ''}`, { method: 'POST' })
+}
 export function discoverNewCourseVideos(planId, courseId, { channelId, playlistId } = {}) {
   const params = new URLSearchParams()
   if (channelId) params.set('channel_id', channelId)

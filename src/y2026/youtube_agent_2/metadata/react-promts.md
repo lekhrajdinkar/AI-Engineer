@@ -72,3 +72,12 @@ AI will return complete learning plan object with automatically suggested course
 3. Delete plan action btn : Add confirmation.
 
 4,. Add redux state store to keep learning plan object
+
+---
+Scenario:
+plan-1 (source - channel-1 , no playlisy, so all 500 videos )
+courses (5), each has 100 videos organised in 10 modules (10 video each)
+after sync content, 1 new vidor added for channel-1, now become 501 video.
+current change : will make 10 course > red info icon.
+course-1 > open > load new video > it will staged for course-1 + still have red info icon
+course-2 > open > load new video > never stage, since already stage for course-1 + still have red icon icon. so could have have pulled for course-2 first. we dont know to which course it belong go. it should be decided by after LLm call. correct ?
