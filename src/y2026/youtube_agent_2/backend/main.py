@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from starlette.responses import RedirectResponse
+from starlette.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from typing import List, Optional
 import uuid
@@ -264,6 +266,39 @@ def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video
 # API
 #=====================================
 app = FastAPI(title="YouTube Learning Organizer - Backend")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[config.FRONTEND_URL, "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def require_firebase_identity(request: Request, call_next):
+    """Require a Firebase ID token for application API routes in production."""
+    if request.method == "OPTIONS" or not config.FIREBASE_AUTH_REQUIRED or not request.url.path.startswith("/api/"):
+        return await call_next(request)
+    authorization = request.headers.get("Authorization", "")
+    scheme, _, id_token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not id_token:
+        return JSONResponse(status_code=401, content={"detail": "Firebase ID token required"})
+    try:
+        from firebase_admin import auth as firebase_auth
+        decoded = firebase_auth.verify_id_token(id_token, check_revoked=True)
+        context_token = db.set_current_user(decoded["uid"])
+    except Exception:
+        return JSONResponse(status_code=401, content={"detail": "Invalid or expired Firebase ID token"})
+    try:
+        return await call_next(request)
+    finally:
+        db.reset_current_user(context_token)
+
+
+@app.get("/health", tags=["health"])
+def health_check():
+    return {"status": "ok", "firebase_enabled": config.FIREBASE_ENABLED}
 
 @app.get("/", tags=["meta"])
 def root():

@@ -1,9 +1,15 @@
-const BASE = ''  // Vite proxy handles /api, /auth to backend
+const BASE = import.meta.env.VITE_API_BASE_URL || ''
+let accessTokenProvider = async () => null
+
+export function setAccessTokenProvider(provider) {
+  accessTokenProvider = provider || (async () => null)
+}
 
 async function request(path, options = {}) {
+  const token = await accessTokenProvider()
   const res = await fetch(`${BASE}${path}`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers },
     ...options,
   })
   if (!res.ok) {
