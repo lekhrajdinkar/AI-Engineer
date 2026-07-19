@@ -39,7 +39,7 @@ def _get_channel_details(channel_ids: List[str], headers: dict) -> dict:
             details[item.get("id")] = {
                 "title": snippet.get("title", ""),
                 "thumbnail": _best_thumbnail(snippet),
-                "published_at": snippet.get("publishedAt", ""),
+                "source_created_at": snippet.get("publishedAt", ""),
                 "videos_count": int(item.get("statistics", {}).get("videoCount") or 0),
             }
     return details
@@ -62,7 +62,7 @@ def _enrich_video_details(videos: List[dict], headers: dict) -> List[dict]:
             response = requests.get(
                 "https://www.googleapis.com/youtube/v3/videos",
                 headers=headers,
-                params={"part": "snippet,contentDetails", "id": ",".join(ids[offset:offset + 50]), "maxResults": 50},
+                params={"part": "snippet,contentDetails,status,statistics,recordingDetails", "id": ",".join(ids[offset:offset + 50]), "maxResults": 50},
                 timeout=10,
             )
         except requests.RequestException:
@@ -75,12 +75,26 @@ def _enrich_video_details(videos: List[dict], headers: dict) -> List[dict]:
                 "duration_secs": _parse_iso_duration(item.get("contentDetails", {}).get("duration", "")),
                 "published_at": snippet.get("publishedAt", ""),
                 "thumbnail": _best_thumbnail(snippet),
+                "tags": snippet.get("tags", []),
+                "category_id": snippet.get("categoryId"),
+                "caption_available": item.get("contentDetails", {}).get("caption") == "true",
+                "embeddable": item.get("status", {}).get("embeddable", True),
+                "view_count": int(item.get("statistics", {}).get("viewCount") or 0),
+                "like_count": int(item.get("statistics", {}).get("likeCount") or 0),
+                "recording_date": item.get("recordingDetails", {}).get("recordingDate", ""),
             }
     for video in videos:
         detail = details.get(video.get("video_id"), {})
         video["duration_secs"] = detail.get("duration_secs", 0)
         video["published_at"] = detail.get("published_at") or video.get("published_at", "")
         video["thumbnail"] = detail.get("thumbnail") or video.get("thumbnail", "")
+        video["tags"] = detail.get("tags", [])
+        video["category_id"] = detail.get("category_id")
+        video["caption_available"] = detail.get("caption_available", False)
+        video["embeddable"] = detail.get("embeddable", True)
+        video["view_count"] = detail.get("view_count", 0)
+        video["like_count"] = detail.get("like_count", 0)
+        video["recording_date"] = detail.get("recording_date") or None
     return videos
 
 def get_oauth_authorize_url(client_id: str, redirect_uri: str, scope: str):
@@ -196,7 +210,7 @@ def list_subscribed_channels() -> List[dict]:
                 "title": title,
                 "url": f"https://youtube.com/channel/{channelId}",
                 "thumbnail": _best_thumbnail(snip),
-                "published_at": snip.get("publishedAt", ""),
+                "source_created_at": snip.get("publishedAt", ""),
             })
         
         nextPage = data.get("nextPageToken")
@@ -211,7 +225,7 @@ def list_subscribed_channels() -> List[dict]:
         detail = details.get(item.get("channel_id"), {})
         item["title"] = detail.get("title") or item["title"]
         item["thumbnail"] = detail.get("thumbnail") or item["thumbnail"]
-        item["published_at"] = detail.get("published_at") or item["published_at"]
+        item["source_created_at"] = detail.get("source_created_at") or item["source_created_at"]
         item["videos_count"] = detail.get("videos_count", 0)
     return items if items else config.DEMO_CHANNELS
 
@@ -264,7 +278,7 @@ def get_channel_playlists(channel_id: str) -> List[dict]:
                 "title": snip.get("title"),
                 "description": snip.get("description"),
                 "thumbnail": _best_thumbnail(snip),
-                "published_at": snip.get("publishedAt", ""),
+                "source_created_at": snip.get("publishedAt", ""),
                 "videos_count": int(it.get("contentDetails", {}).get("itemCount") or 0),
             })
         

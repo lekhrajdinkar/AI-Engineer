@@ -58,6 +58,14 @@ http://127.0.0.1:8001/docs
   - http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg
   - [json-dumps](json-dumps) 👈
 
+### Source Sync and Course Refresh
+- `GET /api/sources/sync-metadata` — Read persisted channel/playlist sync metadata
+- `POST /api/sources/sync-metadata` — Refresh source metadata and flag courses needing refresh
+- `POST /api/plans/{plan_id}/courses/{course_id}/discover-new-videos` — Stage unseen videos; optional `channel_id` and `playlist_id`
+- `POST /api/plans/{plan_id}/courses/{course_id}/ai-suggest-refresh-feed` — Add reviewed staged videos to the course
+
+Video responses include duration, publish date, tags, category, captions, embedding status, views, likes, and recording date when YouTube provides them.
+
 ### Learning Plans
 - `POST /api/plans` — Create a learning plan
 - `GET /api/plans` — Get all plan detail
@@ -68,5 +76,5 @@ http://127.0.0.1:8001/docs
 - `POST /api/plans/{plan_id}/add-course-manually` — Add course into plan
 - `POST /api/plans/{plan_id}/add-course-ai-suggested` — Organize videos into course by AI , then add into plan's course
 
-### refresh Course with daily video new feeds
-- `PATCH /api/course/refresh` — Refresh courses with new videos
+### Todo
+- Replace the temporary `New videos` module organization with LLM-based chapter assignment.

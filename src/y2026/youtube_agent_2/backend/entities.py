@@ -16,6 +16,13 @@ class Video(BaseModel):
     thumbnail: str
     duration_secs: Optional[int] = None
     published_at: Optional[datetime] = None
+    tags: List[str] = Field(default_factory=list)
+    category_id: Optional[str] = None
+    caption_available: bool = False
+    embeddable: bool = True
+    view_count: int = 0
+    like_count: int = 0
+    recording_date: Optional[datetime] = None
     watched: bool = False
     labels: List[str] = Field(default_factory=list)
 

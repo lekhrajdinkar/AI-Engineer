@@ -1,0 +1,30 @@
+{
+  "updated_at": "ISO8601",
+  "channels": [
+    {
+      "channel_id": "string",
+      "title": "string",
+      "url": "string",
+      "thumbnail": "string",
+
+      "videos_count": "number",
+      "published_at": "ISO8601 | null",
+      "source_created_at": "ISO8601 | null",
+      "last_synced_at": "ISO8601",
+
+      "playlists": [
+        {
+          "playlist_id": "string",
+          "title": "string",
+          "description": "string | null",
+          "thumbnail": "string",
+
+          "videos_count": 0,
+          "published_at": "ISO8601 | null",
+          "source_created_at": "ISO8601 | null",
+          "last_synced_at": "ISO8601"
+        }
+      ]
+    }
+  ]
+}

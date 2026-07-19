@@ -15,8 +15,8 @@
       "description": "string | null",
       "logo_url": "string",
       "icon_key": "string",
-      "sequence": 1,
-      "labels": ["watched", "bookmarked", "mark_for_delete", "refresh_needed"],
+      "sequence": "number",
+      "labels": [],
       "last_played_video_id": "string | null",
       "created_at": "ISO8601",
       "updated_at": "ISO8601",
@@ -27,8 +27,8 @@
           "title": "string",
           "url": "string",
           "thumbnail": "string",
-          "video_count": 0,
-          "videos_count": 0,
+          "video_count": "number",
+          "videos_count": "number",
           "source_created_at": "ISO8601 | null",
           "last_video_published_at": "ISO8601 | null",
           "last_synced_at": "ISO8601 | null",
@@ -39,7 +39,7 @@
               "playlist_id": "string | null",
               "title": "string",
               "thumbnail": "string",
-              "videos_count": 0,
+              "videos_count": "number",
               "source_created_at": "ISO8601 | null",
               "last_video_published_at": "ISO8601 | null",
               "last_synced_at": "ISO8601 | null"
@@ -53,7 +53,7 @@
           "channel_id": "string",
           "playlist_id": "string | null",
           "discovered_at": "ISO8601",
-          "videos": []
+          "videos": ["video object (same schema as modules[].videos[])"]
         }
       ],
 
@@ -61,8 +61,8 @@
         {
           "id": "uuid",
           "title": "string",
-          "sequence": 1,
-          "labels": ["watched", "bookmarked", "mark_for_delete"],
+          "sequence": "number",
+          "labels": [],
 
           "videos": [
             {
@@ -72,11 +72,18 @@
               "description": "string | null",
               "url": "string | null",
               "thumbnail": "string",
-              "duration_secs": 0,
+              "duration_secs": "number",
               "published_at": "ISO8601 | null",
-              "sequence": 1,
+              "tags": ["string"],
+              "category_id": "string | null",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": "number",
+              "like_count": "number",
+              "recording_date": "ISO8601 | null",
+              "sequence": "number",
               "watched": false,
-              "labels": ["watched", "bookmarked", "mark_for_delete"]
+              "labels": []
             }
           ]
         }

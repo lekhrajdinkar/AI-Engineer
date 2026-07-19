@@ -11,7 +11,7 @@ function ChannelAvatar({ title, thumbnail }) {
 
 function getSourceDate(item) {
   if (item.updated_at || item.last_updated) return { value: item.updated_at || item.last_updated, label: 'Updated' }
-  if (item.published_at) return { value: item.published_at, label: 'Published' }
+  if (item.source_created_at) return { value: item.source_created_at, label: 'Created' }
   if (item.created_at) return { value: item.created_at, label: 'Created' }
   return { value: '', label: '' }
 }

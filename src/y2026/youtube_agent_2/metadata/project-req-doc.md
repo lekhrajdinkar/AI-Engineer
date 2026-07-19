@@ -40,7 +40,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - call `GET /api/plans` — Get all plan detail and store in redux store.
 - redux first, else fallback to API load.
 - Add refresh icon, to load again from backend and refresh redux store.
-- [proposed learning-plan object](leaning-plan-schema.json)
+- [proposed learning-plan object](schema/leaning-plan-schema.json)
 
 3) Create Learning Plan ✔️
 - create Learning plan form (1 Step form - with name, desc, optinal logo).
@@ -103,7 +103,9 @@ these will be used to filter module and videos on screen then.
 
 
 ### Phase-3
-1) Refresh Course
+1) Refresh Course with new Video feed
+- [sync-metadata.json](schema/sync-metadata.json)
+- Todo
 
 
 

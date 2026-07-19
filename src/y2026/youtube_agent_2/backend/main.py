@@ -64,6 +64,13 @@ def _video_from_source(raw_video: dict, sequence: int) -> Video:
         thumbnail=raw_video.get("thumbnail") or "",
         duration_secs=raw_video.get("duration_secs") or 0,
         published_at=raw_video.get("published_at") or None,
+        tags=raw_video.get("tags") or [],
+        category_id=raw_video.get("category_id"),
+        caption_available=raw_video.get("caption_available", False),
+        embeddable=raw_video.get("embeddable", True),
+        view_count=raw_video.get("view_count") or 0,
+        like_count=raw_video.get("like_count") or 0,
+        recording_date=raw_video.get("recording_date") or None,
         watched=False,
         labels=[],
     )
@@ -78,11 +85,11 @@ def _sync_source_metadata() -> dict:
         playlists = youtube_client.get_channel_playlists(channel_id)
         synced_channels.append({
             **channel,
-            "source_created_at": channel.get("published_at"),
+            "source_created_at": channel.get("source_created_at"),
             "last_synced_at": now,
             "playlists": [{
                 **playlist,
-                "source_created_at": playlist.get("published_at"),
+                "source_created_at": playlist.get("source_created_at"),
                 "last_synced_at": now,
             } for playlist in playlists],
         })
@@ -617,7 +624,7 @@ def ai_suggest_2(plan_id: str):
 
     plan = LearningPlan.model_validate(row)
 
-    json_file = BASE_DIR / "json-dumps" / "organized-learning-plan-2.json"
+    json_file = BASE_DIR / "json-dumps" / "learning-plan-2.json"
     try:
         with json_file.open("r", encoding="utf-8") as file:
             data = json.load(file)
