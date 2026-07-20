@@ -39,8 +39,8 @@ Open `youtube-learning-api` → **Environment** and set these values:
 | Variable | Value |
 | --- | --- |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Complete Firebase Admin **service-account** JSON, on one line. https://console.firebase.google.com/u/0/project/agent-2026-d3f51/settings/serviceaccounts/adminsdk|
-| `FRONTEND_URL` | Final UI URL, for example `https://youtube-learning-ui.onrender.com`. |
-| `GOOGLE_CLIENT_ID` | Google OAuth Web client ID used for YouTube access. |
+| `FRONTEND_URL` | https://youtube-learning-ui.onrender.com |
+| `GOOGLE_CLIENT_ID` | Google OAuth Web client ID used for YouTube access. https://console.cloud.google.com/apis/library/youtube.googleapis.com?project=agents-2026-502600|
 | `GOOGLE_CLIENT_SECRET` | Matching Google OAuth client secret. |
 | `GOOGLE_REDIRECT_URI` | `https://<api-url>/auth/google/callback` exactly. |
 | `YOUTUBE_TOKEN_ENCRYPTION_KEY` | A valid Fernet key, such as the locally tested value. Keep it stable after deployment. |
@@ -64,8 +64,8 @@ Open `youtube-learning-ui` → **Environment** and set:
 
 | Variable | Value |
 | --- | --- |
-| `VITE_API_BASE_URL` | Final API URL, for example `https://youtube-learning-api.onrender.com`. |
-| `VITE_FIREBASE_API_KEY` | Firebase Web app API key. |
+| `VITE_API_BASE_URL` | https://youtube-learning-api.onrender.com |
+| `VITE_FIREBASE_API_KEY` | Firebase Web app API key. https://console.firebase.google.com/u/0/project/agent-2026-d3f51/settings/general/web|
 | `VITE_FIREBASE_APP_ID` | Firebase Web app ID. |
 
 The Blueprint provides these non-secret values:
@@ -80,13 +80,27 @@ any of them.
 
 ## 5. Configure Google and Firebase
 
-1. In Google Cloud Console, add
-   `https://<api-url>/auth/google/callback` to the OAuth Web client's
-   authorized redirect URIs.
+1. In Google Cloud Console, 
+   - Add https://youtube-learning-api.onrender.com/auth/google/callback 
+   - to the OAuth Web client's authorized **redirect URIs**.
+   - ![img.png](img/img.png)
+   - https://console.cloud.google.com/auth/clients/580924677921-mf3lg1qmfq96kimb6pdn0mjirv67pkqj.apps.googleusercontent.com?project=agents-2026-502600
 2. In Firebase Authentication → **Settings → Authorized domains**, add the
-   deployed UI host if Firebase does not already accept it.
+   deployed UI host if Firebase does not already accept it. 
+   - `youtube-learning-ui.onrender.com`
+   - https://console.firebase.google.com/u/0/project/agent-2026-d3f51/authentication/settings
+   - ![img_1.png](img/img_1.png)
 3. Confirm Google sign-in remains enabled in Firebase Authentication →
    **Sign-in method**.
+```json
+{
+  "status": "ok",
+  "firebase_enabled": true
+}
+```
+
+
+
 
 ## 6. Deploy in order
 

@@ -1,4 +1,5 @@
-# Backend 
+# Youtube Agent
+[project-req-doc.md](docs/project-req-doc.md)
 ## ✔️Run
 ### Run - backend ⭐
 ```bash
@@ -19,18 +20,16 @@ npm run dev
 ```
 
 ---
-## ✔️docs 
-- [docs](docs)
-- [deployment](deployment)
-- [render.yaml](deployment/render/render.yaml)
+## ✔️deploy to render 
+- [deploy-to-render.md](docs/deploy-to-render.md) | [render.yaml](deployment/render/render.yaml) ⭐
 
 ---
 ## ✔️One time configuration
-- update environment variables 
+- 1 update environment variables 
   - [.env.example backend](backend/.env.example)
   - [.env.example frontend](frontend/.env.example)
-- [firebase](docs/firebase-setup.md) | Authn + database
-- Console Console | GCP 
+- [2 firebase-integration.md](docs/firebase-integration.md) | Authn
+- 3 Console Console | GCP 
   - https://console.cloud.google.com/apis/library/youtube.googleapis.com?project=agents-2026-502600
   - https://developers.google.com/youtube/v3/docs/?apix=true | usage docs
   - Setup API service to call YT API 
