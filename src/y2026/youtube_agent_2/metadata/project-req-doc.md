@@ -40,7 +40,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - call `GET /api/plans` — Get all plan detail and store in redux store.
 - redux first, else fallback to API load.
 - Add refresh icon, to load again from backend and refresh redux store.
-- [proposed learning-plan object](schema/leaning-plan-schema.json)
+- [proposed learning-plan object](schema/leaning-plan.json)
 
 3) Create Learning Plan ✔️
 - create Learning plan form (1 Step form - with name, desc, optinal logo).
@@ -75,6 +75,11 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - submit `POST /api/plans/{plan_id}/add-course-manually` — Add course object  passed in request body, into leaning plan
 
 2) Add course  (AI-assisted) ⚠️
+**GCP console:**
+   - https://developers.google.com/youtube/v3/docs/?apix=true
+   - https://console.cloud.google.com/apis/library/youtube.googleapis.com?project=agents-2026-502600
+   - project : `Agents-2026`
+   - ![img.png](img.png)
 - show 4 steps form as side drawer dialog from left.
     - step-1 : name, desc and logo
     - step-2 : multi-select channels (subscribed channels list) `GET /api/channels`
@@ -99,7 +104,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - At Module level,   ["watched", "mark_for_delete", "bookmarked"]
 - At video level,    ["watched", "mark_for_delete", "bookmarked"]
 
-these will be used to filter module and videos on screen then.
+6) Global search and navigation
 
 
 ### Phase-3
@@ -114,7 +119,7 @@ these will be used to filter module and videos on screen then.
 - Course overview can review staged videos in a left drawer with **Visual** and **Raw JSON** tabs, then submit: `POST /api/plans/{plan_id}/courses/{course_id}/ai-suggest-refresh-feed`.
 - The temporary organizer adds submitted videos to a `New videos` module; replace with LLM chapter assignment later.
 
-2) Video playback progress âœ”ï¸
+2) Video playback progress ✔️
 - Store last played video, position, and timestamp for each course and video.
 - Restore the last video and timestamp when the learning workspace opens.
 - Persist progress only when the video is paused: `PATCH /api/plans/{plan_id}/courses/{course_id}/modules/{module_id}/videos/{video_id}/playback`.

@@ -1,9 +1,42 @@
 import sqlite3
 import json
+from contextvars import ContextVar
+from cryptography.fernet import Fernet
 from typing import Optional, List
 from src.y2026.youtube_agent_2.backend import config
 
+_firestore_store = None
+_current_user_id = ContextVar("firebase_user_id", default=None)
+if config.FIREBASE_ENABLED:
+    from src.y2026.youtube_agent_2.backend.firestore_store import FirestoreStore
+    _firestore_store = FirestoreStore()
+
+
+def set_current_user(user_id: str):
+    """Set the verified Firebase uid for the current request context."""
+    return _current_user_id.set(user_id)
+
+
+def reset_current_user(token):
+    _current_user_id.reset(token)
+
+
+def _active_user_id():
+    return _current_user_id.get()
+
+
+def current_user_id():
+    return _active_user_id()
+
+
+def _token_cipher():
+    if not config.YOUTUBE_TOKEN_ENCRYPTION_KEY:
+        raise RuntimeError("YOUTUBE_TOKEN_ENCRYPTION_KEY must be configured when Firestore is enabled")
+    return Fernet(config.YOUTUBE_TOKEN_ENCRYPTION_KEY.encode())
+
 def init_db():
+    if _firestore_store:
+        return
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -41,6 +74,8 @@ def init_db():
 
 
 def save_plan(plan_obj: dict):
+    if _firestore_store:
+        return _firestore_store.save_plan(plan_obj, _active_user_id())
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     pid = plan_obj.get("id")
@@ -53,6 +88,9 @@ def save_plan(plan_obj: dict):
 
 
 def save_tokens(provider: str, tokens: dict):
+    if _firestore_store:
+        encrypted = _token_cipher().encrypt(json.dumps(tokens, default=str).encode()).decode()
+        return _firestore_store.save_tokens(provider, {"encrypted": encrypted, "created_at": tokens.get("created_at")}, _active_user_id())
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     data = json.dumps(tokens, default=str)
@@ -63,6 +101,13 @@ def save_tokens(provider: str, tokens: dict):
 
 
 def load_latest_tokens(provider: str) -> Optional[dict]:
+    if _firestore_store:
+        stored = _firestore_store.load_latest_tokens(provider, _active_user_id())
+        if not stored:
+            return None
+        if "encrypted" in stored:
+            return json.loads(_token_cipher().decrypt(stored["encrypted"].encode()).decode())
+        return stored
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT data FROM tokens WHERE provider = ? ORDER BY id DESC LIMIT 1", (provider,))
@@ -74,6 +119,8 @@ def load_latest_tokens(provider: str) -> Optional[dict]:
 
 
 def load_plan(plan_id: str) -> Optional[dict]:
+    if _firestore_store:
+        return _firestore_store.load_plan(plan_id, _active_user_id())
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT data FROM plans WHERE id = ?", (plan_id,))
@@ -84,6 +131,8 @@ def load_plan(plan_id: str) -> Optional[dict]:
     return json.loads(row[0])
 
 def delete_plan(plan_id: str) -> bool:
+    if _firestore_store:
+        return _firestore_store.delete_plan(plan_id, _active_user_id())
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("DELETE FROM plans WHERE id = ?", (plan_id,))
@@ -93,6 +142,8 @@ def delete_plan(plan_id: str) -> bool:
     return deleted
 
 def list_plans() -> List[dict]:
+    if _firestore_store:
+        return _firestore_store.list_plans(_active_user_id())
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT data FROM plans ORDER BY updated_at DESC")
@@ -101,6 +152,8 @@ def list_plans() -> List[dict]:
     return [json.loads(r[0]) for r in rows]
 
 def save_source_sync_metadata(metadata: dict):
+    if _firestore_store:
+        return _firestore_store.save_source_sync_metadata(metadata, _active_user_id())
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -111,6 +164,8 @@ def save_source_sync_metadata(metadata: dict):
     conn.close()
 
 def load_source_sync_metadata() -> dict:
+    if _firestore_store:
+        return _firestore_store.load_source_sync_metadata(_active_user_id())
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT data FROM source_sync_metadata WHERE id = 1")

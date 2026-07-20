@@ -1,9 +1,15 @@
-const BASE = ''  // Vite proxy handles /api, /auth to backend
+const BASE = import.meta.env.VITE_API_BASE_URL || ''
+let accessTokenProvider = async () => null
+
+export function setAccessTokenProvider(provider) {
+  accessTokenProvider = provider || (async () => null)
+}
 
 async function request(path, options = {}) {
+  const token = await accessTokenProvider()
   const res = await fetch(`${BASE}${path}`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers },
     ...options,
   })
   if (!res.ok) {
@@ -23,6 +29,14 @@ export function googleLogout() {
 
 export function getAuthDebug() {
   return request('/auth/google/debug')
+}
+
+export function getYouTubeConnectionStatus() {
+  return request('/api/integrations/youtube/status')
+}
+
+export function startYouTubeConnection() {
+  return request('/api/integrations/youtube/connect', { method: 'POST' })
 }
 
 export function getChannels() {

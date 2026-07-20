@@ -7,10 +7,12 @@ import Plans from './pages/Plans'
 import PlanOverview from './pages/PlanOverview'
 import CourseOverview from './pages/CourseOverview'
 import CourseWorkspace from './pages/CourseWorkspace'
+import Profile from './pages/Profile'
 import { RefreshIcon } from './components/Icons'
-import { getAuthDebug, getPlans, getSourceSyncMetadata, pushNewSourceFeeds, syncSourceMetadata } from './api/client'
+import { getAuthDebug, getPlans, getSourceSyncMetadata, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
 import { setPlans } from './store/plansSlice'
 import { setSourceSyncMetadata } from './store/sourcesSlice'
+import { firebaseAuth, firebaseEnabled } from './firebase'
 
 function useTheme() {
   const [theme, setTheme] = React.useState(() => localStorage.getItem('yt_theme') || 'light')
@@ -86,9 +88,11 @@ function AppLayout() {
   }, [dispatch])
 
   React.useEffect(() => {
-    getAuthDebug()
-      .then(data => setAuth(data.has_access_token ? data : null))
-      .catch(() => setAuth(null))
+    if (firebaseEnabled && firebaseAuth) {
+      setAccessTokenProvider(() => firebaseAuth.currentUser?.getIdToken() || Promise.resolve(null))
+      return firebaseAuth.onIdTokenChanged(user => setAuth(user))
+    }
+    getAuthDebug().then(data => setAuth(data.has_access_token ? data : null)).catch(() => setAuth(null))
   }, [])
 
   React.useEffect(() => {
@@ -281,6 +285,7 @@ function AppLayout() {
         <div className="right-nav-actions">
           <div className="right-nav-top">
           {auth && <span className="auth-status" title="Signed in" aria-label="Signed in" />}
+          <button type="button" className="profile-nav-button" title="Profile" aria-label="Profile" onClick={() => navigate('/profile')}>{auth?.photoURL ? <img src={auth.photoURL} alt="" /> : <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}</button>
           <button type="button" className="home-nav-button" title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" /></svg></button>
           <button
             type="button"
@@ -316,6 +321,7 @@ function AppLayout() {
         <Routes>
           <Route path="/" element={<Navigate to="/plans" replace />} />
           <Route path="/plans" element={<Plans newPlanRequest={newPlanRequest} />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/plans/:planId" element={<PlanOverview />} />
           <Route path="/plans/:planId/courses/:courseId" element={<CourseOverview />} />
           <Route path="/plans/:planId/courses/:courseId/learn" element={<CourseWorkspace />} />
