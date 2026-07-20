@@ -1,6 +1,6 @@
 # Frontend
 ## Links
-- [project-requirement-doc.md](../metadata/project-req-doc.md)
+- [project-requirement-doc.md](../docs/project-req-doc.md)
 - [backend README.md](../backend/README.md)
 
 ## Includes

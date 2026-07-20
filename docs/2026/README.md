@@ -5,7 +5,10 @@
 - [99_Misc](99_Misc)
 
 ## POC Projects
-- Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule
+- **Youtube agent**: https://github.com/users/lekhrajdinkar/projects/2 
+  - [youtube_agent_1](../../src/y2026/youtube_agent_1) ... ignore
+  - [youtube_agent_2](../../src/y2026/youtube_agent_2) ... in progress
+- Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule ... in progress
 
 ## Labs
 - [lab_01_ai_agent_fundamental | 01/2026 kodeKloud](../../src/y2026/lab_01_ai_agent)

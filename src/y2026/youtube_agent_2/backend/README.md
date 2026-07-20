@@ -1,18 +1,27 @@
 # Backend 
+## Run ⭐
+```bash
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001
+uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001 --host 127.0.0.1 
+```
+---
 ## One time configuration
 ### update environment variables 
-```.properties
-.env file
----
-# YOUTUBE_API_KEY=...
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-GOOGLE_REDIRECT_URI=http://localhost:8001/auth/google/callback
-```
+[.env.example](.env.example)
 
-### Setup  Google Oauth Client
-- https://console.cloud.google.com/
-- Create or select a Project
+### firebase - Authn
+[firebase](../docs/firebase-setup.md)
+
+### GCP - create project to access YT API (secure with OAuth token)
+fast APi will fetch token with /login + /callback will store it firebase backend.
+
+![img.png](google-console.png)
+
+- create project: https://console.cloud.google.com/apis/library/youtube.googleapis.com?project=agents-2026-502600
 - Navigation menu → APIs & Services → Library.
 - Search for “YouTube Data API v3” → Enable.
 - APIs & Services → OAuth consent screen.
@@ -21,22 +30,14 @@ GOOGLE_REDIRECT_URI=http://localhost:8001/auth/google/callback
     - APIs & Services → Credentials → + Create Credentials → OAuth client ID.
     - Application type: choose “Web application”.
     - Name: e.g., “youtube-learning-ui”.
-    - Authorized JavaScript origins: (if needed) e.g., http://localhost:5173
-    - Authorized redirect URIs:  http://localhost:8001/auth/google/callback
+    - Authorized JavaScript origins: (if needed) e.g., http://localhost:5173 , UI URL
+    - Authorized redirect URIs:  http://localhost:8001/auth/google/callback , backend api URL
+
+> YT API usage doc: https://developers.google.com/youtube/v3/docs/?apix=true
 
 ---
-## Run ⭐
-```bash
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-
-uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001
-```
-
----
-## API DOCs
-http://127.0.0.1:8001/docs 
+## FASTAPI DOCs
+http://127.0.0.1:8001/docs  👈
 ### Authentication
 - `GET /auth/google/login` — Start Google OAuth flow, get access token and save in sqLite3
 - `GET /auth/google/callback` — OAuth callback (automatic redirect)
@@ -75,6 +76,3 @@ Video responses include duration, publish date, tags, category, captions, embedd
 ### Create Course in the plan
 - `POST /api/plans/{plan_id}/add-course-manually` — Add course into plan
 - `POST /api/plans/{plan_id}/add-course-ai-suggested` — Organize videos into course by AI , then add into plan's course
-
-### Todo
-- Replace the temporary `New videos` module organization with LLM-based chapter assignment.

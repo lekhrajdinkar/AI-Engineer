@@ -40,7 +40,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - call `GET /api/plans` — Get all plan detail and store in redux store.
 - redux first, else fallback to API load.
 - Add refresh icon, to load again from backend and refresh redux store.
-- [proposed learning-plan object](schema/leaning-plan.json)
+- [proposed learning-plan object](../schema/leaning-plan.json)
 
 3) Create Learning Plan ✔️
 - create Learning plan form (1 Step form - with name, desc, optinal logo).
@@ -75,11 +75,6 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - submit `POST /api/plans/{plan_id}/add-course-manually` — Add course object  passed in request body, into leaning plan
 
 2) Add course  (AI-assisted) ⚠️
-**GCP console:**
-   - https://developers.google.com/youtube/v3/docs/?apix=true
-   - https://console.cloud.google.com/apis/library/youtube.googleapis.com?project=agents-2026-502600
-   - project : `Agents-2026`
-   - ![img.png](img.png)
 - show 4 steps form as side drawer dialog from left.
     - step-1 : name, desc and logo
     - step-2 : multi-select channels (subscribed channels list) `GET /api/channels`
@@ -109,7 +104,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 
 ### Phase-3
 1) Refresh Course with new Video feed ✔️
-- [source-feed-inbox.json](schema/source-feed-inbox.json)
+- [source-feed-inbox.json](../schema/source-feed-inbox.json)
 - On app load, load persisted source-sync metadata into Redux: `GET /api/sources/sync-metadata`.
 - The **Source feed inbox** lets the user search, filter, sort, and inspect subscribed channels and playlists.
 - Pull from YouTube: `POST /api/sources/sync-metadata`. It records `last_feed_checked_at`, scans incrementally with a 24-hour overlap, and deduplicates by `video_id` across the learning plan.
