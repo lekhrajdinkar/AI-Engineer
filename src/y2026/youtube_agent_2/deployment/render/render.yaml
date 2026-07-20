@@ -2,7 +2,7 @@ services:
   - type: web
     name: youtube-learning-api
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: pip install -r src/y2026/youtube_agent_2/backend/requirements.txt
     startCommand: uvicorn src.y2026.youtube_agent_2.backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health

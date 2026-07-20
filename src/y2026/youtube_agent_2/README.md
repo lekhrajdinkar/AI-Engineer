@@ -1,18 +1,43 @@
-# Backend 
-## One time configuration
-### update environment variables 
-```.properties
-.env file
----
-# YOUTUBE_API_KEY=...
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-GOOGLE_REDIRECT_URI=http://localhost:8001/auth/google/callback
+# Youtube Agent
+[project-req-doc.md](docs/project-req-doc.md)
+## ✔️Run
+### Run - backend ⭐
+```bash
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001
+uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001 --host 127.0.0.1 
 ```
 
-### Setup  Google Oauth Client
-- https://console.cloud.google.com/
-- Create or select a Project
+### Run - react UI ⭐
+```bash
+# Start Vite
+# Dependencies are installed at the repo root (`../../..`). No separate `npm install` needed here.
+cd src\y2026\youtube_agent_2\frontend;
+npm run dev
+```
+
+---
+## ✔️deploy to render 
+- [deploy-to-render.md](docs/deploy-to-render.md) | [render.yaml](deployment/render/render.yaml) ⭐
+
+---
+## ✔️One time configuration
+- 1 update environment variables 
+  - [.env.example backend](backend/.env.example)
+  - [.env.example frontend](frontend/.env.example)
+- [2 firebase-integration.md](docs/firebase-integration.md) | Authn
+- 3 Console Console | GCP 
+  - https://console.cloud.google.com/apis/library/youtube.googleapis.com?project=agents-2026-502600
+  - https://developers.google.com/youtube/v3/docs/?apix=true | usage docs
+  - Setup API service to call YT API 
+  - OAuth client (fastapi), fetch and store it firebase database
+  - ![img.png](backend/google-console.png)
+
+```
+Steps
 - Navigation menu → APIs & Services → Library.
 - Search for “YouTube Data API v3” → Enable.
 - APIs & Services → OAuth consent screen.
@@ -21,22 +46,13 @@ GOOGLE_REDIRECT_URI=http://localhost:8001/auth/google/callback
     - APIs & Services → Credentials → + Create Credentials → OAuth client ID.
     - Application type: choose “Web application”.
     - Name: e.g., “youtube-learning-ui”.
-    - Authorized JavaScript origins: (if needed) e.g., http://localhost:5173
-    - Authorized redirect URIs:  http://localhost:8001/auth/google/callback
-
----
-## Run ⭐
-```bash
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-
-uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001
+    - Authorized JavaScript origins: (if needed) e.g., http://localhost:5173 , UI URL
+    - Authorized redirect URIs:  http://localhost:8001/auth/google/callback , backend api URL
 ```
 
 ---
-## API DOCs
-http://127.0.0.1:8001/docs 
+## FASTAPI DOCs
+http://127.0.0.1:8001/docs  👈
 ### Authentication
 - `GET /auth/google/login` — Start Google OAuth flow, get access token and save in sqLite3
 - `GET /auth/google/callback` — OAuth callback (automatic redirect)
@@ -56,7 +72,7 @@ http://127.0.0.1:8001/docs
   - http://127.0.0.1:8001/api/UCzCsyvyrq38R6TnztEzOmgg/playlists
   - http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg&playlist_id=PLJq-63ZRPdBt-RFGwsJO9Pv6A8ZwYHua9
   - http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg
-  - [json-dumps](json-dumps) 👈
+  - [json-dumps](backend/json-dumps) 👈
 
 ### Source Sync and Course Refresh
 - `GET /api/sources/sync-metadata` — Read persisted channel/playlist sync metadata
@@ -75,6 +91,3 @@ Video responses include duration, publish date, tags, category, captions, embedd
 ### Create Course in the plan
 - `POST /api/plans/{plan_id}/add-course-manually` — Add course into plan
 - `POST /api/plans/{plan_id}/add-course-ai-suggested` — Organize videos into course by AI , then add into plan's course
-
-### Todo
-- Replace the temporary `New videos` module organization with LLM-based chapter assignment.
