@@ -19,6 +19,14 @@ cd src\y2026\youtube_agent_2\frontend;
 npm run dev
 ```
 
+## fallback to SQLite
+```properties
+FIREBASE_ENABLED=false
+FIREBASE_AUTH_REQUIRED=false
+```
+> - use on local
+> - ⚠️ But do not use that in Render. Render’s filesystem is ephemeral, so SQLite data can disappear when the API restarts
+
 ---
 ## ✔️deploy to render 
 - [deploy-to-render.md](docs/deploy-to-render.md) | [render.yaml](deployment/render/render.yaml) ⭐

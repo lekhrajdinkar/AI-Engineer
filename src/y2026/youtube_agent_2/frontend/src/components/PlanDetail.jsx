@@ -575,7 +575,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
               const moduleWatched = module.videos?.filter(video => video.watched || video.labels?.includes('watched')).length || 0
               const moduleProgress = moduleTotal ? Math.round((moduleWatched / moduleTotal) * 100) : 0
               return (
-              <div key={module.id}>
+              <div key={module.id} className={`module-tree-group ${isExpanded ? 'expanded' : ''}`}>
                 <div className="module-header" onClick={() => toggleModule(module.id)}>
                   <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▶</span>
                   <span className="module-tree-title"><small>Module {module.sequence || moduleIndex + 1} · {moduleWatched}/{moduleTotal} watched</small>{module.title}</span>
