@@ -8,6 +8,10 @@ This application deploys as two Render services from [render.yaml](../deployment
 
 The blueprint does not contain confidential values. Configure them in Render.
 
+The API is configured with Render's `free` instance plan for initial testing.
+Free web services can cold-start after inactivity, so the first request can be
+slow. Change `plan: free` to `starter` only when you need an always-on API.
+
 ## 1. Prepare the repository
 
 1. Confirm local Firebase sign-in and YouTube connection work.
@@ -18,7 +22,7 @@ The blueprint does not contain confidential values. Configure them in Render.
 ## 2. Create the Render Blueprint
 
 1. In Render, select **New → Blueprint** and connect the repository.
-2. Choose `src/y2026/youtube_agent_2/render.yaml` when Render requests the
+2. Choose `src/y2026/youtube_agent_2/deployment/render/render.yaml` when Render requests the
    Blueprint path.
 3. Create the Blueprint. Render creates the API and static UI services.
 4. Wait for their initial builds, then copy both `onrender.com` URLs.
