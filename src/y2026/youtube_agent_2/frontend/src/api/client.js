@@ -31,6 +31,14 @@ export function getAuthDebug() {
   return request('/auth/google/debug')
 }
 
+export function getYouTubeConnectionStatus() {
+  return request('/api/integrations/youtube/status')
+}
+
+export function startYouTubeConnection() {
+  return request('/api/integrations/youtube/connect', { method: 'POST' })
+}
+
 export function getChannels() {
   return request('/api/channels')
 }

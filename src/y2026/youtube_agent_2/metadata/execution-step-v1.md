@@ -100,14 +100,92 @@ Do not configure the final Google YouTube OAuth callback URL yet; that will be d
 
 ## Step 5 — Per-user YouTube authorization
 
-- Implement OAuth state/PKCE protection and UID correlation.
+**Status:** Complete — code is ready; OAuth client URLs and secrets must be configured before live testing.
+
+- Added Firebase-authenticated endpoints to start a YouTube connection and retrieve connection status.
+- Added signed, expiring OAuth `state` that binds the public callback to the initiating Firebase `uid`.
+- Stores each user's YouTube token beneath that user's Firestore integration document.
+- Encrypts Firestore YouTube token payloads with `YOUTUBE_TOKEN_ENCRYPTION_KEY`.
+- Added YouTube connection status and connect/reconnect control to the profile page.
+- Redirects the completed YouTube OAuth callback back to `/profile` in the deployed frontend.
+
+### User action required before live OAuth testing
+
+- Create a Google Cloud OAuth **Web application** client for YouTube Data API access.
+- Add the callback URL `https://<backend-service>.onrender.com/auth/google/callback` after the backend Render service name is chosen. Use the local callback URL only for local testing.
+- Later configure these Render backend secrets: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `YOUTUBE_OAUTH_STATE_SECRET`, and `YOUTUBE_TOKEN_ENCRYPTION_KEY`.
+- Keep all backend secrets private. The YouTube OAuth token is never sent to the React application.
+
+### OAuth note
+
+- The backend uses the confidential server-side authorization-code flow with client secret, signed `state`, HTTPS callback, and per-user token storage.
+- PKCE is not yet added. Add it if this flow is moved to a browser/public client or an external OAuth authorization server is introduced.
+
+### Original scope
+
+- Implement OAuth state protection and UID correlation.
 - Store encrypted or tightly protected per-user YouTube refresh tokens in Firestore.
 - Use the stored user token for private YouTube subscription and playlist calls.
 - Support an optional Render `YOUTUBE_API_KEY` only for public-data fallback calls.
 
 ## Step 6 — Render deployment
 
+**Status:** Complete — Blueprint and deployment instructions are ready; Render account actions are required to launch services.
+
+- Added `src/y2026/youtube_agent_2/render.yaml` for a FastAPI Render Web Service and React Render Static Site.
+- Configured the API health check, Firebase production flags, generated OAuth state secret, and secret placeholders.
+- Configured frontend build variables and a `/* → /index.html` SPA rewrite.
+- The Blueprint intentionally does not include confidential values.
+
+### User action required to deploy
+
+1. Push the current branch to the Git repository that Render can access.
+2. Render Dashboard → **New → Blueprint** → select the repository and choose `src/y2026/youtube_agent_2/render.yaml` if prompted for its path.
+3. Create the Blueprint. Render will create `youtube-learning-api` and `youtube-learning-ui`.
+4. Copy each generated `onrender.com` URL.
+5. Set API secrets:
+   - `FIREBASE_SERVICE_ACCOUNT_JSON` (or use a Render secret file with Application Default Credentials)
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `GOOGLE_REDIRECT_URI=https://<api-url>/auth/google/callback`
+   - `FRONTEND_URL=https://<ui-url>`
+   - `YOUTUBE_TOKEN_ENCRYPTION_KEY` (a Fernet key)
+6. Set frontend build variables:
+   - `VITE_API_BASE_URL=https://<api-url>`
+   - `VITE_FIREBASE_API_KEY`
+   - `VITE_FIREBASE_APP_ID`
+7. Redeploy the API, then redeploy the Static Site so Vite embeds the final API URL.
+8. Add the API callback URL to the Google OAuth Web Client's authorized redirect URIs.
+9. In Firebase Authentication, add the deployed UI domain to authorized domains if Firebase requests it.
+10. Test with two Google accounts: each must see only their own plans, sync metadata, and YouTube connection.
+
+### Original scope
+
 - Add `render.yaml`.
+
+## Local validation preflight
+
+**Status:** Automated checks complete; browser-based Firebase and YouTube OAuth checks are ready.
+
+- Restored `frontend/.env.example` and added `backend/.env.example`.
+- Confirmed the local frontend `.env` contains all required Firebase/API variable names without reading or exposing their values.
+- Confirmed the backend `.env` contains the required Firebase, OAuth, and encryption variable names without reading or exposing their values.
+- Updated FastAPI startup so it explicitly loads `backend/.env` before application configuration is imported.
+- Started the verified backend at `http://127.0.0.1:8003`: `/health` reports `firebase_enabled: true`, and an unauthenticated `/api/plans` request correctly returns `401`.
+- Started the local frontend at `http://127.0.0.1:5173`, configured for that backend process.
+
+### User browser check
+
+1. Open `http://127.0.0.1:5173/profile`.
+2. Sign in with the Firebase Google provider and confirm the profile displays the signed-in account.
+3. Open the app's learning-plan view. An empty state is expected for a newly authenticated Firebase user until plans are created or migrated.
+4. Use **Connect YouTube** on the profile page and complete the Google consent screen. Confirm that the browser returns to the profile page and reports YouTube as connected.
+
+### Notes
+
+- Existing processes on ports `8001` and `8002` were left untouched; they were older processes without the Firebase configuration. Use port `8003` for this validation session.
+- After the browser check, stop the local development processes and set the production values in Render before deployment.
+
 - Configure the static frontend and FastAPI backend services.
 - Add Render secrets, Google OAuth redirect URI, CORS origin, and SPA rewrite.
 - Run the multi-user verification checklist with two Google accounts.

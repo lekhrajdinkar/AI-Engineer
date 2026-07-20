@@ -5,23 +5,52 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from typing import List, Optional
 import uuid
+import base64
+import hashlib
+import hmac
+import secrets
+import time
 from datetime import datetime, timezone, timedelta
 import os
 import sqlite3
 import json
+from pathlib import Path
 from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+
 from src.y2026.youtube_agent_2.backend import db
 from src.y2026.youtube_agent_2.backend import youtube_client
 from src.y2026.youtube_agent_2.backend import config
-from pathlib import Path
 
 from src.y2026.youtube_agent_2.backend.config import ALLOWED_PREBUILT_LABELS
 from src.y2026.youtube_agent_2.backend.entities import Video, LearningPlan, Channel, MetadataUpdateRequest, \
     CourseDeleteRequest, LabelsUpdateRequest, VideoReorderRequest, PlaybackUpdateRequest, Course, AiCourseRequest, Module, NewVideoFeed
 
-load_dotenv()
+def _create_youtube_oauth_state(uid: str) -> str:
+    if not config.YOUTUBE_OAUTH_STATE_SECRET:
+        raise HTTPException(status_code=500, detail="YOUTUBE_OAUTH_STATE_SECRET not configured")
+    payload = json.dumps({"uid": uid, "exp": int(time.time()) + 600, "nonce": secrets.token_urlsafe(16)}).encode()
+    encoded = base64.urlsafe_b64encode(payload).decode().rstrip("=")
+    signature = hmac.new(config.YOUTUBE_OAUTH_STATE_SECRET.encode(), encoded.encode(), hashlib.sha256).hexdigest()
+    return f"{encoded}.{signature}"
 
-BASE_DIR = Path(__file__).resolve().parent
+
+def _verify_youtube_oauth_state(state: Optional[str]) -> str:
+    if not state or not config.YOUTUBE_OAUTH_STATE_SECRET:
+        raise HTTPException(status_code=400, detail="Missing or invalid OAuth state")
+    try:
+        encoded, signature = state.rsplit(".", 1)
+        expected = hmac.new(config.YOUTUBE_OAUTH_STATE_SECRET.encode(), encoded.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            raise ValueError("signature")
+        payload = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        if int(payload["exp"]) < time.time():
+            raise ValueError("expired")
+        return payload["uid"]
+    except (ValueError, KeyError, json.JSONDecodeError):
+        raise HTTPException(status_code=400, detail="Missing or invalid OAuth state")
 
 #=====================================
 # Helper Functions
@@ -580,6 +609,24 @@ def ai_suggest_refresh_feed(plan_id: str, course_id: str):
 ####################
 ### Authentication
 ####################
+@app.post("/api/integrations/youtube/connect", tags=["integrations"])
+def start_youtube_connection():
+    uid = db.current_user_id()
+    if not uid:
+        raise HTTPException(status_code=401, detail="Firebase identity required")
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    if not client_id or not redirect_uri:
+        raise HTTPException(status_code=500, detail="Google YouTube OAuth is not configured")
+    state = _create_youtube_oauth_state(uid)
+    return {"authorize_url": youtube_client.get_oauth_authorize_url(client_id, redirect_uri, "https://www.googleapis.com/auth/youtube.readonly", state)}
+
+
+@app.get("/api/integrations/youtube/status", tags=["integrations"])
+def youtube_connection_status():
+    tokens = db.load_latest_tokens("google")
+    return {"connected": bool(tokens and tokens.get("refresh_token")), "scope": tokens.get("scope") if tokens else None, "connected_at": tokens.get("created_at") if tokens else None}
+
 @app.get("/auth/google/login", tags=["auth"])
 def google_login():
     client_id = os.getenv("GOOGLE_CLIENT_ID")
@@ -592,19 +639,27 @@ def google_login():
     return RedirectResponse(url)
 
 @app.get("/auth/google/callback", tags=["auth"])
-def google_callback(code: Optional[str] = None, error: Optional[str] = None):
+def google_callback(code: Optional[str] = None, error: Optional[str] = None, state: Optional[str] = None):
     if error:
         raise HTTPException(status_code=400, detail=f"OAuth error: {error}")
     if not code:
         raise HTTPException(status_code=400, detail="Missing code parameter")
+    uid = _verify_youtube_oauth_state(state) if config.FIREBASE_ENABLED else None
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8001/auth/google/callback")
-    tokens = youtube_client.exchange_code_for_tokens(code, client_id, client_secret, redirect_uri)
+    context_token = db.set_current_user(uid) if uid else None
+    try:
+        tokens = youtube_client.exchange_code_for_tokens(code, client_id, client_secret, redirect_uri)
+    finally:
+        if context_token:
+            db.reset_current_user(context_token)
     if not tokens:
         raise HTTPException(status_code=400, detail="Token exchange failed")
     # After saving tokens in DB, return a friendly message
     print(f"✅ [google_callback] Tokens saved. Scopes: {tokens.get('scope', 'NOT_PRESENT')}")
+    if config.FIREBASE_ENABLED:
+        return RedirectResponse(f"{config.FRONTEND_URL.rstrip('/')}/profile?youtube=connected")
     return {"message": "authentication successful", "next": "/", "info": "Tokens saved (single-user demo)"}
 
 @app.get("/auth/google/debug", tags=["auth"])

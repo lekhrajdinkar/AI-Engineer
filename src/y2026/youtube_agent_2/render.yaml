@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: youtube-learning-api
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r src/y2026/youtube_agent_2/backend/requirements.txt
+    startCommand: uvicorn src.y2026.youtube_agent_2.backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: FIREBASE_ENABLED
+        value: "true"
+      - key: FIREBASE_AUTH_REQUIRED
+        value: "true"
+      - key: FIREBASE_PROJECT_ID
+        value: agent-2026-d3f51
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: YOUTUBE_OAUTH_STATE_SECRET
+        generateValue: true
+      - key: YOUTUBE_TOKEN_ENCRYPTION_KEY
+        sync: false
+
+  - type: web
+    name: youtube-learning-ui
+    runtime: static
+    buildCommand: cd src/y2026/youtube_agent_2/frontend && npm ci && npm run build
+    staticPublishPath: src/y2026/youtube_agent_2/frontend/dist
+    autoDeployTrigger: commit
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: 20.19.0
+      - key: VITE_API_BASE_URL
+        sync: false
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        value: agent-2026-d3f51.firebaseapp.com
+      - key: VITE_FIREBASE_PROJECT_ID
+        value: agent-2026-d3f51
+      - key: VITE_FIREBASE_APP_ID
+        sync: false

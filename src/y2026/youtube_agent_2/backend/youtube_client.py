@@ -97,7 +97,7 @@ def _enrich_video_details(videos: List[dict], headers: dict) -> List[dict]:
         video["recording_date"] = detail.get("recording_date") or None
     return videos
 
-def get_oauth_authorize_url(client_id: str, redirect_uri: str, scope: str):
+def get_oauth_authorize_url(client_id: str, redirect_uri: str, scope: str, state: Optional[str] = None):
     params = {
         "client_id": client_id,
         "redirect_uri": redirect_uri,
@@ -106,6 +106,8 @@ def get_oauth_authorize_url(client_id: str, redirect_uri: str, scope: str):
         "access_type": "offline",
         "prompt": "consent",
     }
+    if state:
+        params["state"] = state
     return config.GOOGLE_OAUTH_AUTHORIZE + "?" + urlencode(params)
 
 

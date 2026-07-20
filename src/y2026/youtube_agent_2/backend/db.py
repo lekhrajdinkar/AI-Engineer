@@ -1,6 +1,7 @@
 import sqlite3
 import json
 from contextvars import ContextVar
+from cryptography.fernet import Fernet
 from typing import Optional, List
 from src.y2026.youtube_agent_2.backend import config
 
@@ -22,6 +23,16 @@ def reset_current_user(token):
 
 def _active_user_id():
     return _current_user_id.get()
+
+
+def current_user_id():
+    return _active_user_id()
+
+
+def _token_cipher():
+    if not config.YOUTUBE_TOKEN_ENCRYPTION_KEY:
+        raise RuntimeError("YOUTUBE_TOKEN_ENCRYPTION_KEY must be configured when Firestore is enabled")
+    return Fernet(config.YOUTUBE_TOKEN_ENCRYPTION_KEY.encode())
 
 def init_db():
     if _firestore_store:
@@ -78,7 +89,8 @@ def save_plan(plan_obj: dict):
 
 def save_tokens(provider: str, tokens: dict):
     if _firestore_store:
-        return _firestore_store.save_tokens(provider, tokens, _active_user_id())
+        encrypted = _token_cipher().encrypt(json.dumps(tokens, default=str).encode()).decode()
+        return _firestore_store.save_tokens(provider, {"encrypted": encrypted, "created_at": tokens.get("created_at")}, _active_user_id())
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     data = json.dumps(tokens, default=str)
@@ -90,7 +102,12 @@ def save_tokens(provider: str, tokens: dict):
 
 def load_latest_tokens(provider: str) -> Optional[dict]:
     if _firestore_store:
-        return _firestore_store.load_latest_tokens(provider, _active_user_id())
+        stored = _firestore_store.load_latest_tokens(provider, _active_user_id())
+        if not stored:
+            return None
+        if "encrypted" in stored:
+            return json.loads(_token_cipher().decrypt(stored["encrypted"].encode()).decode())
+        return stored
     conn = sqlite3.connect(config.DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT data FROM tokens WHERE provider = ? ORDER BY id DESC LIMIT 1", (provider,))
