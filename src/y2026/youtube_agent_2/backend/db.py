@@ -87,6 +87,35 @@ def save_plan(plan_obj: dict):
     conn.close()
 
 
+def supports_targeted_updates() -> bool:
+    """Whether the active persistence adapter supports document-level updates."""
+    return _firestore_store is not None
+
+
+def update_plan_fields(plan_id: str, fields: dict) -> bool:
+    if not _firestore_store:
+        return False
+    return _firestore_store.update_plan_fields(plan_id, fields, _active_user_id())
+
+
+def update_course_fields(plan_id: str, course_id: str, fields: dict) -> bool:
+    if not _firestore_store:
+        return False
+    return _firestore_store.update_course_fields(plan_id, course_id, fields, _active_user_id())
+
+
+def update_module_fields(plan_id: str, course_id: str, module_id: str, fields: dict) -> bool:
+    if not _firestore_store:
+        return False
+    return _firestore_store.update_module_fields(plan_id, course_id, module_id, fields, _active_user_id())
+
+
+def update_video_fields(plan_id: str, course_id: str, module_id: str, video_id: str, fields: dict) -> bool:
+    if not _firestore_store:
+        return False
+    return _firestore_store.update_video_fields(plan_id, course_id, module_id, video_id, fields, _active_user_id())
+
+
 def save_tokens(provider: str, tokens: dict):
     if _firestore_store:
         encrypted = _token_cipher().encrypt(json.dumps(tokens, default=str).encode()).decode()

@@ -49,7 +49,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - call `GET /api/plans` — Get all plan detail and store in redux store.
 - redux first, else fallback to API load.
 - Add refresh icon, to load again from backend and refresh redux store.
-- [proposed learning-plan object](../schema/leaning-plan.json)
+- [proposed learning-plan object](schema/leaning-plan.json)
 
 5) Create Learning Plan ✔️
 - create Learning plan form (1 Step form - with name, desc, optinal logo).
@@ -90,7 +90,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 - submit to AI:  
     - `POST /api/plans/{plan_id}/add-course-ai-suggested` 
     - future phase: AI Agent will organise videos into courses. so suggested created courses, gets added course into plan. 
-    - temporary workaround : get hardcoded JSON response. [json-dumps](../backend/json-dumps)
+    - temporary workaround : get hardcoded JSON response. [json-dumps](json-dumps)
     - > TODO-1 ⚠️ replace with LLM chapter assignment later.
 - refresh learning plan object into redux. `GET /api/plans/{plan_id}` 
 
@@ -121,7 +121,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 2) Refresh Course with new Video feed ✔️
 - The **Source feed inbox** page
   - On app load, load persisted source-sync metadata into Redux: `GET /api/sources/sync-metadata`.
-  - schema : [source-feed-inbox.json](../schema/source-feed-inbox.json)
+  - schema : [source-feed-inbox.json](schema/source-feed-inbox.json)
   - lets the user search, filter, sort, and inspect subscribed channels and playlists.
   - It records `last_feed_checked_at`, scans incrementally with a 24-hour overlap, and deduplicates by `video_id` across the learning plan.
 - Sync metadata:
@@ -142,8 +142,8 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 
 ---
 ### Phase-4 Deploy on Render ✅
-- [deploy-to-render.md](deploy-to-render.md)
-- [firebase-integration.md](firebase-integration.md)
+- [deploy-to-render.md](03_deploy-to-render.md)
+- [firebase-integration.md](02_firebase-integration.md)
 
 --- 
 ### Phase-5 LLM 

@@ -118,6 +118,71 @@ class FirestoreStore:
         plan["courses"] = sorted(courses, key=lambda course: (course.get("sequence", 0), course.get("id", "")))
         return plan
 
+    def update_plan_fields(self, plan_id: str, fields: dict, user_id: Optional[str] = None) -> bool:
+        """Update plan metadata without rewriting its course hierarchy."""
+        plan_ref = self._user(user_id).collection("plans").document(plan_id)
+        if not plan_ref.get().exists:
+            return False
+        plan_ref.update(_json_value(fields))
+        return True
+
+    def update_course_fields(self, plan_id: str, course_id: str, fields: dict, user_id: Optional[str] = None) -> bool:
+        """Update one course and its parent timestamp in one Firestore batch."""
+        plan_ref = self._user(user_id).collection("plans").document(plan_id)
+        course_ref = plan_ref.collection("courses").document(course_id)
+        if not plan_ref.get().exists or not course_ref.get().exists:
+            return False
+        updated_at = fields.get("updated_at")
+        batch = self.client.batch()
+        batch.update(course_ref, _json_value(fields))
+        if updated_at is not None:
+            batch.update(plan_ref, {"updated_at": updated_at})
+        batch.commit()
+        return True
+
+    def update_module_fields(self, plan_id: str, course_id: str, module_id: str, fields: dict, user_id: Optional[str] = None) -> bool:
+        """Update one module and parent timestamps without rewriting videos."""
+        plan_ref = self._user(user_id).collection("plans").document(plan_id)
+        course_ref = plan_ref.collection("courses").document(course_id)
+        module_ref = course_ref.collection("modules").document(module_id)
+        if not plan_ref.get().exists or not course_ref.get().exists or not module_ref.get().exists:
+            return False
+        fields = dict(fields)
+        updated_at = fields.pop("_updated_at", None)
+        batch = self.client.batch()
+        batch.update(module_ref, _json_value(fields))
+        if updated_at is not None:
+            batch.update(course_ref, {"updated_at": updated_at})
+            batch.update(plan_ref, {"updated_at": updated_at})
+        batch.commit()
+        return True
+
+    def update_video_fields(self, plan_id: str, course_id: str, module_id: str, video_id: str, fields: dict, user_id: Optional[str] = None) -> bool:
+        """Update one video and parent timestamps without rewriting the plan."""
+        plan_ref = self._user(user_id).collection("plans").document(plan_id)
+        course_ref = plan_ref.collection("courses").document(course_id)
+        module_ref = course_ref.collection("modules").document(module_id)
+        video_ref = module_ref.collection("videos").document(video_id)
+        if not plan_ref.get().exists or not course_ref.get().exists or not module_ref.get().exists or not video_ref.get().exists:
+            return False
+        fields = dict(fields)
+        updated_at = fields.pop("_updated_at", None)
+        course_fields = {
+            key.removeprefix("_course_"): value
+            for key, value in list(fields.items())
+            if key.startswith("_course_")
+        }
+        for key in [key for key in fields if key.startswith("_course_")]:
+            fields.pop(key)
+        batch = self.client.batch()
+        batch.update(video_ref, _json_value(fields))
+        if updated_at is not None or course_fields:
+            batch.update(course_ref, {**course_fields, **({"updated_at": updated_at} if updated_at is not None else {})})
+        if updated_at is not None:
+            batch.update(plan_ref, {"updated_at": updated_at})
+        batch.commit()
+        return True
+
     def list_plans(self, user_id: Optional[str] = None) -> list[dict]:
         plans = [self.load_plan(snapshot.id, user_id) for snapshot in self._user(user_id).collection("plans").stream()]
         return sorted((plan for plan in plans if plan), key=lambda plan: str(plan.get("updated_at") or ""), reverse=True)

@@ -1,0 +1,98 @@
+services:
+  - type: web
+    name: youtube-learning-gateway
+    runtime: python
+    plan: free
+    buildCommand: pip install -r src/y2026/youtube_agent_2/backend/requirements.txt
+    startCommand: uvicorn src.y2026.youtube_agent_2.backend.services.gateway.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: FRONTEND_URL
+        sync: false
+      - key: GATEWAY_YOUTUBE_SERVICE_URL
+        sync: false
+      - key: GATEWAY_PLANS_SERVICE_URL
+        sync: false
+
+  - type: web
+    name: youtube-learning-youtube
+    runtime: python
+    plan: free
+    buildCommand: pip install -r src/y2026/youtube_agent_2/backend/requirements.txt
+    startCommand: uvicorn src.y2026.youtube_agent_2.backend.services.youtube.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: FIREBASE_ENABLED
+        value: "true"
+      - key: FIREBASE_AUTH_REQUIRED
+        value: "true"
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: INTERNAL_SERVICE_TOKEN
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: YOUTUBE_OAUTH_STATE_SECRET
+        generateValue: true
+      - key: YOUTUBE_TOKEN_ENCRYPTION_KEY
+        sync: false
+
+  - type: web
+    name: youtube-learning-plans
+    runtime: python
+    plan: free
+    buildCommand: pip install -r src/y2026/youtube_agent_2/backend/requirements.txt
+    startCommand: uvicorn src.y2026.youtube_agent_2.backend.services.plans.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: FIREBASE_ENABLED
+        value: "true"
+      - key: FIREBASE_AUTH_REQUIRED
+        value: "true"
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: INTERNAL_SERVICE_TOKEN
+        sync: false
+      - key: YOUTUBE_SERVICE_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  - type: web
+    name: youtube-learning-ui
+    runtime: static
+    buildCommand: cd src/y2026/youtube_agent_2/frontend && npm ci && npm run build
+    staticPublishPath: src/y2026/youtube_agent_2/frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: 20.19.0
+      - key: VITE_API_BASE_URL
+        sync: false
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      - key: VITE_FIREBASE_APP_ID
+        sync: false
