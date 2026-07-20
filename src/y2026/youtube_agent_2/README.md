@@ -1,5 +1,6 @@
 # Backend 
-## Run ⭐
+## ✔️Run
+### Run - backend ⭐
 ```bash
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -8,20 +9,36 @@ pip install -r requirements.txt
 uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001
 uvicorn src.y2026.youtube_agent_2.backend.main:app --reload --port 8001 --host 127.0.0.1 
 ```
+
+### Run - react UI ⭐
+```bash
+# Start Vite
+# Dependencies are installed at the repo root (`../../..`). No separate `npm install` needed here.
+cd src\y2026\youtube_agent_2\frontend;
+npm run dev
+```
+
 ---
-## One time configuration
-### update environment variables 
-[.env.example](.env.example)
+## ✔️docs 
+- [docs](docs)
+- [deployment](deployment)
+- [render.yaml](deployment/render/render.yaml)
 
-### firebase - Authn
-[firebase](../docs/firebase-setup.md)
+---
+## ✔️One time configuration
+- update environment variables 
+  - [.env.example backend](backend/.env.example)
+  - [.env.example frontend](frontend/.env.example)
+- [firebase](docs/firebase-setup.md) | Authn + database
+- Console Console | GCP 
+  - https://console.cloud.google.com/apis/library/youtube.googleapis.com?project=agents-2026-502600
+  - https://developers.google.com/youtube/v3/docs/?apix=true | usage docs
+  - Setup API service to call YT API 
+  - OAuth client (fastapi), fetch and store it firebase database
+  - ![img.png](backend/google-console.png)
 
-### GCP - create project to access YT API (secure with OAuth token)
-fast APi will fetch token with /login + /callback will store it firebase backend.
-
-![img.png](google-console.png)
-
-- create project: https://console.cloud.google.com/apis/library/youtube.googleapis.com?project=agents-2026-502600
+```
+Steps
 - Navigation menu → APIs & Services → Library.
 - Search for “YouTube Data API v3” → Enable.
 - APIs & Services → OAuth consent screen.
@@ -32,8 +49,7 @@ fast APi will fetch token with /login + /callback will store it firebase backend
     - Name: e.g., “youtube-learning-ui”.
     - Authorized JavaScript origins: (if needed) e.g., http://localhost:5173 , UI URL
     - Authorized redirect URIs:  http://localhost:8001/auth/google/callback , backend api URL
-
-> YT API usage doc: https://developers.google.com/youtube/v3/docs/?apix=true
+```
 
 ---
 ## FASTAPI DOCs
@@ -57,7 +73,7 @@ http://127.0.0.1:8001/docs  👈
   - http://127.0.0.1:8001/api/UCzCsyvyrq38R6TnztEzOmgg/playlists
   - http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg&playlist_id=PLJq-63ZRPdBt-RFGwsJO9Pv6A8ZwYHua9
   - http://127.0.0.1:8001/api/videos?channel_id=UCzCsyvyrq38R6TnztEzOmgg
-  - [json-dumps](json-dumps) 👈
+  - [json-dumps](backend/json-dumps) 👈
 
 ### Source Sync and Course Refresh
 - `GET /api/sources/sync-metadata` — Read persisted channel/playlist sync metadata

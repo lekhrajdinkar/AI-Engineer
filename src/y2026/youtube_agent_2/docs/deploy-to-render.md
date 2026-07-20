@@ -1,5 +1,7 @@
 # Deploy to Render
 
+> https://dashboard.render.com/blueprint/exs-d9ensvv7f7vs73b1qfd0/sync/exe-d9enummrnols73ek4g2g
+
 This application deploys as two Render services from [render.yaml](../deployment/render/render.yaml)
 
 - `youtube-learning-api` — FastAPI, Firebase Admin, Firestore, and the
@@ -36,7 +38,7 @@ Open `youtube-learning-api` → **Environment** and set these values:
 
 | Variable | Value |
 | --- | --- |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | Complete Firebase Admin service-account JSON, on one line. |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Complete Firebase Admin **service-account** JSON, on one line. https://console.firebase.google.com/u/0/project/agent-2026-d3f51/settings/serviceaccounts/adminsdk|
 | `FRONTEND_URL` | Final UI URL, for example `https://youtube-learning-ui.onrender.com`. |
 | `GOOGLE_CLIENT_ID` | Google OAuth Web client ID used for YouTube access. |
 | `GOOGLE_CLIENT_SECRET` | Matching Google OAuth client secret. |

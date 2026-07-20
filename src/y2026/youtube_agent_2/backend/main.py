@@ -295,14 +295,6 @@ def _update_labels(plan_id: str, course_id: str, module_id: Optional[str], video
 # API
 #=====================================
 app = FastAPI(title="YouTube Learning Organizer - Backend")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[config.FRONTEND_URL, "http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 @app.middleware("http")
 async def require_firebase_identity(request: Request, call_next):
@@ -323,6 +315,17 @@ async def require_firebase_identity(request: Request, call_next):
         return await call_next(request)
     finally:
         db.reset_current_user(context_token)
+
+
+# Register CORS after the auth middleware so it wraps authentication failures
+# as well as normal endpoint responses.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[config.FRONTEND_URL, "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health", tags=["health"])
