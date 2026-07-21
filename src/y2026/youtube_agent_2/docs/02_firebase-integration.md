@@ -1,22 +1,32 @@
-# Firebase and Render Execution Steps v1
-
-## project Setup
+# Project Setup
 - Console: https://console.firebase.google.com/u/0/project/agent-2026-d3f51/firestore/databases/-default-/data
-- projectID:    `agent-2026-d3f51`
-- project naame: `youtube-agent-2026`
+- create project name: `youtube-agent-2026`
+- create webApp in project : `youtube-agent-webapp`
+  - On the overview page, look for the Web icon: </> -> Register app
+  - firebaseConfig - used in frontend 👈
+  ```json
+  {
+      "apiKey": "",
+      "authDomain": "agent-2026-d3f51.firebaseapp.com",
+      "projectId": "agent-2026-d3f51",
+      "storageBucket": "agent-2026-d3f51.firebasestorage.app",
+      "messagingSenderId": "",
+      "appId": "",
+      "measurementId": ""
+  }
+  ```
+  - service Account -> download `firebase_service_account_json.json` use in backend 👈
 
 **Database**
-  - Firestore: Build → Firestore Database → Create database → Native mode. Choose the region carefully; it cannot later be changed easily.
+- Firestore: Build → Firestore Database → Create database → Native mode. Choose the region carefully; it cannot later be changed easily.
 
 **Authentication**
-  - Google sign-in:
-  - Build → Authentication → Get started → Sign-in method → Google → Enable → select support email → Save.
-
-**webApp**
-  - On the overview page, look for the Web icon: </> -> Register app
+- Google sign-in:
+- Build → Authentication → Get started → Sign-in method → Google → Enable → select support email → Save.
 
 ---
-## Target architecture
+# migration step (codex)
+## Step 1 Target architecture
 - UI: `ui.myapp.render.com` (React static site)
 - API: FastAPI Render web service
 - App sign-in: Firebase Authentication with Google
@@ -27,10 +37,6 @@
 - Secrets: Render environment variables or secret files only
 
 Google/YouTube access tokens are used only for YouTube Data API calls. They are not used as custom access tokens for this application's API.
-
-## Step 1 — Firebase project preflight
-
-**Status:** Complete — project-side setup is ready for user action.
 
 ### Codex completed
 

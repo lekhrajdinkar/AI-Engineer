@@ -58,6 +58,11 @@ def organize_refresh_feed(plan_id: str, course_id: str) -> dict:
     return {"plan": plan, "added_videos": added}
 
 
+
+
+
+
+
 def add_suggested_course(plan_id: str) -> dict:
     row = db.load_plan(plan_id)
     if not row:

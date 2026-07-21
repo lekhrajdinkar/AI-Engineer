@@ -28,4 +28,4 @@ _default_fixture_dir = Path(__file__).resolve().parents[4] / "docs" / "json-dump
 AI_FIXTURE_DIR = Path(os.getenv("AI_FIXTURE_DIR", _default_fixture_dir))
 AI_DUMMY_LEARNING_PLAN_BM = AI_FIXTURE_DIR / "04_learning-plan_bm.json"
 AI_DUMMY_LEARNING_PLAN_BBGO = AI_FIXTURE_DIR / "04_learning-plan_bbgo.json"
-AI_DUMMY_LEARNING_PLAN = AI_DUMMY_LEARNING_PLAN_BBGO
+AI_DUMMY_LEARNING_PLAN = AI_DUMMY_LEARNING_PLAN_BM

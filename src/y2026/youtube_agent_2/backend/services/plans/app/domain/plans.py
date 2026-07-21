@@ -183,7 +183,7 @@ def update_module_labels(plan_id: str, course_id: str, module_id: str, labels: l
 
 
 def update_video_labels(plan_id: str, course_id: str, module_id: str, video_id: str, labels: list[str]) -> LearningPlan:
-    _validate_prebuilt_labels(labels, "video")
+    # _validate_prebuilt_labels(labels, "video")
     now = _now()
     fields = {"labels": labels, "watched": "watched" in labels, "_updated_at": now.isoformat()}
     if db.supports_targeted_updates():
