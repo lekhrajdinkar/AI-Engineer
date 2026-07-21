@@ -1,3 +1,0 @@
-# IAC
-## Subcategories
-### terraform

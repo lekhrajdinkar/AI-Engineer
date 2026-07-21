@@ -1,15 +1,5 @@
-"""Learning plans, source workflow, and course-generation service entry point."""
+"""Compatibility entry point for the plans service."""
 
-from src.y2026.youtube_agent_2.backend.api.ai import router as ai_router
-from src.y2026.youtube_agent_2.backend.api.plans import router as plans_router
-from src.y2026.youtube_agent_2.backend.api.source_sync import router as source_sync_router
-from src.y2026.youtube_agent_2.backend.app import create_app
+from .app.main import app
 
-
-app = create_app(
-    service_name="plans-service",
-    title="YouTube Learning Organizer - Plans Service",
-)
-app.include_router(plans_router)
-app.include_router(source_sync_router)
-app.include_router(ai_router)
+__all__ = ["app"]

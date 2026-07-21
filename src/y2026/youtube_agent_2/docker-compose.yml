@@ -1,9 +1,6 @@
 name: youtube-learning-organizer
 
 x-service-defaults: &service-defaults
-  build:
-    context: ../../..
-    dockerfile: src/y2026/youtube_agent_2/deployment/docker/Dockerfile
   restart: unless-stopped
   env_file:
     - path: backend/.env
@@ -15,7 +12,10 @@ x-service-defaults: &service-defaults
 services:
   gateway:
     <<: *service-defaults
-    command: uvicorn src.y2026.youtube_agent_2.backend.services.gateway.main:app --host 0.0.0.0 --port 8001
+    build:
+      context: ../../..
+      dockerfile: src/y2026/youtube_agent_2/backend/services/gateway/Dockerfile
+    command: uvicorn src.y2026.youtube_agent_2.backend.services.gateway.app.main:app --host 0.0.0.0 --port 8001
     ports:
       - "8001:8001"
     environment:
@@ -31,11 +31,14 @@ services:
 
   youtube-service:
     <<: *service-defaults
-    command: uvicorn src.y2026.youtube_agent_2.backend.services.youtube.main:app --host 0.0.0.0 --port 8002
+    build:
+      context: ../../..
+      dockerfile: src/y2026/youtube_agent_2/backend/services/youtube/Dockerfile
+    command: uvicorn src.y2026.youtube_agent_2.backend.services.youtube.app.main:app --host 0.0.0.0 --port 8002
     environment:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-microservice-token-change-me}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-      DATABASE_PATH: /data/youtube.sqlite3
+      YOUTUBE_DATABASE_PATH: /data/youtube.sqlite3
     volumes:
       - youtube-data:/data
     healthcheck:
@@ -46,11 +49,14 @@ services:
 
   plans-service:
     <<: *service-defaults
-    command: uvicorn src.y2026.youtube_agent_2.backend.services.plans.main:app --host 0.0.0.0 --port 8003
+    build:
+      context: ../../..
+      dockerfile: src/y2026/youtube_agent_2/backend/services/plans/Dockerfile
+    command: uvicorn src.y2026.youtube_agent_2.backend.services.plans.app.main:app --host 0.0.0.0 --port 8003
     environment:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-microservice-token-change-me}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-      DATABASE_PATH: /data/plans.sqlite3
+      PLANS_DATABASE_PATH: /data/plans.sqlite3
       YOUTUBE_SERVICE_URL: http://youtube-service:8002
     volumes:
       - plans-data:/data

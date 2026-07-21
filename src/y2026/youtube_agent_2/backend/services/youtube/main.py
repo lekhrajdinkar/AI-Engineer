@@ -1,15 +1,5 @@
-"""YouTube OAuth and catalog microservice entry point."""
+"""Compatibility entry point for the YouTube service."""
 
-from src.y2026.youtube_agent_2.backend.api.integrations import (
-    router as integrations_router,
-)
-from src.y2026.youtube_agent_2.backend.api.sources import router as sources_router
-from src.y2026.youtube_agent_2.backend.app import create_app
+from .app.main import app
 
-
-app = create_app(
-    service_name="youtube-service",
-    title="YouTube Learning Organizer - YouTube Service",
-)
-app.include_router(integrations_router)
-app.include_router(sources_router)
+__all__ = ["app"]

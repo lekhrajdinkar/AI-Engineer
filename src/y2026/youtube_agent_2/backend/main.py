@@ -13,7 +13,15 @@ from src.y2026.youtube_agent_2.backend.api.plans import router as plans_router
 from src.y2026.youtube_agent_2.backend.api.source_sync import router as source_sync_router
 from src.y2026.youtube_agent_2.backend.api.sources import router as sources_router
 from src.y2026.youtube_agent_2.backend.app import create_app
+from src.y2026.youtube_agent_2.backend.legacy.youtube_provider import (
+    LegacyLocalYouTubeProvider,
+)
+from src.y2026.youtube_agent_2.backend.services.plans.app.infrastructure.youtube_provider import (
+    configure_source_provider,
+)
 
+
+configure_source_provider(LegacyLocalYouTubeProvider())
 
 app = create_app()
 app.include_router(plans_router)

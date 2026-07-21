@@ -1,26 +1,10 @@
 """
-Simple script to list videos from a YouTube channel (e.g. @KodeKloud) using YouTube Data API v3.
-
-Usage examples (PowerShell):
-
-# Export API key to environment (or add to .env in repo root)
-$env:OPENAI_API_KEY = "..."  # not needed for this script
-$env:YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY"
-
-# Run the script (max 50 results)
-python -m src.y2026.youtube_agent.get_kodekloud_videos --query KodeKloud --max-results 50
-
-# Or specify a channel id directly
-python -m src.y2026.youtube_agent.get_kodekloud_videos --channel-id UCf0r... --max-results 100
-
-Notes:
-- This script requires a Google YouTube Data API v3 key stored in environment variable `YOUTUBE_API_KEY`.
-- If you don't have an API key, the script will explain how to get one and exit.
-- The script writes JSON to `metadata/kodekloud_videos.json` by default.
-
+✔️ === RUN ===
+python .\src\y2026\youtube-agent\get_kodekloud_videos.py --query KodeKloud --max-results 100
+python .\src\y2026\youtube-agent\get_kodekloud_videos.py --channel-id UCSWj8mqQCcrcBlXPi4ThRDQ --max-results 100
+# Output `src/y2026/youtube-agent/metadata/kodekloud_videos.json`
 """
 from __future__ import annotations
-
 import argparse
 import json
 import os
@@ -28,12 +12,12 @@ import sys
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-
+from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
-# Load .env if present (project uses python-dotenv)
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3"
 
