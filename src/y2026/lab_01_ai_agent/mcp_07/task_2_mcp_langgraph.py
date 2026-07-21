@@ -1,41 +1,8 @@
-#!/usr/bin/env python3
-"""Task 2: MCP and LangGraph Integration - Connecting MCP servers to agents"""
-
 import os
 import asyncio
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
-
-# ╔════════════════════════════════════════╗
-# ║   MCP + LangGraph Integration Flow     ║
-# ╚════════════════════════════════════════╝
-#
-#        [User Query]
-#             │
-#             ▼
-#     ┌───────────────┐
-#     │ LangGraph     │
-#     │ React Agent   │
-#     └───────┬───────┘
-#             │
-#       ┌─────┴─────┐
-#       │MCP Client │
-#       └─────┬─────┘
-#             │
-#       ┌─────┴─────┐
-#       ▼           ▼
-# ┌──────────┐ ┌─────────┐
-# │MCP Server│ │   LLM   │
-# │Calculator│ │Response │
-# │   🔢     │ │   💬    │
-# └──────────┘ └─────────┘
-#
-# MCP Tool Naming Convention:
-# When tools are loaded, they follow pattern:
-# Original: add, multiply
-# In Agent: Automatically handled by MCP adapter
-
 from pathlib import Path
 from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -57,8 +24,11 @@ model = ChatOpenAI(
 client = MultiServerMCPClient(
     {
         "calculator": {
-            "command": "python -m",
-            "args": ["src.y2026.lab_01_ai_agent.mcp_07.task_1_mcp_basics"],
+            "command": "python",
+            "args": [
+                "-m",
+                "src.y2026.lab_01_ai_agent.mcp_07.mcp_server.calculator_server",
+            ],
             "transport": "stdio",
         }
     }

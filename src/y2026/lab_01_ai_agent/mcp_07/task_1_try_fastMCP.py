@@ -1,41 +1,6 @@
-#!/usr/bin/env python3
-"""Task 1: Understanding MCP Basics - Your first MCP server"""
-
-import os
-import asyncio
-from typing import Any
-
-# ╔════════════════════════════════════════╗
-# ║     Model Context Protocol (MCP)      ║
-# ╚════════════════════════════════════════╝
-#
-# What is MCP?
-# ------------
-# MCP is like a USB port for AI - a standard way for
-# AI models to connect to external tools and data sources.
-#
-# ┌─────────────────┐     MCP Protocol    ┌─────────────────┐
-# │   AI Assistant  │◄────────────────────►│   MCP Server    │
-# │   (LangGraph)   │   stdio/SSE/HTTP    │  (Your Tools)   │
-# └─────────────────┘                      └─────────────────┘
-#
-# MCP Server Components:
-# ┌──────────────────────────────────────┐
-# │          MCP Server                  │
-# ├──────────────────────────────────────┤
-# │ 1. Tools (Functions)                 │
-# │    └─ add, multiply, divide          │
-# │ 2. Resources (Optional)              │
-# │    └─ Files, data, configs           │
-# │ 3. Prompts (Optional)                │
-# │    └─ Pre-defined templates          │
-# └──────────────────────────────────────┘
-
 print("📡 Task 1: Understanding MCP Basics\n")
 
 from mcp.server.fastmcp import FastMCP
-
-# Initialize the MCP server
 mcp = FastMCP("Calculator")
 
 @mcp.tool()
@@ -85,10 +50,8 @@ def test_tools():
     result = divide(5, 0)
     print(f"Response: {result}")
 
+if __name__ == "__main__":
+    mcp.run(
+        transport="streamable-http"
+    )
 
-def start_mcp():
-    print("🚀 STARTING MCP SERVER")
-    mcp.run(transport="stdio")
-
-if "__main__" == __name__:
-    start_mcp()

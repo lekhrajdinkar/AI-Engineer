@@ -2,19 +2,32 @@
 ## Environment Setup and run
 - [.env.example](../.env.example) | [.env](../.env)
 - [requirements.txt](../requirements.txt)|  `pip install langgraph langchain langchain-openai langchain-mcp-adapters mcp`
+- .\.venv\Scripts\activate
 
 ```bash
 #---1
-# start mcp1 (my-basic-mcp : calculator)
-python -m src.y2026.lab_01_ai_agent.mcp_07.task_1_mcp_basics
-# start agent-1 (simgle mcp - calculator)
+# start mcp1 (calculator)
+# 1.1. python -m src.y2026.lab_01_ai_agent.mcp_07.task_1_try_fastMCP
+
+# 1.2
+fastmcp run src\y2026\lab_01_ai_agent\mcp_07\task_1_try_fastMCP.py:mcp --transport streamable-http --host 127.0.0.1 --port 8000
+# http://127.0.0.1:8000/mcp 
+
+# 1.3
+fastmcp dev src\y2026\lab_01_ai_agent\mcp_07\task_1_try_fastMCP.py
+# Starting MCP inspector...
+#🔗 Open inspector with token pre-filled:
+   #http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=XXXXXXXXXx
+
+#---2 start agent-1 (calculator mcp)
 python -m src.y2026.lab_01_ai_agent.mcp_07.task_2_mcp_langgraph
 
-#---2
-# Start MCP/s
+#---3
+# Start MCP/s (not needed)
 python -m src.y2026.lab_01_ai_agent.mcp_07.mcp_server.calculator_servers
 python -m src.y2026.lab_01_ai_agent.mcp_07.mcp_server.weather_servers
-# start agent-2 (multiple mcp/s as above - calculator + weather)
+
+# start agent-2 (calculator + weather)
 python -m src.y2026.lab_01_ai_agent.mcp_07.task_3_multi_servers
 ```
 ---

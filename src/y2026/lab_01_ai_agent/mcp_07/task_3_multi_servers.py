@@ -1,37 +1,7 @@
-#!/usr/bin/env python3
-"""Task 3: Multiple MCP Servers - Orchestrating calculator and weather servers"""
-
 import os
 import asyncio
 from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
-
-# ╔════════════════════════════════════════════╗
-# ║     Multiple MCP Servers Architecture      ║
-# ╚════════════════════════════════════════════╝
-#
-#              [User Query]
-#                    │
-#                    ▼
-#            ┌──────────────┐
-#            │  LangGraph   │
-#            │ React Agent  │
-#            └──────┬───────┘
-#                   │
-#         ┌─────────┴─────────┐
-#         │MultiServerMCPClient│
-#         └─────────┬─────────┘
-#                   │
-#      ┌────────────┴────────────┐
-#      ▼                         ▼
-# ┌──────────┐            ┌──────────┐
-# │Calculator│            │ Weather  │
-# │MCP Server│            │MCP Server│
-# │    🔢    │            │    ☁️    │
-# └──────────┘            └──────────┘
-#
-# The agent "automatically" routes to the appropriate MCP server
-# based on the query content and available tools
 
 from pathlib import Path
 from dotenv import load_dotenv
@@ -56,23 +26,27 @@ async def run_multi_server_agent():
     client = MultiServerMCPClient(
         {
             "calculator": {
-                "command": "python -m",
-                "args": ["src.y2026.lab_01_ai_agent.mcp_07.mcp_server.calculator_server"],
+                "command": "python",
+                "args": [
+                    "-m",
+                    "src.y2026.lab_01_ai_agent.mcp_07.mcp_server.calculator_server",
+                ],
                 "transport": "stdio",
             },
             "weather": {
-                "command": "python -m",
-                "args": ["src.y2026.lab_01_ai_agent.mcp_07.mcp_server.weather_server"],
+                "command": "python",
+                "args": [
+                    "-m",
+                    "src.y2026.lab_01_ai_agent.mcp_07.mcp_server.weather_server",
+                ],
                 "transport": "stdio",
-            }
+            },
         }
     )
 
     tools = await client.get_tools()
-    print(f"✅ Loaded {len(tools) if hasattr(tools, '__len__') else 'multiple'} tools from MCP servers")
-
-    # Create react agent with all tools
     agent = create_react_agent(model, tools)
+    print(f"✅ Loaded {len(tools) if hasattr(tools, '__len__') else 'multiple'} tools from MCP servers")
 
     print("\n" + "=" * 60)
     print("TESTING MULTI-SERVER ORCHESTRATION:")
