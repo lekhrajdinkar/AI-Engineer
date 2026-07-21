@@ -10,7 +10,6 @@ COPY src/__init__.py /app/src/__init__.py
 COPY src/y2026/__init__.py /app/src/y2026/__init__.py
 COPY src/y2026/youtube_agent_2/__init__.py /app/src/y2026/youtube_agent_2/__init__.py
 COPY src/y2026/youtube_agent_2/backend/__init__.py /app/src/y2026/youtube_agent_2/backend/__init__.py
-COPY src/y2026/youtube_agent_2/docs/json-dumps /app/src/y2026/youtube_agent_2/docs/json-dumps
 COPY src/y2026/youtube_agent_2/backend/shared /app/src/y2026/youtube_agent_2/backend/shared
 COPY src/y2026/youtube_agent_2/backend/services/__init__.py /app/src/y2026/youtube_agent_2/backend/services/__init__.py
 COPY src/y2026/youtube_agent_2/backend/services/plans /app/src/y2026/youtube_agent_2/backend/services/plans

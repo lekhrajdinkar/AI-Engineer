@@ -1,9 +1,13 @@
 # Local Kubernetes deployment
 
 These manifests target the Docker Desktop `docker-desktop` context. They run
-the three backend microservices in the `youtube-agent` namespace. The gateway
-is exposed on `http://localhost:8001`; the YouTube and plans services are
-reachable only through Kubernetes service discovery.
+the three backend microservices, CPU-only Ollama, a `qwen3:8b` model-pull Job,
+and Dozzle in the `youtube-agent` namespace. The gateway is exposed on
+`http://localhost:8001`; Ollama and the internal services remain private.
+
+Allocate at least 16 GiB and 12 CPUs to Docker Desktop before enabling its
+Kubernetes cluster. The Ollama defaults request 4 CPUs/8 GiB and may use up to
+12 CPUs/12 GiB while the model is loaded.
 
 For release-based upgrades and configurable values, prefer the Helm chart in
 `deployment/helm`. Do not install both variants into the same namespace.
@@ -49,6 +53,8 @@ kubectl apply -k src/y2026/youtube_agent_2/deployment/kubernetes
 kubectl rollout status deployment/api-gateway -n youtube-agent
 kubectl rollout status deployment/youtube-service -n youtube-agent
 kubectl rollout status deployment/plans-service -n youtube-agent
+kubectl rollout status deployment/ollama -n youtube-agent
+kubectl wait --for=condition=complete job/ollama-model-pull -n youtube-agent --timeout=20m
 ```
 
 Skip the `secret.local.yaml` command when only testing health and local SQLite
@@ -70,6 +76,20 @@ kubectl port-forward service/api-gateway 8001:8001 -n youtube-agent
 
 Then run the Vite frontend locally on `http://localhost:5173`.
 
+To inspect structured plans-service and Ollama logs in Dozzle:
+
+```powershell
+kubectl port-forward service/dozzle 8080:8080 -n youtube-agent
+```
+
+Open `http://localhost:8080` and filter for `llm_run_id`. Resource statistics
+also require the Kubernetes Metrics API; logs work without it. Ollama can be
+temporarily inspected with:
+
+```powershell
+kubectl port-forward service/ollama 11434:11434 -n youtube-agent
+```
+
 ## Update or remove
 
 After rebuilding an image with the same `:local` tag, restart that Deployment:
@@ -78,6 +98,7 @@ After rebuilding an image with the same `:local` tag, restart that Deployment:
 kubectl rollout restart deployment/api-gateway -n youtube-agent
 kubectl rollout restart deployment/youtube-service -n youtube-agent
 kubectl rollout restart deployment/plans-service -n youtube-agent
+kubectl rollout restart deployment/ollama -n youtube-agent
 ```
 
 Remove only these application resources with:
@@ -86,5 +107,5 @@ Remove only these application resources with:
 kubectl delete namespace youtube-agent
 ```
 
-Deleting the namespace also deletes both local SQLite persistent volume
-claims and their stored application data.
+Deleting the namespace also deletes the local SQLite and Ollama persistent
+volume claims and their stored data/models.

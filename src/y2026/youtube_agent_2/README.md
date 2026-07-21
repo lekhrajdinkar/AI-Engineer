@@ -1,6 +1,33 @@
 # Youtube Agent
 [project-req-doc.md](docs/01_project-req-doc.md)
 
+```
+README.md
+docs/
+deploymnet/
+frontend/
+backend/
+├── services/
+│   ├── gateway/
+│   │   ├── app/
+│   │   ├── tests/
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   ├── youtube/
+│   │   ├── app/api, domain, infrastructure, repositories
+│   │   ├── tests/
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   └── plans/
+│       ├── app/api, domain, infrastructure, repositories
+│       ├── tests/
+│       ├── Dockerfile
+│       └── requirements.txt
+├── shared/
+│   ├── contracts/
+│   └── platform/
+```
+
 ## ✔️ Run ⭐
 microservice | http://127.0.0.1:8001/docs | [microservices.md](docs/04_microservices.md)
 
@@ -23,10 +50,11 @@ docker compose -f src/y2026/youtube_agent_2/deployment/docker/docker-compose.yml
 
 # Docker Desktop Kubernetes
 # See deployment/kubernetes/README.md for build, secrets, and deploy commands.
+# The local deployment includes Ollama qwen3:8b and Dozzle log monitoring.
 kubectl apply -k src/y2026/youtube_agent_2/deployment/kubernetes
 
 # Helm (recommended for repeatable Kubernetes installs)
-helm upgrade --install youtube-agent src/y2026/youtube_agent_2/deployment/helm --namespace youtube-agent --create-namespace --wait
+helm upgrade --install youtube-agent src/y2026/youtube_agent_2/deployment/helm --namespace youtube-agent --create-namespace --timeout 20m --wait
 ```
 React UI
 ```bash

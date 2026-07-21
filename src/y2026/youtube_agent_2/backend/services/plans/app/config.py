@@ -24,8 +24,9 @@ YOUTUBE_SERVICE_URL = os.getenv(
     "YOUTUBE_SERVICE_URL", "http://127.0.0.1:8002"
 )
 
-_default_fixture_dir = Path(__file__).resolve().parents[4] / "docs" / "json-dumps"
-AI_FIXTURE_DIR = Path(os.getenv("AI_FIXTURE_DIR", _default_fixture_dir))
-AI_DUMMY_LEARNING_PLAN_BM = AI_FIXTURE_DIR / "04_learning-plan_bm.json"
-AI_DUMMY_LEARNING_PLAN_BBGO = AI_FIXTURE_DIR / "04_learning-plan_bbgo.json"
-AI_DUMMY_LEARNING_PLAN = AI_DUMMY_LEARNING_PLAN_BM
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen3:8b")
+LLM_REQUEST_TIMEOUT_SECS = float(os.getenv("LLM_REQUEST_TIMEOUT_SECS", "600"))
+LLM_BATCH_SIZE = max(1, int(os.getenv("LLM_BATCH_SIZE", "25")))
+LLM_MAX_VIDEOS = max(1, int(os.getenv("LLM_MAX_VIDEOS", "100")))
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()

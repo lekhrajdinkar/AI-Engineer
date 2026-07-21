@@ -23,6 +23,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       GATEWAY_YOUTUBE_SERVICE_URL: http://youtube-service:8002
       GATEWAY_PLANS_SERVICE_URL: http://plans-service:8003
+      SERVICE_REQUEST_TIMEOUT_SECS: ${SERVICE_REQUEST_TIMEOUT_SECS:-600}
     depends_on:
       youtube-service:
         condition: service_healthy
@@ -58,17 +59,51 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       PLANS_DATABASE_PATH: /data/plans.sqlite3
       YOUTUBE_SERVICE_URL: http://youtube-service:8002
+      LLM_BASE_URL: http://ollama:11434
+      LLM_MODEL: ${LLM_MODEL:-qwen3:8b}
+      LLM_REQUEST_TIMEOUT_SECS: ${LLM_REQUEST_TIMEOUT_SECS:-600}
+      LLM_BATCH_SIZE: ${LLM_BATCH_SIZE:-25}
+      LLM_MAX_VIDEOS: ${LLM_MAX_VIDEOS:-100}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - plans-data:/data
     depends_on:
       youtube-service:
         condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health')"]
       interval: 10s
       timeout: 3s
       retries: 5
 
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ollama-init:
+    image: ollama/ollama:latest
+    restart: "no"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command: ["pull", "${LLM_MODEL:-qwen3:8b}"]
+    volumes:
+      - ollama-data:/root/.ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+
 volumes:
   youtube-data:
   plans-data:
+  ollama-data:

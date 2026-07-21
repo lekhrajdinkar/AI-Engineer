@@ -1,0 +1,95 @@
+{{- if .Values.ollama.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-ollama
+  labels:
+    {{- include "youtube-agent.labels" (dict "root" . "component" "ollama") | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "ollama") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "ollama") | nindent 8 }}
+    spec:
+      containers:
+        - name: ollama
+          image: "{{ .Values.ollama.image.repository }}:{{ .Values.ollama.image.tag }}"
+          imagePullPolicy: {{ .Values.ollama.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.ollama.service.port }}
+          readinessProbe:
+            exec:
+              command: ["ollama", "list"]
+            initialDelaySeconds: {{ .Values.ollama.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ollama.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.ollama.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.ollama.readinessProbe.failureThreshold }}
+          livenessProbe:
+            exec:
+              command: ["ollama", "list"]
+            initialDelaySeconds: {{ .Values.ollama.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ollama.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.ollama.livenessProbe.timeoutSeconds }}
+          resources:
+            {{- toYaml .Values.ollama.resources | nindent 12 }}
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+      volumes:
+        - name: models
+          {{- if .Values.ollama.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-ollama-data" (include "youtube-agent.fullname" .)) .Values.ollama.persistence.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-ollama
+  labels:
+    {{- include "youtube-agent.labels" (dict "root" . "component" "ollama") | nindent 4 }}
+spec:
+  selector:
+    {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "ollama") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.ollama.service.port }}
+      targetPort: http
+{{- if .Values.ollama.modelPull.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-ollama-model-pull
+  labels:
+    {{- include "youtube-agent.labels" (dict "root" . "component" "ollama-model-pull") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .Values.ollama.modelPull.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "ollama-model-pull") | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: model-pull
+          image: "{{ .Values.ollama.image.repository }}:{{ .Values.ollama.image.tag }}"
+          imagePullPolicy: {{ .Values.ollama.image.pullPolicy }}
+          env:
+            - name: OLLAMA_HOST
+              value: {{ printf "http://%s-ollama:%v" (include "youtube-agent.fullname" .) .Values.ollama.service.port | quote }}
+          command: ["ollama", "pull", {{ .Values.llm.model | quote }}]
+{{- end }}
+{{- end }}

@@ -1,8 +1,12 @@
 # YouTube Agent Helm chart
 
-This chart deploys the API gateway, YouTube integration service, and plans
-service. It defaults to Docker Desktop Kubernetes, local `:local` images,
-SQLite persistence, and disabled Firebase authentication.
+This chart deploys the API gateway, YouTube integration service, plans service,
+CPU-only Ollama with `qwen3:8b`, and optional Dozzle log monitoring. It defaults
+to Docker Desktop Kubernetes, local application images, SQLite persistence,
+and disabled Firebase authentication.
+
+Allocate at least 16 GiB and 12 CPUs to Docker Desktop. Ollama requests 4
+CPUs/8 GiB and may use up to 12 CPUs/12 GiB while the model is loaded.
 
 Use either this Helm chart or the raw Kustomize manifests for a given cluster,
 not both. Installing both creates two independent copies of the services.
@@ -28,8 +32,12 @@ helm upgrade --install youtube-agent `
   src/y2026/youtube_agent_2/deployment/helm `
   --namespace youtube-agent `
   --create-namespace `
+  --timeout 20m `
   --wait
 ```
+
+The post-install/post-upgrade Job pulls the configured model into the retained
+Ollama PVC. Subsequent upgrades reuse the cached model.
 
 The gateway is exposed at `http://localhost:8001`. If Docker Desktop has not
 published the LoadBalancer, use:
@@ -37,6 +45,14 @@ published the LoadBalancer, use:
 ```powershell
 kubectl port-forward service/youtube-agent-gateway 8001:8001 -n youtube-agent
 ```
+
+Dozzle is enabled for local installs and is not publicly exposed:
+
+```powershell
+kubectl port-forward service/youtube-agent-dozzle 8080:8080 -n youtube-agent
+```
+
+Open `http://localhost:8080` and filter structured logs by `llm_run_id`.
 
 ## Application secrets
 
@@ -91,7 +107,7 @@ keeping the development token.
 helm lint src/y2026/youtube_agent_2/deployment/helm
 helm template youtube-agent src/y2026/youtube_agent_2/deployment/helm --namespace youtube-agent
 helm status youtube-agent -n youtube-agent
-kubectl get deployments,services,pvc -n youtube-agent
+kubectl get deployments,services,pvc,jobs -n youtube-agent
 ```
 
 All settings, including image repositories/tags, replicas, resources, service
@@ -108,5 +124,5 @@ uninstall or reinstall. Delete them explicitly only when the data is no longer
 needed:
 
 ```powershell
-kubectl delete pvc youtube-agent-youtube-data youtube-agent-plans-data -n youtube-agent
+kubectl delete pvc youtube-agent-youtube-data youtube-agent-plans-data youtube-agent-ollama-data -n youtube-agent
 ```

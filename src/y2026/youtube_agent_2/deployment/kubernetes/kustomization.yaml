@@ -8,6 +8,8 @@ resources:
   - gateway.yaml
   - youtube.yaml
   - plans.yaml
+  - ollama.yaml
+  - dozzle.yaml
 secretGenerator:
   - name: youtube-agent-internal
     literals:

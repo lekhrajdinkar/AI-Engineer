@@ -8,10 +8,16 @@ data:
   FIREBASE_PROJECT_ID: agent-2026-d3f51
   FIREBASE_DEFAULT_USER_ID: local-kubernetes-user
   FRONTEND_URL: http://localhost:5173
-  SERVICE_REQUEST_TIMEOUT_SECS: "30"
+  SERVICE_REQUEST_TIMEOUT_SECS: "600"
   GATEWAY_YOUTUBE_SERVICE_URL: http://youtube-service:8002
   GATEWAY_PLANS_SERVICE_URL: http://plans-service:8003
   YOUTUBE_SERVICE_URL: http://youtube-service:8002
   YOUTUBE_DATABASE_PATH: /data/youtube.sqlite3
   PLANS_DATABASE_PATH: /data/plans.sqlite3
+  LLM_BASE_URL: http://ollama:11434
+  LLM_MODEL: qwen3:8b
+  LLM_REQUEST_TIMEOUT_SECS: "600"
+  LLM_BATCH_SIZE: "25"
+  LLM_MAX_VIDEOS: "100"
+  LOG_LEVEL: INFO
   GOOGLE_REDIRECT_URI: http://localhost:8001/auth/google/callback

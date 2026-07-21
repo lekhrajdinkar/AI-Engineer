@@ -19,6 +19,28 @@ spec:
     requests:
       storage: {{ .Values.youtube.persistence.size }}
 {{- end }}
+{{- if and .Values.ollama.enabled .Values.ollama.persistence.enabled (not .Values.ollama.persistence.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-ollama-data
+  {{- if .Values.ollama.persistence.retain }}
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- end }}
+  labels:
+    {{- include "youtube-agent.labels" (dict "root" . "component" "ollama") | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.ollama.persistence.accessModes | nindent 4 }}
+  {{- if .Values.ollama.persistence.storageClass }}
+  storageClassName: {{ .Values.ollama.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.ollama.persistence.size }}
+{{- end }}
 {{- if and .Values.plans.persistence.enabled (not .Values.plans.persistence.existingClaim) }}
 ---
 apiVersion: v1

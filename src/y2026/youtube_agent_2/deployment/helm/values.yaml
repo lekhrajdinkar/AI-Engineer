@@ -7,8 +7,15 @@ config:
   firebaseProjectId: agent-2026-d3f51
   firebaseDefaultUserId: local-helm-user
   frontendUrl: http://localhost:5173
-  serviceRequestTimeoutSecs: 30
+  serviceRequestTimeoutSecs: 600
   googleRedirectUri: http://localhost:8001/auth/google/callback
+  logLevel: INFO
+
+llm:
+  model: qwen3:8b
+  requestTimeoutSecs: 600
+  batchSize: 25
+  maxVideos: 100
 
 internalService:
   # For shared environments, use an existing Secret containing
@@ -112,3 +119,56 @@ plans:
     limits:
       cpu: "1"
       memory: 512Mi
+
+ollama:
+  enabled: true
+  image:
+    repository: ollama/ollama
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 11434
+  persistence:
+    enabled: true
+    retain: true
+    existingClaim: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 12
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 5
+  resources:
+    requests:
+      cpu: "4"
+      memory: 8Gi
+    limits:
+      cpu: "12"
+      memory: 12Gi
+  modelPull:
+    enabled: true
+    backoffLimit: 12
+
+observability:
+  dozzle:
+    enabled: true
+    image:
+      repository: amir20/dozzle
+      tag: v10.6.11
+      pullPolicy: IfNotPresent
+    service:
+      port: 8080
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi

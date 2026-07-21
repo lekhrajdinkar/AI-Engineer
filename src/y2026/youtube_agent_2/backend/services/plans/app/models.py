@@ -121,5 +121,5 @@ class MetadataUpdateRequest(BaseModel):
     last_played_at: Optional[datetime] = None
 
 class AiCourseRequest(BaseModel):
-    videos: List[Video]
+    videos: List[Video] = Field(min_length=1)
     source_channels: List[Channel] = Field(default_factory=list)

@@ -141,14 +141,23 @@ YouTube subscriptions are useful but unstructured for intentional learning:
   - > TODO-2 ⚠️ replace with LLM chapter assignment later. 
 
 ---
-### Phase-4 Deploy on Render ✅
+### Phase-4 ✅
 - [deploy-to-render.md](03_deploy-to-render.md)
 - [firebase-integration.md](02_firebase-integration.md)
 
 --- 
-### Phase-5 LLM 
-- TODO-1 (check phase-2, step-2)
-- TODO-2 (check phase-2, step-2)
+### Phase-5 LLM ✅
+- TODO-1 implemented for AI-assisted course creation.
+- TODO-2 implemented for staged-feed organization.
+```mermaid
+flowchart TD
+    A["Selected videos"] --> B["Normalize and deduplicate"]
+    B --> C["Generate course outline"]
+    C --> D["Classify videos in batches"]
+    D --> E["Validate every video ID"]
+    E --> F["Rehydrate authoritative video metadata"]
+    F --> G["Persist the fully validated result"]
+```
 
 
 

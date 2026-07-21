@@ -16,4 +16,10 @@ data:
   YOUTUBE_SERVICE_URL: {{ printf "http://%s-youtube:%v" (include "youtube-agent.fullname" .) .Values.youtube.service.port | quote }}
   YOUTUBE_DATABASE_PATH: /data/youtube.sqlite3
   PLANS_DATABASE_PATH: /data/plans.sqlite3
+  LLM_BASE_URL: {{ printf "http://%s-ollama:%v" (include "youtube-agent.fullname" .) .Values.ollama.service.port | quote }}
+  LLM_MODEL: {{ .Values.llm.model | quote }}
+  LLM_REQUEST_TIMEOUT_SECS: {{ .Values.llm.requestTimeoutSecs | quote }}
+  LLM_BATCH_SIZE: {{ .Values.llm.batchSize | quote }}
+  LLM_MAX_VIDEOS: {{ .Values.llm.maxVideos | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
   GOOGLE_REDIRECT_URI: {{ .Values.config.googleRedirectUri | quote }}

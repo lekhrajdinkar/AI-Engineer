@@ -1,0 +1,87 @@
+{{- if .Values.observability.dozzle.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-dozzle
+  labels:
+    {{- include "youtube-agent.labels" (dict "root" . "component" "dozzle") | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-dozzle
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-dozzle
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "youtube-agent.fullname" . }}-dozzle
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "youtube-agent.fullname" . }}-dozzle
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-dozzle
+  labels:
+    {{- include "youtube-agent.labels" (dict "root" . "component" "dozzle") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "dozzle") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "dozzle") | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "youtube-agent.fullname" . }}-dozzle
+      containers:
+        - name: dozzle
+          image: "{{ .Values.observability.dozzle.image.repository }}:{{ .Values.observability.dozzle.image.tag }}"
+          imagePullPolicy: {{ .Values.observability.dozzle.image.pullPolicy }}
+          env:
+            - name: DOZZLE_MODE
+              value: k8s
+            - name: DOZZLE_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: DOZZLE_ENABLE_SHELL
+              value: "false"
+          ports:
+            - name: http
+              containerPort: {{ .Values.observability.dozzle.service.port }}
+          resources:
+            {{- toYaml .Values.observability.dozzle.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-dozzle
+  labels:
+    {{- include "youtube-agent.labels" (dict "root" . "component" "dozzle") | nindent 4 }}
+spec:
+  selector:
+    {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "dozzle") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.observability.dozzle.service.port }}
+      targetPort: http
+{{- end }}
