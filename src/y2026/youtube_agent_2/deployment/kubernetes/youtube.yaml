@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: youtube-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: youtube-service
+  template:
+    metadata:
+      labels:
+        app: youtube-service
+    spec:
+      containers:
+        - name: youtube-service
+          image: youtube-agent-youtube:local
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: youtube-agent-config
+            - secretRef:
+                name: youtube-agent-internal
+            - secretRef:
+                name: youtube-service-secrets
+                optional: true
+          ports:
+            - name: http
+              containerPort: 8002
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: youtube-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: youtube-service
+spec:
+  selector:
+    app: youtube-service
+  ports:
+    - name: http
+      port: 8002
+      targetPort: http

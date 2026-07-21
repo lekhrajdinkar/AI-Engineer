@@ -1,0 +1,114 @@
+nameOverride: ""
+fullnameOverride: ""
+
+config:
+  firebaseEnabled: false
+  firebaseAuthRequired: false
+  firebaseProjectId: agent-2026-d3f51
+  firebaseDefaultUserId: local-helm-user
+  frontendUrl: http://localhost:5173
+  serviceRequestTimeoutSecs: 30
+  googleRedirectUri: http://localhost:8001/auth/google/callback
+
+internalService:
+  # For shared environments, use an existing Secret containing
+  # INTERNAL_SERVICE_TOKEN and leave token unset in a private values file.
+  existingSecret: ""
+  token: local-helm-token-change-me
+
+secrets:
+  youtube:
+    existingSecret: ""
+    create: false
+    googleClientId: ""
+    googleClientSecret: ""
+    tokenEncryptionKey: ""
+    oauthStateSecret: ""
+    firebaseServiceAccountJson: ""
+  plans:
+    existingSecret: ""
+    create: false
+    firebaseServiceAccountJson: ""
+
+gateway:
+  replicaCount: 1
+  image:
+    repository: youtube-agent-gateway
+    tag: local
+    pullPolicy: Never
+  service:
+    type: LoadBalancer
+    port: 8001
+  readinessProbe:
+    initialDelaySeconds: 2
+    periodSeconds: 5
+  livenessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+youtube:
+  replicaCount: 1
+  image:
+    repository: youtube-agent-youtube
+    tag: local
+    pullPolicy: Never
+  service:
+    port: 8002
+  persistence:
+    enabled: true
+    retain: true
+    existingClaim: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+  readinessProbe:
+    initialDelaySeconds: 3
+    periodSeconds: 5
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+plans:
+  replicaCount: 1
+  image:
+    repository: youtube-agent-plans
+    tag: local
+    pullPolicy: Never
+  service:
+    port: 8003
+  persistence:
+    enabled: true
+    retain: true
+    existingClaim: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+  readinessProbe:
+    initialDelaySeconds: 3
+    periodSeconds: 5
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi

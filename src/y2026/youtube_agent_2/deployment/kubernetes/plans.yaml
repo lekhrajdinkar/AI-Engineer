@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plans-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plans-service
+  template:
+    metadata:
+      labels:
+        app: plans-service
+    spec:
+      containers:
+        - name: plans-service
+          image: youtube-agent-plans:local
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: youtube-agent-config
+            - secretRef:
+                name: youtube-agent-internal
+            - secretRef:
+                name: plans-service-secrets
+                optional: true
+          ports:
+            - name: http
+              containerPort: 8003
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: plans-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plans-service
+spec:
+  selector:
+    app: plans-service
+  ports:
+    - name: http
+      port: 8003
+      targetPort: http

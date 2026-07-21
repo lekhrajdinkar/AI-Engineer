@@ -1,0 +1,1 @@
+"""Backend architecture tests."""

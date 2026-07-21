@@ -1,5 +1,47 @@
-import React from 'react'
-export function EditIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16.5V20h3.5L18.3 9.2l-3.5-3.5L4 16.5Zm13.9-9.4 1.4-1.4a1 1 0 0 0 0-1.4l-1.2-1.2a1 1 0 0 0-1.4 0l-1.4 1.4 3.5 3.6Z" /></svg> }
-export function RefreshIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3M20 4v7h-7" /></svg> }
-export function LabelIcon({ label }) { return label === 'watched' ? <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg> : label === 'bookmarked' ? <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4V3Z" /></svg> : <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" /></svg> }
-export function WorkspaceIcon({ name }) { const paths = { filter: 'M4 5h16M7 12h10m-7 7h4', sort: 'M6 7h12M6 12h8M6 17h4', manual: 'M12 5v14M5 12h14', ai: 'm12 3 1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3ZM19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7L19 15Z', info: 'M12 17v-6m0-3h.01M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z', edit: 'M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4', expand: 'M8 14l4-4 4 4M8 10l4-4 4 4', collapse: 'M8 6l4 4 4-4M8 14l4 4 4-4' }; return <svg viewBox="0 0 24 24"><path d={paths[name]} /></svg> }
+import React from "react";
+export function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 16.5V20h3.5L18.3 9.2l-3.5-3.5L4 16.5Zm13.9-9.4 1.4-1.4a1 1 0 0 0 0-1.4l-1.2-1.2a1 1 0 0 0-1.4 0l-1.4 1.4 3.5 3.6Z" />
+    </svg>
+  );
+}
+export function RefreshIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 11a8 8 0 1 0 2 5.3M20 4v7h-7" />
+    </svg>
+  );
+}
+export function LabelIcon({ label }) {
+  return label === "watched" ? (
+    <svg viewBox="0 0 24 24">
+      <path d="m5 12 4 4L19 6" />
+    </svg>
+  ) : label === "bookmarked" ? (
+    <svg viewBox="0 0 24 24">
+      <path d="M6 3h12v18l-6-4-6 4V3Z" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 24 24">
+      <path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" />
+    </svg>
+  );
+}
+export function WorkspaceIcon({ name }) {
+  const paths = {
+    filter: "M4 5h16M7 12h10m-7 7h4",
+    sort: "M6 7h12M6 12h8M6 17h4",
+    manual: "M12 5v14M5 12h14",
+    ai: "m12 3 1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3ZM19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7L19 15Z",
+    info: "M12 17v-6m0-3h.01M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z",
+    edit: "M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4",
+    expand: "M8 14l4-4 4 4M8 10l4-4 4 4",
+    collapse: "M8 6l4 4 4-4M8 14l4 4 4-4",
+  };
+  return (
+    <svg viewBox="0 0 24 24">
+      <path d={paths[name]} />
+    </svg>
+  );
+}

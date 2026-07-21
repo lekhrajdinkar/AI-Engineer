@@ -136,8 +136,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     if (!location || !video) return
     try {
       setLabelError('')
-      await updateVideoLabels(plan.id, location.course.id, location.module.id, videoId, withToggledLabel(video.labels, 'watched'))
-      await refreshPlanAfterChange()
+      const response = await updateVideoLabels(plan.id, location.course.id, location.module.id, videoId, withToggledLabel(video.labels, 'watched'))
+      onUpdate(response.plan)
     } catch (error) {
       setLabelError(error.message || 'Unable to update video labels')
     }
@@ -179,7 +179,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
           }
         }
       }
-      await refreshPlanAfterChange()
+      onUpdate(await getPlan(plan.id))
       setSelectedVideoIds([])
     } catch (error) {
       setLabelError(error.message || 'Unable to update video labels')
@@ -192,8 +192,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     if (!location) return
     try {
       setLabelError('')
-      await updateVideoLabels(plan.id, location.course.id, location.module.id, video.video_id, withToggledLabel(video.labels, label))
-      await refreshPlanAfterChange()
+      const response = await updateVideoLabels(plan.id, location.course.id, location.module.id, video.video_id, withToggledLabel(video.labels, label))
+      onUpdate(response.plan)
     } catch (error) {
       setLabelError(error.message || 'Unable to update video labels')
     }
@@ -203,8 +203,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     if (!activeCourse) return
     try {
       setLabelError('')
-      await updateCourseLabels(plan.id, activeCourse.id, withToggledLabel(activeCourse.labels, label))
-      await refreshPlanAfterChange()
+      const response = await updateCourseLabels(plan.id, activeCourse.id, withToggledLabel(activeCourse.labels, label))
+      onUpdate(response.plan)
     } catch (error) {
       setLabelError(error.message || 'Unable to update course labels')
     }
@@ -213,8 +213,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   async function toggleModuleLabel(module, label) {
     try {
       setLabelError('')
-      await updateModuleLabels(plan.id, activeCourse.id, module.id, withToggledLabel(module.labels, label))
-      await refreshPlanAfterChange()
+      const response = await updateModuleLabels(plan.id, activeCourse.id, module.id, withToggledLabel(module.labels, label))
+      onUpdate(response.plan)
     } catch (error) {
       setLabelError(error.message || 'Unable to update module labels')
     }

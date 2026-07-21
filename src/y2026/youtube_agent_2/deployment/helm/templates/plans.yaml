@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-plans
+  labels:
+    {{- include "youtube-agent.labels" (dict "root" . "component" "plans") | nindent 4 }}
+spec:
+  replicas: {{ .Values.plans.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "plans") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "plans") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: plans-service
+          image: "{{ .Values.plans.image.repository }}:{{ .Values.plans.image.tag }}"
+          imagePullPolicy: {{ .Values.plans.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "youtube-agent.fullname" . }}-config
+            - secretRef:
+                name: {{ include "youtube-agent.internalSecretName" . }}
+            {{- if or .Values.secrets.plans.create .Values.secrets.plans.existingSecret }}
+            - secretRef:
+                name: {{ include "youtube-agent.plansSecretName" . }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.plans.service.port }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.plans.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.plans.readinessProbe.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.plans.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.plans.livenessProbe.periodSeconds }}
+          resources:
+            {{- toYaml .Values.plans.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          {{- if .Values.plans.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-plans-data" (include "youtube-agent.fullname" .)) .Values.plans.persistence.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "youtube-agent.fullname" . }}-plans
+  labels:
+    {{- include "youtube-agent.labels" (dict "root" . "component" "plans") | nindent 4 }}
+spec:
+  selector:
+    {{- include "youtube-agent.selectorLabels" (dict "root" . "component" "plans") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.plans.service.port }}
+      targetPort: http
