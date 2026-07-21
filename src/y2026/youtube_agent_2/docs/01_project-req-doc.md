@@ -142,7 +142,7 @@ YouTube subscriptions are useful but unstructured for intentional learning:
 
 ---
 ### Phase-4 Deploy on Render ✅
-- [deploy-to-render.md](03_deploy-to-render.md)
+- [deploy-to-render.md](../deployment/render/README.md)
 - [firebase-integration.md](02_firebase-integration.md)
 
 --- 

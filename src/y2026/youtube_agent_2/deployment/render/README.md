@@ -1,6 +1,6 @@
 # Deploy the microservices to Render
 
-The [Render Blueprint](../deployment/render/render-microservices.yaml) creates
+The [Render Blueprint](render-microservices.yaml) creates
 four independently deployed services:
 
 - `youtube-learning-gateway`: the public API URL used by the frontend.
