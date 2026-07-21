@@ -18,9 +18,15 @@ uvicorn src.y2026.youtube_agent_2.backend.services.gateway.app.main:app --reload
 uvicorn src.y2026.youtube_agent_2.backend.services.youtube.app.main:app --reload --port 8002
 uvicorn src.y2026.youtube_agent_2.backend.services.plans.app.main:app --reload --port 8003
 
-## Docker
-cd src/y2026/youtube_agent_2
-docker compose up --build
+# Docker Compose (optional)
+docker compose -f src/y2026/youtube_agent_2/deployment/docker/docker-compose.yml up --build
+
+# Docker Desktop Kubernetes
+# See deployment/kubernetes/README.md for build, secrets, and deploy commands.
+kubectl apply -k src/y2026/youtube_agent_2/deployment/kubernetes
+
+# Helm (recommended for repeatable Kubernetes installs)
+helm upgrade --install youtube-agent src/y2026/youtube_agent_2/deployment/helm --namespace youtube-agent --create-namespace --wait
 ```
 React UI
 ```bash
@@ -38,6 +44,10 @@ FIREBASE_AUTH_REQUIRED=false
 Deploy/Run to render
 - [deploy-to-render.md](docs/03_deploy-to-render.md)
 - [render-microservices.yaml](deployment/render/render-microservices.yaml)
+
+Local Kubernetes
+- [deployment/kubernetes/README.md](deployment/kubernetes/README.md)
+- [deployment/helm/README.md](deployment/helm/README.md)
 
 ---
 ## ✔️One time configuration

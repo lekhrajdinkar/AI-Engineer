@@ -78,7 +78,7 @@ _provider_override: SourceProvider | None = None
 
 
 def configure_source_provider(provider: SourceProvider | None) -> None:
-    """Override the HTTP adapter only from a composition root, such as legacy."""
+    """Override the HTTP adapter from a controlled composition root or test."""
     global _provider_override
     _provider_override = provider
 

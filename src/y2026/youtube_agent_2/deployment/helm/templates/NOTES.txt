@@ -1,0 +1,10 @@
+The YouTube Agent microservices have been installed in namespace {{ .Release.Namespace }}.
+
+Gateway service:
+  kubectl get service {{ include "youtube-agent.fullname" . }}-gateway -n {{ .Release.Namespace }}
+
+If the local LoadBalancer is not immediately available:
+  kubectl port-forward service/{{ include "youtube-agent.fullname" . }}-gateway {{ .Values.gateway.service.port }}:{{ .Values.gateway.service.port }} -n {{ .Release.Namespace }}
+
+Health check:
+  Invoke-RestMethod http://localhost:{{ .Values.gateway.service.port }}/health

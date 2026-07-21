@@ -3,7 +3,7 @@ name: youtube-learning-organizer
 x-service-defaults: &service-defaults
   restart: unless-stopped
   env_file:
-    - path: backend/.env
+    - path: ../../backend/.env
       required: false
   environment:
     INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-microservice-token-change-me}
@@ -13,7 +13,7 @@ services:
   gateway:
     <<: *service-defaults
     build:
-      context: ../../..
+      context: ../../../../..
       dockerfile: src/y2026/youtube_agent_2/backend/services/gateway/Dockerfile
     command: uvicorn src.y2026.youtube_agent_2.backend.services.gateway.app.main:app --host 0.0.0.0 --port 8001
     ports:
@@ -32,7 +32,7 @@ services:
   youtube-service:
     <<: *service-defaults
     build:
-      context: ../../..
+      context: ../../../../..
       dockerfile: src/y2026/youtube_agent_2/backend/services/youtube/Dockerfile
     command: uvicorn src.y2026.youtube_agent_2.backend.services.youtube.app.main:app --host 0.0.0.0 --port 8002
     environment:
@@ -50,7 +50,7 @@ services:
   plans-service:
     <<: *service-defaults
     build:
-      context: ../../..
+      context: ../../../../..
       dockerfile: src/y2026/youtube_agent_2/backend/services/plans/Dockerfile
     command: uvicorn src.y2026.youtube_agent_2.backend.services.plans.app.main:app --host 0.0.0.0 --port 8003
     environment:
