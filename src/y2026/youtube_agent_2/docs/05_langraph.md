@@ -28,7 +28,8 @@ flowchart TD
         P --> Q[Validate LLM output]
         Q --> R{Output valid?}
 
-        R -->|No| S["Reject output<br/>Invented, duplicated, or missing video IDs"]
+        R -->|No| S["Normalize placements<br/>Remove invented or duplicated IDs<br/>Restore missing selected videos"]
+        S --> T
         R -->|Yes| T[Enrich AI output]
     end
 
@@ -51,7 +52,7 @@ flowchart TD
 The diagram matches the implemented flow, with two important trust boundaries:
 
 - The LLM returns only course/module organization, topical labels, exact video IDs, and revised titles. It does not create URLs, thumbnails, timestamps, playback state, engagement counts, or application IDs.
-- The API rejects output when a selected video ID is missing or repeated, or when the model invents an ID. Nothing is saved until the complete graph succeeds.
+- The API keeps the first valid placement, removes invented or repeated IDs, and adds omitted selected videos to a deterministic fallback module. Nothing is saved until the complete graph succeeds.
 
 The frontend sends the selected source metadata and the full YouTube metadata needed for both organization and later display. A shortened description and a subset of tags are sent to the LLM, while the full trusted values remain in graph state and are restored afterward.
 
@@ -98,7 +99,7 @@ The POC uses a four-node `StateGraph`:
 
 1. `prepare_input` removes duplicate/already-added videos and builds compact model context.
 2. `generate_structure` calls a LangChain `ChatGroq` model with strict Pydantic structured output.
-3. `validate_structure` enforces the one-to-one video-ID contract.
+3. `validate_structure` normalizes placements to enforce the one-to-one video-ID contract.
 4. `enrich_courses` restores metadata and creates application-owned fields.
 
-Configure it with `GROQ_API_KEY`; `AI_LLM_MODEL` defaults to `openai/gpt-oss-20b`. `AI_MAX_VIDEOS_PER_REQUEST` defaults to 50 to keep a free-tier request within a practical context and rate-limit budget. The endpoint returns `503` when AI configuration/dependencies are absent, `422` for an invalid selection, and `502` when the hosted model does not produce an acceptable structure.
+Configure it with `GROQ_API_KEY`; `AI_LLM_MODEL` defaults to `openai/gpt-oss-20b`. `AI_MAX_VIDEOS_PER_REQUEST` defaults to 50 to keep a free-tier request within a practical context and rate-limit budget. The endpoint returns `429` for a provider rate limit, `503` when AI configuration/dependencies or connectivity are unavailable, `422` for an invalid selection, and `502` for another provider rejection. Full exception details are logged by the plans service.

@@ -8,7 +8,9 @@
 ```
 - python -m venv .venv
 - .\.venv\Scripts\Activate.ps1
-- pip install -r requirements.txt
+- uv add  -r src/y2026/youtube_agent_2/backend/services/plans/requirements.txt 
+- uv add  -r src/y2026/youtube_agent_2/backend/services/youtube/requirements.txt 
+- uv add  -r src/y2026/youtube_agent_2/backend/services/gateway/requirements.txt 
 ```
 
 ```bash
@@ -33,8 +35,7 @@ React UI
 ```bash
 # Start Vite
 # Dependencies are installed at the repo root (`../../..`). No separate `npm install` needed here.
-cd src\y2026\youtube_agent_2\frontend;
-npm run dev
+cd src\y2026\youtube_agent_2\frontend; npm run dev
 ```
 
 fallback to SQLite

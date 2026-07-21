@@ -5,9 +5,9 @@ LLM only decides course/module structure and revised titles; trusted metadata
 is restored from the request before anything is persisted.
 """
 
-from collections import Counter
 from datetime import datetime, timezone
 import json
+import logging
 import re
 from typing import Any, TypedDict
 import uuid
@@ -30,6 +30,7 @@ from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import st
 
 
 router = APIRouter(tags=["course-generation"])
+logger = logging.getLogger(__name__)
 
 
 class _StrictLlmModel(BaseModel):
@@ -197,27 +198,59 @@ def _generate_structure(state: _CourseGraphState) -> dict[str, Any]:
 
 
 def _validate_structure(state: _CourseGraphState) -> dict[str, Any]:
-    expected = {video.video_id for video in state["videos"]}
-    placements = [
-        placement.video_id
-        for course in state["suggestion"].courses
-        for module in course.modules
-        for placement in module.videos
-    ]
-    counts = Counter(placements)
-    unknown = sorted(set(placements) - expected)
-    missing = sorted(expected - set(placements))
-    duplicated = sorted(video_id for video_id, count in counts.items() if count > 1)
-    if unknown or missing or duplicated:
-        parts = []
-        if unknown:
-            parts.append(f"invented IDs: {unknown}")
-        if missing:
-            parts.append(f"missing IDs: {missing}")
-        if duplicated:
-            parts.append(f"duplicated IDs: {duplicated}")
-        raise ValueError("Invalid LLM video placement (" + "; ".join(parts) + ")")
-    return {}
+    """Normalize placements without trusting IDs invented by the model.
+
+    Models can still omit or repeat array items even when their JSON shape is
+    strict. Keep the first valid placement and append omitted selected videos
+    deterministically so a harmless model slip does not fail the whole POC.
+    """
+    video_by_id = {video.video_id: video for video in state["videos"]}
+    seen: set[str] = set()
+    normalized_courses: list[_CourseSuggestion] = []
+
+    for course in state["suggestion"].courses:
+        normalized_modules: list[_ModuleSuggestion] = []
+        for module in course.modules:
+            placements: list[_VideoPlacement] = []
+            for placement in module.videos:
+                if placement.video_id in video_by_id and placement.video_id not in seen:
+                    seen.add(placement.video_id)
+                    placements.append(placement)
+            if placements:
+                normalized_modules.append(
+                    module.model_copy(update={"videos": placements})
+                )
+        if normalized_modules:
+            normalized_courses.append(
+                course.model_copy(update={"modules": normalized_modules})
+            )
+
+    missing = [video for video in state["videos"] if video.video_id not in seen]
+    if missing:
+        fallback_module = _ModuleSuggestion(
+            title="Additional selected videos",
+            labels=["additional"],
+            videos=[
+                _VideoPlacement(video_id=video.video_id, revised_title=video.title)
+                for video in missing
+            ],
+        )
+        if normalized_courses:
+            first = normalized_courses[0]
+            normalized_courses[0] = first.model_copy(
+                update={"modules": [*first.modules, fallback_module]}
+            )
+        else:
+            normalized_courses.append(
+                _CourseSuggestion(
+                    title=f"{state['plan'].name} learning path",
+                    description="A learning path built from the selected videos.",
+                    labels=["learning_path"],
+                    modules=[fallback_module],
+                )
+            )
+
+    return {"suggestion": _CourseSuggestionBatch(courses=normalized_courses)}
 
 
 def _sources_for_course(
@@ -343,9 +376,25 @@ def add_ai_suggested_course(plan_id: str, request: AiCourseRequest):
     except HTTPException:
         raise
     except Exception as error:
+        logger.exception(
+            "AI course generation failed for plan %s with %d submitted videos",
+            plan_id,
+            len(request.videos),
+        )
+        error_name = type(error).__name__
+        if error_name == "RateLimitError":
+            raise HTTPException(
+                status_code=429,
+                detail="Groq free-tier rate limit reached; wait briefly or select fewer videos",
+            ) from error
+        if error_name in {"APIConnectionError", "APITimeoutError"}:
+            raise HTTPException(
+                status_code=503,
+                detail="The hosted LLM is temporarily unreachable; try again",
+            ) from error
         raise HTTPException(
             status_code=502,
-            detail=f"The LLM could not produce a valid course structure ({type(error).__name__})",
+            detail=f"The hosted LLM rejected the generation request ({error_name})",
         ) from error
 
     generated_courses = result["courses"]
