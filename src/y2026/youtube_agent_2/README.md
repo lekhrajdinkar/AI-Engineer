@@ -12,11 +12,11 @@ microservice | http://127.0.0.1:8001/docs | [microservices.md](docs/04_microserv
 
 ```bash
 # API gateway 
-uvicorn src.y2026.youtube_agent_2.backend.services.gateway.main:app --reload --host 127.0.0.1 --port 8001
+uvicorn src.y2026.youtube_agent_2.backend.services.gateway.app.main:app --reload --host 127.0.0.1 --port 8001
 
 # microServices (2)
-uvicorn src.y2026.youtube_agent_2.backend.services.youtube.main:app --reload --host 127.0.0.1 --port 8002 
-uvicorn src.y2026.youtube_agent_2.backend.services.plans.main:app --reload --host 127.0.0.1 --port 8003 
+uvicorn src.y2026.youtube_agent_2.backend.services.youtube.app.main:app --reload --host 127.0.0.1 --port 8002
+uvicorn src.y2026.youtube_agent_2.backend.services.plans.app.main:app --reload --host 127.0.0.1 --port 8003
 
 ## Docker
 cd src/y2026/youtube_agent_2
@@ -37,7 +37,7 @@ FIREBASE_AUTH_REQUIRED=false
 ```
 Deploy/Run to render
 - [deploy-to-render.md](docs/03_deploy-to-render.md)
-- [render.yaml](deployment/render/render.yaml)
+- [render-microservices.yaml](deployment/render/render-microservices.yaml)
 
 ---
 ## ✔️One time configuration

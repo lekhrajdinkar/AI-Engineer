@@ -53,13 +53,10 @@ enabled, both services use their own Firestore collections through the current
 repository adapter. For production, deploy each entry point independently:
 
 ```text
-src.y2026.youtube_agent_2.backend.services.gateway.main:app
-src.y2026.youtube_agent_2.backend.services.youtube.main:app
-src.y2026.youtube_agent_2.backend.services.plans.main:app
+src.y2026.youtube_agent_2.backend.services.gateway.app.main:app
+src.y2026.youtube_agent_2.backend.services.youtube.app.main:app
+src.y2026.youtube_agent_2.backend.services.plans.app.main:app
 ```
-
-These compatibility entry points remain valid. Deployment manifests use the
-explicit service-owned entry points under `services/<name>/app/main.py`.
 
 ## Source layout and dependency direction
 
@@ -72,26 +69,14 @@ backend/
   shared/
     contracts/         # HTTP/event payload types only
     platform/          # auth identity, Firebase setup, middleware
-  legacy/              # temporary in-process adapters for rollback only
 ```
 
 Allowed imports are `service -> shared` and imports within the same service.
 One service must not import another service's `app` package. Runtime
-communication uses HTTP contracts. The only exception is the explicitly named
-`legacy/` adapter used by the rollback-compatible combined process.
+communication uses HTTP contracts.
 
-A separate Render blueprint is available at
+A Render blueprint is available at
 `../deployment/render/render-microservices.yaml`. Configure both internal URL
 variables and set the same `INTERNAL_SERVICE_TOKEN` value on the YouTube and
-plans services before directing the UI to the gateway. The existing
-`render.yaml` continues to deploy the rollback-compatible single process.
-The generic `deployment/docker/Dockerfile` is also reserved for that rollback
-image; normal builds use the Dockerfile inside each service folder.
-
-## Compatibility and rollback
-
-`src.y2026.youtube_agent_2.backend.main:app` still composes every router into
-one process. It is the rollback target during migration and retains all public
-paths. Root-level `api`, `domain`, `db`, `entities`, and client modules are thin
-compatibility wrappers only; new implementation belongs under its owning
-service folder.
+plans services before directing the UI to the gateway. Each service builds
+from the Dockerfile and requirements file inside its own folder.

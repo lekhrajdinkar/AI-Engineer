@@ -9,7 +9,7 @@ class PlansRouteTests(unittest.TestCase):
         self.assertTrue(config.AI_DUMMY_LEARNING_PLAN.is_file())
 
     def test_service_exposes_plans_but_not_youtube_oauth(self):
-        paths = {route.path for route in app.routes}
+        paths = set(app.openapi()["paths"])
         self.assertIn("/api/plans", paths)
         self.assertIn("/api/sources/sync-metadata", paths)
         self.assertNotIn("/auth/google/login", paths)

@@ -55,19 +55,22 @@ Do not configure the final Google YouTube OAuth callback URL yet; that will be d
 - Added Firebase Admin SDK dependency and environment-based Firebase configuration.
 - Added a normalized Firestore repository: plan, course, module, video, feed, sync metadata, and integration-token records are persisted in Firestore documents/subcollections.
 - Added a Firestore switch (`FIREBASE_ENABLED=true`) while preserving local SQLite fallback during the transition.
-- Added `migrate_sqlite_to_firestore.py` for a one-time legacy SQLite migration into Firestore.
+- Legacy SQLite migration code was removed after the microservice split. Any
+  future migration must be service-owned so plans and OAuth tokens can be
+  assigned explicitly to the correct Firebase user.
 - Current data is temporarily stored beneath `users/legacy-single-user`; Step 3 will replace this transitional owner with the verified Firebase Auth `uid` per request.
 
 ### User action required before deployment
 
 - Keep the Firebase Admin service account private. Later, add its JSON to Render as a secret file or `FIREBASE_SERVICE_ACCOUNT_JSON` secret.
-- Do not run the migration yet; it will be run after Step 3 adds user identity handling so imported data can be assigned to the correct Firebase user.
+- Keep legacy SQLite files only as backups; do not attach their records to a
+  Firebase user without an explicit ownership mapping.
 
 ### Original scope
 
 - Add Firebase Admin SDK and environment-based configuration.
 - Replace SQLite repository operations with Firestore-backed operations.
-- Add a one-time SQLite-to-Firestore migration command.
+- Define explicit user ownership before writing a service-specific migration.
 - Preserve the current API schemas while storing data per Firebase `uid`.
 
 ## Step 3 — FastAPI app authentication and authorization

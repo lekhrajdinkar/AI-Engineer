@@ -9,17 +9,18 @@ from src.y2026.youtube_agent_2.backend.services.plans.app import config as plans
 from src.y2026.youtube_agent_2.backend.services.plans.app.infrastructure.youtube_provider import (
     HttpYouTubeProvider,
 )
-from src.y2026.youtube_agent_2.backend.main import app as legacy_app
-from src.y2026.youtube_agent_2.backend.services.gateway.main import (
+from src.y2026.youtube_agent_2.backend.services.gateway.app.main import (
     app as gateway_app,
+)
+from src.y2026.youtube_agent_2.backend.services.gateway.app.routing import (
     select_upstream,
 )
-from src.y2026.youtube_agent_2.backend.services.plans.main import app as plans_app
-from src.y2026.youtube_agent_2.backend.services.youtube.main import app as youtube_app
+from src.y2026.youtube_agent_2.backend.services.plans.app.main import app as plans_app
+from src.y2026.youtube_agent_2.backend.services.youtube.app.main import app as youtube_app
 
 
 def route_paths(app) -> set[str]:
-    return {route.path for route in app.routes}
+    return set(app.openapi()["paths"])
 
 
 class ServiceBoundaryTests(unittest.TestCase):
@@ -47,18 +48,6 @@ class ServiceBoundaryTests(unittest.TestCase):
         self.assertIn("/api/plans/{plan_id}/add-course-ai-suggested", paths)
         self.assertNotIn("/auth/google/login", paths)
         self.assertNotIn("/api/channels", paths)
-
-    def test_legacy_entry_point_preserves_both_route_sets(self):
-        paths = route_paths(legacy_app)
-        expected = (route_paths(youtube_app) | route_paths(plans_app)) - {
-            "/",
-            "/health",
-            "/openapi.json",
-            "/docs",
-            "/docs/oauth2-redirect",
-            "/redoc",
-        }
-        self.assertTrue(expected.issubset(paths))
 
     def test_gateway_routes_requests_to_the_owning_service(self):
         self.assertEqual(select_upstream("/auth/google/login")[0], "youtube-service")
