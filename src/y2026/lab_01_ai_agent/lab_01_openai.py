@@ -7,6 +7,11 @@ Learn the EXACT path to get the AI's answer from the response object.
 import openai
 import os
 
+from pathlib import Path
+from dotenv import load_dotenv
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+
 client = openai.OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"), # https://kodekey.ai.kodekloud.com/v1
     base_url=os.getenv("OPENAI_API_BASE")

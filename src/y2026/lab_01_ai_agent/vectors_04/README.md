@@ -1,5 +1,5 @@
 > Remember: This lab focuses on **search and retrieval only** - no AI generation yet! 
-> can skip and cjeck next rag lab [rag_05](../rag_05)
+> can skip and check next rag lab [rag_05](../rag_05)
 
 ## 🎯 Learning Objectives
 

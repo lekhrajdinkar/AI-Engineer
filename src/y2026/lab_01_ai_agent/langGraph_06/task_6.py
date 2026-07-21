@@ -80,10 +80,10 @@ def calculator_tool(expression: str) -> str:
 
 # Initialize LLM (first time using it!)
 llm = ChatOpenAI(
-    model=os.getenv("OPENAI_MODEL", "openai/gpt-4.1-mini"),
-    base_url=os.getenv("OPENAI_API_BASE"),
-    api_key=os.getenv("OPENAI_API_KEY"),
-    temperature=0  # Low temperature for math accuracy
+    base_url    = os.getenv("GROQ_API_BASE"),
+    api_key     = os.getenv("GROQ_API_KEY"),
+    model       = os.getenv("GROQ_MODEL_ID"),
+    temperature = 0  # Low temperature for math accuracy
 )
 
 # Bind the tool to the LLM (this is how tools are attached!)

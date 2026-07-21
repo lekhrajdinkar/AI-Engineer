@@ -24,8 +24,15 @@ YOUTUBE_SERVICE_URL = os.getenv(
     "YOUTUBE_SERVICE_URL", "http://127.0.0.1:8002"
 )
 
-_default_fixture_dir = Path(__file__).resolve().parents[4] / "docs" / "json-dumps"
-AI_FIXTURE_DIR = Path(os.getenv("AI_FIXTURE_DIR", _default_fixture_dir))
-AI_DUMMY_LEARNING_PLAN_BM = AI_FIXTURE_DIR / "04_learning-plan_bm.json"
-AI_DUMMY_LEARNING_PLAN_BBGO = AI_FIXTURE_DIR / "04_learning-plan_bbgo.json"
-AI_DUMMY_LEARNING_PLAN = AI_DUMMY_LEARNING_PLAN_BM
+# Hosted LLM used by the AI course-generation endpoint. Groq's free plan is a
+# convenient POC default; these settings can be replaced without changing the
+# graph or HTTP contract.
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+AI_LLM_MODEL = os.getenv("AI_LLM_MODEL", "openai/gpt-oss-20b")
+AI_LLM_TEMPERATURE = float(os.getenv("AI_LLM_TEMPERATURE", "0"))
+AI_LLM_TIMEOUT_SECS = float(os.getenv("AI_LLM_TIMEOUT_SECS", "60"))
+AI_LLM_MAX_RETRIES = int(os.getenv("AI_LLM_MAX_RETRIES", "2"))
+AI_MAX_VIDEOS_PER_REQUEST = int(os.getenv("AI_MAX_VIDEOS_PER_REQUEST", "50"))
+AI_VIDEO_DESCRIPTION_MAX_CHARS = int(
+    os.getenv("AI_VIDEO_DESCRIPTION_MAX_CHARS", "240")
+)

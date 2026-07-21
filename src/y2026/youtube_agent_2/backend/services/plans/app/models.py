@@ -120,6 +120,13 @@ class MetadataUpdateRequest(BaseModel):
     last_played_position_secs: Optional[float] = Field(default=None, ge=0)
     last_played_at: Optional[datetime] = None
 
+class AiCourseVideo(Video):
+    """Video metadata plus selection provenance used only by the AI workflow."""
+
+    channel_id: Optional[str] = None
+    playlist_id: Optional[str] = None
+
+
 class AiCourseRequest(BaseModel):
-    videos: List[Video]
+    videos: List[AiCourseVideo] = Field(min_length=1)
     source_channels: List[Channel] = Field(default_factory=list)

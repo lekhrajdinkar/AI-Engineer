@@ -3,8 +3,6 @@
 
 import os
 import asyncio
-from typing import TypedDict
-
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
@@ -38,24 +36,29 @@ from langchain_openai import ChatOpenAI
 # Original: add, multiply
 # In Agent: Automatically handled by MCP adapter
 
+from pathlib import Path
+from dotenv import load_dotenv
+BASE_DIR = Path(__file__).resolve().parents[1]
+print(f"BASE_DIR : {BASE_DIR}")
+load_dotenv(BASE_DIR / ".env")
+
 print("🔌 Task 2: MCP and LangGraph Integration\n")
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 # Initialize the LLM
 model = ChatOpenAI(
-    model=os.getenv("OPENAI_MODEL", "openai/gpt-4.1-mini"),
-    base_url=os.getenv("OPENAI_API_BASE"),
-    api_key=os.getenv("OPENAI_API_KEY"),
-    temperature=0
+    base_url    = os.getenv("GROQ_API_BASE"),
+    api_key     = os.getenv("GROQ_API_KEY"),
+    model       = os.getenv("GROQ_MODEL_ID"),
+    temperature = 0
 )
 
 # 1: Initialize MultiServerMCPClient
 client = MultiServerMCPClient(
     {
         "calculator": {
-            "command": "python",
-            "args": ["/root/code/task_1_mcp_basics.py"], # calculator mcp
-            #"args": ["C:\Users\Manisha\Documents\github-2025\genai\src\y2026\lab_01_ai_agent\mcp_07\task_1_mcp_basics.py"],
+            "command": "python -m",
+            "args": ["src.y2026.lab_01_ai_agent.mcp_07.task_1_mcp_basics"],
             "transport": "stdio",
         }
     }

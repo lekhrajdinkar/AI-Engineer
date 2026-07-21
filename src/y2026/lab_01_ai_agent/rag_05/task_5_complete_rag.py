@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 
-import os
-import chromadb
-from sentence_transformers import SentenceTransformer
-from langchain_openai import ChatOpenAI
 from sympy import false
-
 from src.y2026.lab_01_ai_agent.rag_05.task_1_setup_vectorstore import init_vector_store
 from src.y2026.lab_01_ai_agent.rag_05.task_3_llm_integration import initialize_llm_and_test
 

@@ -4,7 +4,7 @@
 - Python 3.8+
 - packages : `LangChain` and `langchain-openai`
 - OpenAI API configuration (API key and base URL)
-- [verify_env.py](verify_env.py) | [.env](../../../../.env)
+- [verify_env.py](verify_env.py) | [.env](../.env) ⚠️ missing
 - `python -m src.y2026.lab_01_ai_agent.prompt_eng_03.prompt_eng_test` ◀️
 
 ---

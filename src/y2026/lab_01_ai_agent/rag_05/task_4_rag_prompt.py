@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-
-import os
-
 from src.y2026.lab_01_ai_agent.rag_05.task_3_llm_integration import initialize_llm_and_test
-
 
 def create_rag_prompt(context_chunks, user_question):
     """Create the RAG prompt with context and question"""

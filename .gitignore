@@ -124,7 +124,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+src/y2026/lab_01_ai_agent/.env
 .venv
 env/
 venv/

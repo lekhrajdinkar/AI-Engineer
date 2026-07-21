@@ -36,7 +36,6 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
   const [selectedPlaylists, setSelectedPlaylists] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [result, setResult] = useState(null)
   const [channelSearch, setChannelSearch] = useState('')
   const [playlistSearch, setPlaylistSearch] = useState('')
   const [activePlaylistTab, setActivePlaylistTab] = useState('ALL')
@@ -89,7 +88,7 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
   function togglePlaylist(pl) {
     setSelectedPlaylists(prev =>
       prev.find(p => p.playlist_id === pl.playlist_id)
-        ? prev.filter(p => p.playlist_id === pl.playlist_id)
+        ? prev.filter(p => p.playlist_id !== pl.playlist_id)
         : [...prev, pl]
     )
   }
@@ -110,22 +109,60 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
         if (channelPlaylists.length) {
           for (const playlist of channelPlaylists) {
             const data = await getVideos(channel.channel_id, playlist.playlist_id)
-            videos.push(...(data.videos || []))
+            videos.push(...(data.videos || []).map(video => ({
+              ...video,
+              channel_id: data.channel_id || channel.channel_id,
+              playlist_id: data.playlist_id || playlist.playlist_id,
+            })))
           }
         } else {
           const data = await getVideos(channel.channel_id)
-          videos.push(...(data.videos || []))
+          videos.push(...(data.videos || []).map(video => ({
+            ...video,
+            channel_id: data.channel_id || channel.channel_id,
+            playlist_id: null,
+          })))
         }
       }
       if (!videos.length) throw new Error('No videos found for the selected sources')
       await addAiSuggestedCourse(plan.id, {
-        videos: videos.map(video => ({ video_id: video.video_id || video.id, title: video.title, revised_title_from_ai: video.title, thumbnail: video.thumbnail || '', url: video.url || null, duration_secs: video.duration_secs || null })),
+        videos: videos.map(video => ({
+          video_id: video.video_id || video.id,
+          title: video.title,
+          revised_title_from_ai: video.title,
+          description: video.description || null,
+          thumbnail: video.thumbnail || '',
+          url: video.url || null,
+          duration_secs: video.duration_secs ?? null,
+          published_at: video.published_at || null,
+          tags: video.tags || [],
+          category_id: video.category_id || null,
+          caption_available: Boolean(video.caption_available),
+          embeddable: video.embeddable !== false,
+          view_count: video.view_count ?? 0,
+          like_count: video.like_count ?? 0,
+          recording_date: video.recording_date || null,
+          channel_id: video.channel_id,
+          playlist_id: video.playlist_id,
+        })),
         source_channels: selectedChannels.map(channel => ({
           channel_id: channel.channel_id,
           title: channel.title,
           url: channel.url || '',
           video_count: channel.video_count || channel.videos_count || 0,
-          playlists: selectedPlaylists.filter(playlist => playlists[channel.channel_id]?.some(item => item.playlist_id === playlist.playlist_id)).map(playlist => ({ id: playlist.playlist_id, title: playlist.title, thumbnail: playlist.thumbnail || '' })),
+          videos_count: channel.videos_count || channel.video_count || 0,
+          thumbnail: channel.thumbnail || channel.logo_url || channel.logo || '',
+          source_created_at: channel.source_created_at || null,
+          last_video_published_at: channel.last_video_published_at || null,
+          playlists: selectedPlaylists.filter(playlist => playlists[channel.channel_id]?.some(item => item.playlist_id === playlist.playlist_id)).map(playlist => ({
+            id: playlist.playlist_id,
+            playlist_id: playlist.playlist_id,
+            title: playlist.title,
+            thumbnail: playlist.thumbnail || '',
+            videos_count: playlist.videos_count || playlist.video_count || 0,
+            source_created_at: playlist.source_created_at || null,
+            last_video_published_at: playlist.last_video_published_at || null,
+          })),
         })),
       })
       onCourseCreated(await getPlan(plan.id))
@@ -136,27 +173,9 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
     setLoading(false)
   }
 
-  function handleAcceptAll() {
-    if (!result) return
-    const updated = {
-      ...currentPlan,
-      courses: [...(currentPlan.courses || []), ...result],
-    }
-    onClose()
-  }
-
-  function handleAcceptCourse(course) {
-    const updated = {
-      ...currentPlan,
-      courses: [...(currentPlan.courses || []), course],
-    }
-    onClose()
-  }
-
   function closeDrawer() {
     setSelectedChannels([])
     setSelectedPlaylists([])
-    setResult(null)
     setError('')
     setChannelSearch('')
     setPlaylistSearch('')
@@ -188,7 +207,7 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
         <div className="drawer-body add-course-drawer-body">
           {error && <div className="alert alert-error">{error}</div>}
 
-          {!result && !showPlaylists && (
+          {!showPlaylists && (
             <div className="add-course-source-step">
               <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 Search and select YouTube channels as content source:
@@ -220,7 +239,7 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
             </div>
           )}
 
-          {!result && showPlaylists && (
+          {showPlaylists && (
             <div className="add-course-source-step">
               <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 Select playlists (optional — leave empty to use all videos):
@@ -263,28 +282,9 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
             </div>
           )}
 
-          {result && (
-            <div>
-              <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                AI suggested <strong>{result.length}</strong> course(s). Accept individually or all at once.
-              </p>
-              {result.map((course, i) => (
-                <div className="card" key={course.id || i} style={{ padding: '0.75rem', marginBottom: '0.5rem' }}>
-                  <h4>{course.title}</h4>
-                  {course.description && <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{course.description}</p>}
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {course.modules?.length || 0} modules, {course.modules?.reduce((s, m) => s + (m.videos?.length || 0), 0) || 0} videos
-                  </p>
-                  <button className="btn btn-success btn-sm" onClick={() => handleAcceptCourse(course)} style={{ marginTop: '0.5rem' }}>
-                    Accept This Course
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
         <div className="drawer-footer">
-          {!result && !showPlaylists && (
+          {!showPlaylists && (
             <>
               <button className="btn btn-secondary" onClick={closeDrawer}>Cancel</button>
               <button className="btn btn-primary" onClick={loadPlaylists} disabled={selectedChannels.length === 0 || loading}>
@@ -292,18 +292,12 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
               </button>
             </>
           )}
-          {!result && showPlaylists && (
+          {showPlaylists && (
             <>
               <button className="btn btn-secondary" onClick={() => setShowPlaylists(false)}>Back</button>
               <button className="btn btn-primary" onClick={handleAiGenerate} disabled={loading}>
                 {loading ? <><span className="spinner" /> Generating...</> : 'Generate AI Suggestions'}
               </button>
-            </>
-          )}
-          {result && (
-            <>
-              <button className="btn btn-secondary" onClick={() => setResult(null)}>Back</button>
-              <button className="btn btn-primary" onClick={handleAcceptAll}>Accept All</button>
             </>
           )}
         </div>
