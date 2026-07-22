@@ -24,7 +24,7 @@ flowchart TD
 
     subgraph LG[LangGraph Course Generation]
         N --> O[Generate course structure with LLM]
-        O --> P["Structured LLM output<br/>Courses<br/>Modules<br/>Video placements<br/>AI revised titles<br/>Topical labels"]
+        O --> P["Compact structured LLM output<br/>Course titles and descriptions<br/>Module titles<br/>Ordered video IDs"]
         P --> Q[Validate LLM output]
         Q --> R{Output valid?}
 
@@ -51,10 +51,45 @@ flowchart TD
 
 The diagram matches the implemented flow, with two important trust boundaries:
 
-- The LLM returns only course/module organization, topical labels, exact video IDs, and revised titles. It does not create URLs, thumbnails, timestamps, playback state, engagement counts, or application IDs.
+- The LLM returns only course/module titles, course descriptions, and ordered video IDs. It does not create URLs, thumbnails, timestamps, playback state, engagement counts, labels, revised titles, or application IDs.
 - The API keeps the first valid placement, removes invented or repeated IDs, and adds omitted selected videos to a deterministic fallback module. Nothing is saved until the complete graph succeeds.
 
-The frontend sends the selected source metadata and the full YouTube metadata needed for both organization and later display. A shortened description and a subset of tags are sent to the LLM, while the full trusted values remain in graph state and are restored afterward.
+The frontend sends the selected source metadata and the full YouTube metadata needed for later display. Video descriptions are excluded from the LLM prompt; titles, a subset of tags, duration, and channel/playlist provenance provide the organization context. The full trusted metadata remains in graph state and is restored afterward.
+
+## LangGraph state flow
+
+```mermaid
+flowchart LR
+    START((START)) --> PREPARE["prepare_input<br/>Deduplicate videos<br/>Remove videos already in plan<br/>Build compact JSON context"]
+
+    PREPARE --> GENERATE["generate_structure<br/>Try compact strict JSON schema<br/>Retry with JSON object mode<br/>Fall back to source-based organization"]
+
+    GENERATE --> VALIDATE["validate_structure<br/>Keep first valid placement<br/>Remove invented and repeated IDs<br/>Restore omitted selected videos"]
+
+    VALIDATE --> ENRICH["enrich_courses<br/>Restore trusted video metadata<br/>Create UUIDs and sequences<br/>Attach channels and playlists"]
+
+    ENRICH --> END((END))
+
+    PREPARE -. no usable videos .-> E422[422 Invalid selection]
+    GENERATE -. rate limit .-> E429[429 Rate limited]
+    GENERATE -. unavailable .-> E503[503 Provider unavailable]
+    GENERATE -. rejected .-> E502[502 Provider rejection]
+
+    subgraph STATE[Shared graph state]
+        S1[plan]
+        S2[request]
+        S3[videos]
+        S4[compact_input]
+        S5[suggestion]
+        S6[courses]
+    end
+
+    PREPARE -. writes .-> S3
+    PREPARE -. writes .-> S4
+    GENERATE -. writes .-> S5
+    VALIDATE -. updates .-> S5
+    ENRICH -. writes .-> S6
+```
 
 ```json
 {
@@ -98,7 +133,7 @@ The frontend sends the selected source metadata and the full YouTube metadata ne
 The POC uses a four-node `StateGraph`:
 
 1. `prepare_input` removes duplicate/already-added videos and builds compact model context.
-2. `generate_structure` calls a LangChain `ChatGroq` model with strict Pydantic structured output.
+2. `generate_structure` calls a LangChain `ChatGroq` model with a compact strict Pydantic schema. If Groq reports `json_validate_failed`, the node retries with JSON object mode. If Groq still cannot return parseable structure, a deterministic source-based fallback preserves every selected video instead of failing the request. Application labels and display titles are derived afterward.
 3. `validate_structure` normalizes placements to enforce the one-to-one video-ID contract.
 4. `enrich_courses` restores metadata and creates application-owned fields.
 
