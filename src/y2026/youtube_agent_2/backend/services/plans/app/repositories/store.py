@@ -43,11 +43,11 @@ def _ensure_sqlite_column(
 
 def _default_ai_model_config() -> dict:
     now = datetime.now(timezone.utc)
-    provider_key = {
-        "groq": config.GROQ_API_KEY,
-        "google": config.GOOGLE_API_KEY,
-        "openai": config.OPENAI_API_KEY,
-    }.get(config.AI_LLM_PROVIDER, "")
+    from src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers import (
+        provider_registry,
+    )
+
+    provider = provider_registry.get(config.AI_LLM_PROVIDER)
     return {
         "id": config.AI_LLM_CONFIG_ID,
         "name": config.AI_LLM_DISPLAY_NAME,
@@ -62,7 +62,9 @@ def _default_ai_model_config() -> dict:
         "max_batch_size": config.AI_LLM_MAX_BATCH_SIZE,
         "max_whole_videos": config.AI_LLM_MAX_WHOLE_VIDEOS,
         "fallback_model_config_id": None,
-        "credential_status": "configured" if provider_key else "missing",
+        "credential_status": (
+            provider.credential_status() if provider else "missing"
+        ),
         "test_status": "untested",
         "test_message": None,
         "last_tested_at": None,

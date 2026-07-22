@@ -1,4 +1,6 @@
 import gc
+import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +10,9 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from src.y2026.youtube_agent_2.backend.services.plans.app import config
+from src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers import (
+    provider_registry,
+)
 from src.y2026.youtube_agent_2.backend.services.plans.app.main import app
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import LearningPlan
 from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import store
@@ -21,6 +26,7 @@ class AiModelConfigRouteTests(unittest.TestCase):
         self.original_groq_key = config.GROQ_API_KEY
         self.original_google_key = config.GOOGLE_API_KEY
         self.original_openai_key = config.OPENAI_API_KEY
+        self.original_provider_catalog = provider_registry.catalog_path
         config.DB_PATH = Path(self.temp_dir.name) / "model-config-test.sqlite3"
         config.GROQ_API_KEY = ""
         config.GOOGLE_API_KEY = "test-google-key"
@@ -36,6 +42,7 @@ class AiModelConfigRouteTests(unittest.TestCase):
         config.GROQ_API_KEY = self.original_groq_key
         config.GOOGLE_API_KEY = self.original_google_key
         config.OPENAI_API_KEY = self.original_openai_key
+        provider_registry.reload(self.original_provider_catalog)
         config.DB_PATH = self.original_db_path
         gc.collect()
         self.temp_dir.cleanup()
@@ -93,6 +100,12 @@ class AiModelConfigRouteTests(unittest.TestCase):
             self.client.post("/api/ai-model-configs", json=unsafe).status_code,
             422,
         )
+        providers = self.client.get("/api/ai-model-providers")
+        self.assertEqual(providers.status_code, 200)
+        self.assertEqual(
+            {item["id"] for item in providers.json()["items"]},
+            {"google", "groq", "openai"},
+        )
 
     def test_create_test_filter_update_and_default_switch(self):
         created = self.client.post(
@@ -108,7 +121,7 @@ class AiModelConfigRouteTests(unittest.TestCase):
         )
 
         with patch(
-            "src.y2026.youtube_agent_2.backend.services.plans.app.api.ai_model_configs.requests.get",
+            "src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers.adapters.requests.get",
             return_value=SimpleNamespace(ok=True, status_code=200),
         ):
             tested = self.client.post(f"/api/ai-model-configs/{model['id']}/test")
@@ -138,6 +151,127 @@ class AiModelConfigRouteTests(unittest.TestCase):
         )
         self.assertEqual(reset.json()["test_status"], "untested")
 
+    def test_groq_test_matches_slash_model_id_from_model_list(self):
+        config.GROQ_API_KEY = "test-groq-key"
+        model_response = SimpleNamespace(
+            ok=True,
+            status_code=200,
+            json=lambda: {
+                "data": [
+                    {
+                        "id": "openai/gpt-oss-20b",
+                        "active": True,
+                    }
+                ]
+            },
+        )
+
+        with patch(
+            "src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers.adapters.requests.get",
+            return_value=model_response,
+        ) as get_model_list:
+            tested = self.client.post(
+                f"/api/ai-model-configs/{config.AI_LLM_CONFIG_ID}/test"
+            )
+
+        self.assertEqual(tested.status_code, 200, tested.text)
+        self.assertTrue(tested.json()["success"])
+        self.assertEqual(tested.json()["config"]["test_status"], "passed")
+        get_model_list.assert_called_once()
+        self.assertEqual(
+            get_model_list.call_args.args[0],
+            "https://api.groq.com/openai/v1/models",
+        )
+
+    def test_groq_test_reports_model_missing_from_model_list(self):
+        config.GROQ_API_KEY = "test-groq-key"
+        model_response = SimpleNamespace(
+            ok=True,
+            status_code=200,
+            json=lambda: {"data": [{"id": "llama-3.1-8b-instant"}]},
+        )
+
+        with patch(
+            "src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers.adapters.requests.get",
+            return_value=model_response,
+        ):
+            tested = self.client.post(
+                f"/api/ai-model-configs/{config.AI_LLM_CONFIG_ID}/test"
+            )
+
+        self.assertEqual(tested.status_code, 200, tested.text)
+        self.assertFalse(tested.json()["success"])
+        self.assertIn("was not found at groq", tested.json()["message"])
+
+    def test_configured_openai_compatible_provider_is_dynamic(self):
+        catalog_path = Path(self.temp_dir.name) / "providers.json"
+        catalog_path.write_text(
+            json.dumps(
+                {
+                    "providers": [
+                        {
+                            "id": "openrouter",
+                            "name": "OpenRouter",
+                            "adapter": "openai_compatible",
+                            "base_url": "https://openrouter.ai/api/v1",
+                            "api_key_env": "OPENROUTER_API_KEY",
+                            "structured_output_modes": ["auto", "json_schema"],
+                            "strict_json_schema": False,
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        provider_registry.reload(catalog_path)
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-router-key"}):
+            providers = self.client.get("/api/ai-model-providers").json()["items"]
+            openrouter = next(item for item in providers if item["id"] == "openrouter")
+            self.assertEqual(openrouter["adapter"], "openai_compatible")
+            self.assertEqual(openrouter["credential_status"], "configured")
+
+            created = self.client.post(
+                "/api/ai-model-configs",
+                json=self._google_config(
+                    name="OpenRouter Model",
+                    provider="openrouter",
+                    model="vendor/model-with-slash",
+                    structured_output_mode="json_schema",
+                ),
+            )
+            self.assertEqual(created.status_code, 201, created.text)
+            model = created.json()
+
+            model_response = SimpleNamespace(
+                ok=True,
+                status_code=200,
+                json=lambda: {
+                    "data": [{"id": "vendor/model-with-slash", "active": True}]
+                },
+            )
+            with patch(
+                "src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers.adapters.requests.get",
+                return_value=model_response,
+            ) as get_model_list:
+                tested = self.client.post(
+                    f"/api/ai-model-configs/{model['id']}/test"
+                )
+
+            self.assertTrue(tested.json()["success"])
+            self.assertEqual(
+                get_model_list.call_args.args[0],
+                "https://openrouter.ai/api/v1/models",
+            )
+
+    def test_unregistered_provider_is_rejected(self):
+        response = self.client.post(
+            "/api/ai-model-configs",
+            json=self._google_config(provider="unknown_provider"),
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("Unsupported AI provider", response.text)
+
     def test_fallback_cycles_are_rejected(self):
         google = self.client.post(
             "/api/ai-model-configs", json=self._google_config()
@@ -166,7 +300,7 @@ class AiModelConfigRouteTests(unittest.TestCase):
             "/api/ai-model-configs", json=self._google_config()
         ).json()
         with patch(
-            "src.y2026.youtube_agent_2.backend.services.plans.app.api.ai_model_configs.requests.get",
+            "src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers.adapters.requests.get",
             return_value=SimpleNamespace(ok=True, status_code=200),
         ):
             self.client.post(f"/api/ai-model-configs/{model['id']}/test")
@@ -209,7 +343,7 @@ class AiModelConfigRouteTests(unittest.TestCase):
             json=self._google_config(fallback_model_config_id=fallback["id"]),
         ).json()
         with patch(
-            "src.y2026.youtube_agent_2.backend.services.plans.app.api.ai_model_configs.requests.get",
+            "src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers.adapters.requests.get",
             return_value=SimpleNamespace(ok=True, status_code=200),
         ):
             self.client.post(f"/api/ai-model-configs/{primary['id']}/test")

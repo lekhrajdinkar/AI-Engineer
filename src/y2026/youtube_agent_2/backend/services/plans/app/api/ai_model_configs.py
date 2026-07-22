@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
-import requests
 
-from src.y2026.youtube_agent_2.backend.services.plans.app import config
+from src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers import (
+    provider_registry,
+)
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import (
     AiModelConfigCreate,
     AiModelConfigRecord,
@@ -19,6 +19,10 @@ from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import st
 
 
 router = APIRouter(prefix="/api/ai-model-configs", tags=["ai-model-configs"])
+providers_router = APIRouter(
+    prefix="/api/ai-model-providers",
+    tags=["ai-model-providers"],
+)
 
 
 class AiModelConfigListResponse(BaseModel):
@@ -37,22 +41,47 @@ class AiModelConfigTestResponse(BaseModel):
     config: AiModelConfigRecord
 
 
+class AiModelProviderRecord(BaseModel):
+    id: str
+    name: str
+    adapter: str
+    credential_status: str
+    structured_output_modes: list[str]
+
+
+class AiModelProviderListResponse(BaseModel):
+    items: list[AiModelProviderRecord]
+
+
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _provider_api_key(provider: str) -> str:
-    return {
-        "groq": config.GROQ_API_KEY,
-        "google": config.GOOGLE_API_KEY,
-        "openai": config.OPENAI_API_KEY,
-    }.get(provider, "")
+def _provider(provider_id: str):
+    provider = provider_registry.get(provider_id)
+    if provider is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported AI provider '{provider_id}'",
+        )
+    return provider
+
+
+def _validate_provider(record: AiModelConfigRecord) -> None:
+    provider = _provider(record.provider)
+    if not provider.supports_structured_output(record.structured_output_mode):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Provider '{record.provider}' does not support structured output "
+                f"mode '{record.structured_output_mode}'"
+            ),
+        )
 
 
 def _with_credential_status(record: AiModelConfigRecord) -> AiModelConfigRecord:
-    record.credential_status = (
-        "configured" if _provider_api_key(record.provider) else "missing"
-    )
+    provider = provider_registry.get(record.provider)
+    record.credential_status = provider.credential_status() if provider else "missing"
     return record
 
 
@@ -127,36 +156,9 @@ def _validate_fallback(record: AiModelConfigRecord) -> None:
         fallback_id = fallback.fallback_model_config_id
 
 
-def _probe_provider(record: AiModelConfigRecord, api_key: str) -> tuple[bool, str]:
-    model_path = quote(record.model.removeprefix("models/"), safe="")
-    if record.provider == "google":
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_path}"
-        headers = {}
-        params = {"key": api_key}
-    elif record.provider == "openai":
-        url = f"https://api.openai.com/v1/models/{model_path}"
-        headers = {"Authorization": f"Bearer {api_key}"}
-        params = None
-    else:
-        url = f"https://api.groq.com/openai/v1/models/{model_path}"
-        headers = {"Authorization": f"Bearer {api_key}"}
-        params = None
-    try:
-        response = requests.get(
-            url,
-            headers=headers,
-            params=params,
-            timeout=config.AI_MODEL_TEST_TIMEOUT_SECS,
-        )
-    except requests.RequestException:
-        return False, f"Could not reach the {record.provider} model API"
-    if response.ok:
-        return True, f"{record.provider} model is reachable"
-    if response.status_code in {401, 403}:
-        return False, f"{record.provider} rejected the configured credential"
-    if response.status_code == 404:
-        return False, f"Model '{record.model}' was not found at {record.provider}"
-    return False, f"{record.provider} returned HTTP {response.status_code}"
+@providers_router.get("", response_model=AiModelProviderListResponse)
+def list_ai_model_providers():
+    return AiModelProviderListResponse(items=provider_registry.metadata())
 
 
 @router.get("", response_model=AiModelConfigListResponse)
@@ -183,12 +185,11 @@ def create_ai_model_config(request: AiModelConfigCreate):
     now = _utcnow()
     record = AiModelConfigRecord(
         **request.model_dump(),
-        credential_status=(
-            "configured" if _provider_api_key(request.provider) else "missing"
-        ),
+        credential_status="missing",
         created_at=now,
         updated_at=now,
     )
+    _validate_provider(record)
     _validate_fallback(record)
     if record.is_default:
         _clear_other_defaults(record.id)
@@ -217,6 +218,7 @@ def update_ai_model_config(config_id: str, request: AiModelConfigUpdate):
         updated = AiModelConfigRecord.model_validate(data)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+    _validate_provider(updated)
     _validate_fallback(updated)
     if updated.is_default:
         _clear_other_defaults(updated.id)
@@ -263,13 +265,15 @@ def delete_ai_model_config(config_id: str):
 @router.post("/{config_id}/test", response_model=AiModelConfigTestResponse)
 def test_ai_model_config(config_id: str):
     record = _load(config_id)
-    api_key = _provider_api_key(record.provider)
-    if not api_key:
+    provider = _provider(record.provider)
+    if provider.credential_status() == "missing":
         success = False
         message = f"Server credential for {record.provider} is missing"
     else:
-        success, message = _probe_provider(record, api_key)
-    record.credential_status = "configured" if api_key else "missing"
+        result = provider.test_model(record.model)
+        success = result.success
+        message = result.message
+    record.credential_status = provider.credential_status()
     record.test_status = "passed" if success else "failed"
     record.test_message = message
     record.last_tested_at = _utcnow()

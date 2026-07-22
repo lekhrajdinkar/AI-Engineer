@@ -13,6 +13,9 @@ from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from src.y2026.youtube_agent_2.backend.services.plans.app import config
+from src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers import (
+    provider_registry,
+)
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import (
     AiCourseAttemptRecord,
     AiCourseBatchRecord,
@@ -130,11 +133,12 @@ def _resolve_model_snapshot(model_config_id: str) -> dict[str, Any]:
             detail=f"AI model configuration '{model_config_id}' is not available",
         )
     model_config = AiModelConfigRecord.model_validate(row)
-    api_key = {
-        "groq": config.GROQ_API_KEY,
-        "google": config.GOOGLE_API_KEY,
-        "openai": config.OPENAI_API_KEY,
-    }.get(model_config.provider, "")
+    provider = provider_registry.get(model_config.provider)
+    if provider is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported AI provider '{model_config.provider}'",
+        )
     if not model_config.enabled:
         raise HTTPException(status_code=422, detail="Selected AI model is disabled")
     if model_config.test_status != "passed":
@@ -142,7 +146,7 @@ def _resolve_model_snapshot(model_config_id: str) -> dict[str, Any]:
             status_code=422,
             detail="Selected AI model must pass its provider test before use",
         )
-    if not api_key:
+    if provider.credential_status() == "missing":
         raise HTTPException(
             status_code=422,
             detail=f"Server credential for {model_config.provider} is missing",

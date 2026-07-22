@@ -30,6 +30,7 @@ YOUTUBE_SERVICE_URL = os.getenv(
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
 AI_LLM_CONFIG_ID = os.getenv("AI_LLM_CONFIG_ID", "model_groq_gpt_oss")
 AI_LLM_DISPLAY_NAME = os.getenv("AI_LLM_DISPLAY_NAME", "Groq GPT-OSS")
 AI_LLM_PROVIDER = os.getenv("AI_LLM_PROVIDER", "groq")
@@ -42,19 +43,15 @@ AI_LLM_DEFAULT_BATCH_SIZE = int(os.getenv("AI_LLM_DEFAULT_BATCH_SIZE", "30"))
 AI_LLM_MAX_BATCH_SIZE = int(os.getenv("AI_LLM_MAX_BATCH_SIZE", "50"))
 AI_LLM_MAX_WHOLE_VIDEOS = int(os.getenv("AI_LLM_MAX_WHOLE_VIDEOS", "30"))
 AI_MAX_VIDEOS_PER_REQUEST = int(os.getenv("AI_MAX_VIDEOS_PER_REQUEST", "50"))
-AI_JOB_MAX_VIDEOS_PER_REQUEST = int(
-    os.getenv("AI_JOB_MAX_VIDEOS_PER_REQUEST", "1000")
+AI_JOB_MAX_VIDEOS_PER_REQUEST = int(    os.getenv("AI_JOB_MAX_VIDEOS_PER_REQUEST", "1000"))
+AI_MODEL_TEST_TIMEOUT_SECS = float(    os.getenv("AI_MODEL_TEST_TIMEOUT_SECS", "10"))
+AI_PROVIDER_CATALOG_PATH = Path(
+    os.getenv(
+        "AI_PROVIDER_CATALOG_PATH",
+        Path(__file__).resolve().parent / "ai_providers" / "providers.json",
+    )
 )
-AI_MODEL_TEST_TIMEOUT_SECS = float(
-    os.getenv("AI_MODEL_TEST_TIMEOUT_SECS", "10")
-)
-AI_WORKER_POLL_INTERVAL_SECS = float(
-    os.getenv("AI_WORKER_POLL_INTERVAL_SECS", "2")
-)
+AI_WORKER_POLL_INTERVAL_SECS = float(    os.getenv("AI_WORKER_POLL_INTERVAL_SECS", "2"))
 AI_WORKER_LEASE_SECS = int(os.getenv("AI_WORKER_LEASE_SECS", "300"))
-AI_RATE_LIMIT_DEFAULT_WAIT_SECS = int(
-    os.getenv("AI_RATE_LIMIT_DEFAULT_WAIT_SECS", "60")
-)
-AI_RATE_LIMIT_MAX_WAIT_SECS = int(
-    os.getenv("AI_RATE_LIMIT_MAX_WAIT_SECS", "900")
-)
+AI_RATE_LIMIT_DEFAULT_WAIT_SECS = int(    os.getenv("AI_RATE_LIMIT_DEFAULT_WAIT_SECS", "60"))
+AI_RATE_LIMIT_MAX_WAIT_SECS = int(    os.getenv("AI_RATE_LIMIT_MAX_WAIT_SECS", "900"))

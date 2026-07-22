@@ -263,7 +263,7 @@ class AiCourseAttemptRecord(BaseModel):
     at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-AiModelProvider = Literal["groq", "google", "openai"]
+AiModelProvider = str
 AiStructuredOutputMode = Literal[
     "auto", "json_schema", "json_mode", "function_calling"
 ]
@@ -273,7 +273,11 @@ class AiModelConfigFields(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1, max_length=120)
-    provider: AiModelProvider
+    provider: AiModelProvider = Field(
+        min_length=2,
+        max_length=64,
+        pattern=r"^[a-z][a-z0-9_-]+$",
+    )
     model: str = Field(min_length=1, max_length=200)
     enabled: bool = True
     is_default: bool = False
@@ -302,7 +306,12 @@ class AiModelConfigUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: Optional[str] = Field(default=None, min_length=1, max_length=120)
-    provider: Optional[AiModelProvider] = None
+    provider: Optional[AiModelProvider] = Field(
+        default=None,
+        min_length=2,
+        max_length=64,
+        pattern=r"^[a-z][a-z0-9_-]+$",
+    )
     model: Optional[str] = Field(default=None, min_length=1, max_length=200)
     enabled: Optional[bool] = None
     is_default: Optional[bool] = None

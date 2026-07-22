@@ -17,6 +17,10 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.y2026.youtube_agent_2.backend.services.plans.app import config
+from src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers import (
+    ProviderConfigurationError,
+    provider_registry,
+)
 from src.y2026.youtube_agent_2.backend.services.plans.app.domain import course_generation as service
 from src.y2026.youtube_agent_2.backend.services.plans.app.domain.ai_capacity import project_video
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import (
@@ -162,8 +166,6 @@ def _prepare_input(state: _CourseGraphState) -> dict[str, Any]:
 
 
 def _generate_structure(state: _CourseGraphState) -> dict[str, Any]:
-    # Imports stay lazy so the rest of the plans service can still start and
-    # expose a useful configuration error if optional AI packages are missing.
     snapshot = state.get("model_snapshot") or {
         "provider": config.AI_LLM_PROVIDER,
         "model": config.AI_LLM_MODEL,
@@ -171,56 +173,16 @@ def _generate_structure(state: _CourseGraphState) -> dict[str, Any]:
         "structured_output_mode": "json_schema",
     }
     provider = snapshot.get("provider", "groq")
+    provider_adapter = provider_registry.get(provider)
+    if provider_adapter is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported AI provider '{provider}'",
+        )
     try:
-        if provider == "groq":
-            from langchain_groq import ChatGroq
-
-            if not config.GROQ_API_KEY:
-                raise HTTPException(
-                    status_code=503,
-                    detail="GROQ_API_KEY is required for Groq course generation",
-                )
-            model = ChatGroq(
-                api_key=config.GROQ_API_KEY,
-                model=snapshot["model"],
-                temperature=snapshot.get("temperature", 0),
-                timeout=config.AI_LLM_TIMEOUT_SECS,
-                max_retries=config.AI_LLM_MAX_RETRIES,
-            )
-        elif provider == "google":
-            from langchain_google_genai import ChatGoogleGenerativeAI
-
-            if not config.GOOGLE_API_KEY:
-                raise HTTPException(
-                    status_code=503,
-                    detail="GOOGLE_API_KEY is required for Google course generation",
-                )
-            model = ChatGoogleGenerativeAI(
-                google_api_key=config.GOOGLE_API_KEY,
-                model=snapshot["model"],
-                temperature=snapshot.get("temperature", 0),
-                max_retries=config.AI_LLM_MAX_RETRIES,
-            )
-        elif provider == "openai":
-            from langchain_openai import ChatOpenAI
-
-            if not config.OPENAI_API_KEY:
-                raise HTTPException(
-                    status_code=503,
-                    detail="OPENAI_API_KEY is required for OpenAI course generation",
-                )
-            model = ChatOpenAI(
-                api_key=config.OPENAI_API_KEY,
-                model=snapshot["model"],
-                temperature=snapshot.get("temperature", 0),
-                timeout=config.AI_LLM_TIMEOUT_SECS,
-                max_retries=config.AI_LLM_MAX_RETRIES,
-            )
-        else:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Unsupported AI provider '{provider}'",
-            )
+        model = provider_adapter.create_chat_model(snapshot)
+    except ProviderConfigurationError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
     except ImportError as error:
         raise HTTPException(
             status_code=503,
@@ -241,9 +203,15 @@ def _generate_structure(state: _CourseGraphState) -> dict[str, Any]:
     structured_method = snapshot.get("structured_output_mode", "auto")
     if structured_method == "auto":
         structured_method = "json_schema"
-    structured_options = {"method": structured_method}
-    if structured_method == "json_schema" and provider in {"groq", "openai"}:
-        structured_options["strict"] = True
+    if not provider_adapter.supports_structured_output(structured_method):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Provider '{provider}' does not support structured output "
+                f"mode '{structured_method}'"
+            ),
+        )
+    structured_options = provider_adapter.structured_output_options(structured_method)
     strict_model = model.with_structured_output(
         _CompactCourseSuggestionBatch,
         **structured_options,
@@ -253,9 +221,16 @@ def _generate_structure(state: _CourseGraphState) -> dict[str, Any]:
     except Exception as error:
         if type(error).__name__ != "BadRequestError" or "json_validate_failed" not in str(error):
             raise
-        logger.warning(
-            "Groq strict JSON generation failed; retrying with JSON object mode"
-        )
+        logger.warning("Strict JSON generation failed; retrying with JSON object mode")
+        if not provider_adapter.supports_structured_output("json_mode"):
+            logger.warning(
+                "%s does not support JSON object mode; using deterministic organization",
+                provider,
+            )
+            return {
+                "suggestion": _deterministic_suggestion(state),
+                "generation_mode": "deterministic_fallback",
+            }
         json_messages = [
             messages[0],
             (
@@ -282,7 +257,7 @@ def _generate_structure(state: _CourseGraphState) -> dict[str, Any]:
             }:
                 raise
             logger.warning(
-                "Groq JSON object generation also failed; using deterministic organization: %s",
+                "JSON object generation also failed; using deterministic organization: %s",
                 type(fallback_error).__name__,
             )
             return {

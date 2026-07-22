@@ -138,6 +138,10 @@ export function getAiModelConfigs({ enabled } = {}) {
   return request(`/api/ai-model-configs${query ? `?${query}` : ''}`)
 }
 
+export function getAiModelProviders() {
+  return request('/api/ai-model-providers')
+}
+
 export function createAiModelConfig(data) {
   return request('/api/ai-model-configs', { method: 'POST', body: JSON.stringify(data) })
 }

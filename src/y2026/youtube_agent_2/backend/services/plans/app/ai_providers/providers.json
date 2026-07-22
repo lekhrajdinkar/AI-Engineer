@@ -1,0 +1,15 @@
+{
+  "_comment": "Enable entries here to add OpenAI-compatible providers without backend or frontend code changes. API keys remain in the named environment variables.",
+  "providers": [
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "adapter": "openai_compatible",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "structured_output_modes": ["auto", "json_schema", "json_mode"],
+      "strict_json_schema": false,
+      "enabled": false
+    }
+  ]
+}
