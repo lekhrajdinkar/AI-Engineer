@@ -28,6 +28,19 @@ def _json_text(value: dict) -> str:
     return json.dumps(value, default=str, separators=(",", ":"))
 
 
+def _ensure_sqlite_column(
+    connection: sqlite3.Connection,
+    table: str,
+    column: str,
+    declaration: str,
+) -> None:
+    columns = {
+        row[1] for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    if column not in columns:
+        connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
+
+
 def _default_ai_model_config() -> dict:
     now = datetime.now(timezone.utc)
     provider_key = {
@@ -94,11 +107,17 @@ def init_store() -> None:
                 user_id TEXT NOT NULL,
                 status TEXT NOT NULL,
                 next_attempt_at TEXT,
+                claimed_by TEXT,
+                lease_expires_at TEXT,
                 data TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
             """
+        )
+        _ensure_sqlite_column(connection, "ai_course_requests", "claimed_by", "TEXT")
+        _ensure_sqlite_column(
+            connection, "ai_course_requests", "lease_expires_at", "TEXT"
         )
         connection.execute(
             """
@@ -109,7 +128,7 @@ def init_store() -> None:
         connection.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_ai_course_requests_worker
-            ON ai_course_requests (status, next_attempt_at, created_at)
+            ON ai_course_requests (status, next_attempt_at, lease_expires_at, created_at)
             """
         )
         connection.execute(
@@ -332,6 +351,8 @@ def _parent_values(request_obj: dict) -> tuple:
         request_obj["user_id"],
         request_obj["status"],
         request_obj.get("next_attempt_at"),
+        request_obj.get("claimed_by"),
+        request_obj.get("lease_expires_at"),
         _json_text(request_obj),
         request_obj["created_at"],
         request_obj["updated_at"],
@@ -342,8 +363,9 @@ def _insert_ai_request(connection: sqlite3.Connection, request_obj: dict) -> Non
     connection.execute(
         """
         INSERT INTO ai_course_requests (
-            id, plan_id, user_id, status, next_attempt_at, data, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            id, plan_id, user_id, status, next_attempt_at, claimed_by,
+            lease_expires_at, data, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         _parent_values(request_obj),
     )
@@ -353,13 +375,16 @@ def _upsert_ai_request(connection: sqlite3.Connection, request_obj: dict) -> Non
     connection.execute(
         """
         INSERT INTO ai_course_requests (
-            id, plan_id, user_id, status, next_attempt_at, data, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            id, plan_id, user_id, status, next_attempt_at, claimed_by,
+            lease_expires_at, data, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             plan_id = excluded.plan_id,
             user_id = excluded.user_id,
             status = excluded.status,
             next_attempt_at = excluded.next_attempt_at,
+            claimed_by = excluded.claimed_by,
+            lease_expires_at = excluded.lease_expires_at,
             data = excluded.data,
             updated_at = excluded.updated_at
         """,
