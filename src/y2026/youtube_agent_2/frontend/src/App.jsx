@@ -8,6 +8,7 @@ import PlanOverview from './pages/PlanOverview'
 import CourseOverview from './pages/CourseOverview'
 import CourseWorkspace from './pages/CourseWorkspace'
 import Profile from './pages/Profile'
+import AiRequests from './pages/AiRequests'
 import { RefreshIcon } from './components/Icons'
 import { getAuthDebug, getPlans, getSourceSyncMetadata, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
 import { setPlans } from './store/plansSlice'
@@ -323,6 +324,7 @@ function AppLayout() {
           <Route path="/plans" element={<Plans newPlanRequest={newPlanRequest} />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/plans/:planId" element={<PlanOverview />} />
+          <Route path="/plans/:planId/ai-requests" element={<AiRequests />} />
           <Route path="/plans/:planId/courses/:courseId" element={<CourseOverview />} />
           <Route path="/plans/:planId/courses/:courseId/learn" element={<CourseWorkspace />} />
           <Route path="*" element={<Navigate to="/plans" replace />} />

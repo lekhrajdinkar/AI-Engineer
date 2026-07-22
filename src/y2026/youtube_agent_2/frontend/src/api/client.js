@@ -1,3 +1,13 @@
+export {
+  AI_ORGANIZATION_CONTEXT_MODES,
+  AI_PROCESSING_MODES,
+  AI_REQUEST_STATUSES,
+  AI_REQUEST_TERMINAL_STATUSES,
+  DEFAULT_AI_COURSE_OPTIONS,
+  buildAiCourseRequestPayload,
+  isTerminalAiRequestStatus,
+} from './aiContracts'
+
 const BASE = import.meta.env.VITE_API_BASE_URL || ''
 let accessTokenProvider = async () => null
 
@@ -92,6 +102,56 @@ export function addManualCourse(planId, course) {
 
 export function addAiSuggestedCourse(planId, data) {
   return request(`/api/plans/${planId}/add-course-ai-suggested`, { method: 'POST', body: JSON.stringify(data) })
+}
+
+// Persistent AI course request API blueprint. The legacy synchronous endpoint
+// above remains available until the modal migrates to this contract.
+export function submitAiCourseRequest(planId, data) {
+  return request(`/api/plans/${planId}/ai-course-requests`, { method: 'POST', body: JSON.stringify(data) })
+}
+
+export function getAiCourseRequests(planId, { status, cursor, limit = 20 } = {}) {
+  const params = new URLSearchParams()
+  if (status) params.set('status', status)
+  if (cursor) params.set('cursor', cursor)
+  if (limit) params.set('limit', String(limit))
+  const query = params.toString()
+  return request(`/api/plans/${planId}/ai-course-requests${query ? `?${query}` : ''}`)
+}
+
+export function getAiCourseRequest(planId, requestId) {
+  return request(`/api/plans/${planId}/ai-course-requests/${requestId}`)
+}
+
+export function retryAiCourseRequest(planId, requestId) {
+  return request(`/api/plans/${planId}/ai-course-requests/${requestId}/retry`, { method: 'POST' })
+}
+
+export function cancelAiCourseRequest(planId, requestId) {
+  return request(`/api/plans/${planId}/ai-course-requests/${requestId}/cancel`, { method: 'POST' })
+}
+
+export function getAiModelConfigs({ enabled } = {}) {
+  const params = new URLSearchParams()
+  if (typeof enabled === 'boolean') params.set('enabled', String(enabled))
+  const query = params.toString()
+  return request(`/api/ai-model-configs${query ? `?${query}` : ''}`)
+}
+
+export function createAiModelConfig(data) {
+  return request('/api/ai-model-configs', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export function updateAiModelConfig(configId, data) {
+  return request(`/api/ai-model-configs/${configId}`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
+export function deleteAiModelConfig(configId) {
+  return request(`/api/ai-model-configs/${configId}`, { method: 'DELETE' })
+}
+
+export function testAiModelConfig(configId) {
+  return request(`/api/ai-model-configs/${configId}/test`, { method: 'POST' })
 }
 
 export function deleteCourses(planId, courseIds) {
