@@ -8,9 +8,9 @@
 - [x] Add persistent AI job models and storage.
 - [x] Implement submit/list/detail/retry/cancel APIs.
 - [x] Add multi-provider model configuration CRUD.
-- [ ] Build the persistent background worker.
-- [ ] Add token-aware batching, rate-limit waiting, and consolidation.
-- [ ] Connect the UI to real APIs.
+- [x] Build the persistent background worker.
+- [x] Add token-aware batching, rate-limit waiting, and consolidation.
+- [x] Connect the UI to real APIs.
 - [ ] Test restart recovery, large requests, retries, and provider failures.
 
 ## Goal

@@ -9,7 +9,8 @@ import CourseOverview from './pages/CourseOverview'
 import CourseWorkspace from './pages/CourseWorkspace'
 import Profile from './pages/Profile'
 import AiRequests from './pages/AiRequests'
-import { RefreshIcon } from './components/Icons'
+import AiModelConfigs from './pages/AiModelConfigs'
+import { WorkspaceIcon } from './components/Icons'
 import { getAuthDebug, getPlans, getSourceSyncMetadata, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
 import { setPlans } from './store/plansSlice'
 import { setSourceSyncMetadata } from './store/sourcesSlice'
@@ -67,6 +68,7 @@ function AppLayout() {
   const [sourceSyncFilter, setSourceSyncFilter] = React.useState('all')
   const [expandedSyncChannels, setExpandedSyncChannels] = React.useState({})
   const [showPlanSwitcher, setShowPlanSwitcher] = React.useState(false)
+  const [showSettingsDrawer, setShowSettingsDrawer] = React.useState(false)
   const [expandedPlanIds, setExpandedPlanIds] = React.useState({})
   const [expandedCourseIds, setExpandedCourseIds] = React.useState({})
   const [planCourseSearches, setPlanCourseSearches] = React.useState({})
@@ -156,13 +158,6 @@ function AppLayout() {
     }, 80)
     return () => window.clearTimeout(timer)
   }, [showPlanSwitcher, lastAccessedCourse, plans])
-
-  React.useEffect(() => {
-    const switcherButton = document.querySelector('.quick-plan-button')
-    const openSwitcher = () => setShowPlanSwitcher(true)
-    switcherButton?.addEventListener('mouseenter', openSwitcher)
-    return () => switcherButton?.removeEventListener('mouseenter', openSwitcher)
-  }, [])
 
   React.useEffect(() => {
     if (!showPlanSwitcher) return
@@ -285,32 +280,20 @@ function AppLayout() {
       <aside className="right-nav">
         <div className="right-nav-actions">
           <div className="right-nav-top">
-          {auth && <span className="auth-status" title="Signed in" aria-label="Signed in" />}
-          <button type="button" className="profile-nav-button" title="Profile" aria-label="Profile" onClick={() => navigate('/profile')}>{auth?.photoURL ? <img src={auth.photoURL} alt="" /> : <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}</button>
           <button type="button" className="home-nav-button" title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" /></svg></button>
-          <button
-            type="button"
-            className="refresh-plans"
-            onClick={loadPlans}
-            disabled={plansLoading}
-            aria-label="Refresh learning plans"
-            title="Refresh learning plans"
-          >
-            {plansLoading ? <span className="spinner" /> : <RefreshIcon />}
-          </button>
           <button type="button" className="refresh-plans" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
             <SourceInboxIcon />
           </button>
           <button type="button" className="quick-plan-button" onClick={() => setShowPlanSwitcher(true)} aria-label="Switch learning plan" title="Switch learning plan">⇄</button>
           </div>
           <div className="right-nav-bottom">
-          <div className="font-size-selector" aria-label="Global font size">
-            {[['small', 'small'], ['medium', 'medium'], ['large', 'large']].map(([size, label]) => <button key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} title={`${label} font size`} aria-label={`${label} font size`}>A</button>)}
-          </div>
-          <div className="theme-selector" aria-label="Theme">{['light', 'pale', 'dark'].map(value => <button key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} title={`${value} theme`} aria-label={`${value} theme`}><ThemeIcon theme={value} /></button>)}</div>
+          <button type="button" className="home-nav-button" title="AI model configurations" aria-label="AI model configurations" onClick={() => navigate('/ai-model-configs')}>AI</button>
+          <button type="button" className="home-nav-button settings-nav-button" title="Settings" aria-label="Settings" onClick={() => setShowSettingsDrawer(true)}><WorkspaceIcon name="settings" /></button>
+          <button type="button" className="profile-nav-button" title={auth?.displayName || auth?.email || 'Profile'} aria-label="Profile" onClick={() => navigate('/profile')}>{auth?.photoURL ? <img src={auth.photoURL} alt="" /> : <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}</button>
           </div>
         </div>
       </aside>
+      {showSettingsDrawer && <><div className="drawer-overlay" onClick={() => setShowSettingsDrawer(false)} /><aside className="drawer settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title"><div className="drawer-header"><div><h2 id="settings-drawer-title">Settings</h2><p>Personalize your learning workspace.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSettingsDrawer(false)} aria-label="Close">×</button></div><div className="drawer-body settings-drawer-body"><section className="settings-section"><div><h3>Font size</h3><p>Adjust text sizing across the application.</p></div><div className="settings-option-grid" role="group" aria-label="Global font size">{[['small', 'Small', 'Aa'], ['medium', 'Medium', 'Aa'], ['large', 'Large', 'Aa']].map(([size, label, sample]) => <button type="button" key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} aria-pressed={fontSize === size}><span className={`settings-font-sample ${size}`}>{sample}</span><strong>{label}</strong></button>)}</div></section><section className="settings-section"><div><h3>Theme</h3><p>Choose the color theme used throughout the application.</p></div><div className="settings-option-grid" role="group" aria-label="Theme">{['light', 'pale', 'dark'].map(value => <button type="button" key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} aria-pressed={theme === value}><span className={`settings-theme-preview ${value}`}><ThemeIcon theme={value} /></span><strong>{value}</strong></button>)}</div></section></div><div className="drawer-footer"><button className="btn btn-primary" onClick={() => setShowSettingsDrawer(false)}>Done</button></div></aside></>}
       {showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close">×</button></div><div className="drawer-body source-sync-body">
         <section className="source-sync-summary"><div><span>Last pull from YouTube</span><strong>{syncMetadata?.updated_at ? new Date(syncMetadata.updated_at).toLocaleString() : 'Not synced yet'}</strong></div><div><span>Subscribed channels</span><strong>{syncMetadata?.channels?.length || 0}</strong></div><div className={sourceSyncPendingCount ? 'source-sync-pending-summary' : ''}><span>Videos ready to push</span><strong>{sourceSyncPendingCount}</strong></div></section>
         {sourceSyncError && <div className="alert alert-error">{sourceSyncError}</div>}
@@ -321,8 +304,9 @@ function AppLayout() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Navigate to="/plans" replace />} />
-          <Route path="/plans" element={<Plans newPlanRequest={newPlanRequest} />} />
+          <Route path="/plans" element={<Plans newPlanRequest={newPlanRequest} onRefresh={loadPlans} refreshing={plansLoading} />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/ai-model-configs" element={<AiModelConfigs />} />
           <Route path="/plans/:planId" element={<PlanOverview />} />
           <Route path="/plans/:planId/ai-requests" element={<AiRequests />} />
           <Route path="/plans/:planId/courses/:courseId" element={<CourseOverview />} />

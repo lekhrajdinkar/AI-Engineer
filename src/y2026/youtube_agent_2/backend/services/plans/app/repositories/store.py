@@ -2,7 +2,7 @@
 
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Iterable, Optional
 
 from src.y2026.youtube_agent_2.backend.shared.platform import identity
@@ -127,7 +127,7 @@ def init_store() -> None:
         )
         connection.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_ai_course_requests_worker
+            CREATE INDEX IF NOT EXISTS idx_ai_course_requests_worker_v2
             ON ai_course_requests (status, next_attempt_at, lease_expires_at, created_at)
             """
         )
@@ -607,6 +607,134 @@ def list_ai_course_attempts(
             (request_id, owner_id),
         ).fetchall()
     return [json.loads(row[0]) for row in rows]
+
+
+def _stored_datetime(value) -> datetime | None:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(value))
+        except ValueError:
+            return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def claim_next_ai_course_request(
+    worker_id: str,
+    lease_seconds: int,
+) -> Optional[dict]:
+    """Atomically claim queued work or recover an expired worker lease."""
+    now = datetime.now(timezone.utc)
+    lease_expires_at = now + timedelta(seconds=lease_seconds)
+    if _firestore_store:
+        return _firestore_store.claim_next_ai_course_request(
+            worker_id, now, lease_expires_at
+        )
+    with sqlite3.connect(config.DB_PATH, timeout=30) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        rows = connection.execute(
+            """
+            SELECT data FROM ai_course_requests
+            WHERE status IN ('queued', 'running', 'waiting_for_rate_limit')
+            ORDER BY created_at, id
+            """
+        ).fetchall()
+        selected = None
+        for row in rows:
+            candidate = json.loads(row[0])
+            candidate_status = candidate.get("status")
+            if candidate_status == "running":
+                eligible = (_stored_datetime(candidate.get("lease_expires_at")) or now) <= now
+            elif candidate_status == "waiting_for_rate_limit":
+                eligible = (_stored_datetime(candidate.get("next_attempt_at")) or now) <= now
+            else:
+                eligible = True
+            if eligible:
+                selected = candidate
+                break
+        if selected is None:
+            connection.commit()
+            return None
+        selected.update(
+            status="running",
+            claimed_by=worker_id,
+            lease_expires_at=lease_expires_at,
+            next_attempt_at=None,
+            started_at=selected.get("started_at") or now,
+            updated_at=now,
+        )
+        connection.execute(
+            """
+            UPDATE ai_course_requests
+            SET status = 'running', next_attempt_at = NULL, claimed_by = ?,
+                lease_expires_at = ?, data = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                worker_id,
+                lease_expires_at,
+                _json_text(selected),
+                now,
+                selected["id"],
+            ),
+        )
+        connection.commit()
+    return selected
+
+
+def renew_ai_course_request_lease(
+    request_id: str,
+    worker_id: str,
+    lease_seconds: int,
+    user_id: str | None = None,
+) -> bool:
+    now = datetime.now(timezone.utc)
+    lease_expires_at = now + timedelta(seconds=lease_seconds)
+    if _firestore_store:
+        return _firestore_store.renew_ai_course_request_lease(
+            request_id,
+            worker_id,
+            _ai_user_id(user_id),
+            now,
+            lease_expires_at,
+        )
+    with sqlite3.connect(config.DB_PATH, timeout=30) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            "SELECT data FROM ai_course_requests WHERE id = ?",
+            (request_id,),
+        ).fetchone()
+        if not row:
+            connection.commit()
+            return False
+        request_obj = json.loads(row[0])
+        if (
+            request_obj.get("status") != "running"
+            or request_obj.get("claimed_by") != worker_id
+        ):
+            connection.commit()
+            return False
+        request_obj["lease_expires_at"] = lease_expires_at
+        request_obj["updated_at"] = now
+        connection.execute(
+            """
+            UPDATE ai_course_requests
+            SET lease_expires_at = ?, data = ?, updated_at = ?
+            WHERE id = ? AND claimed_by = ? AND status = 'running'
+            """,
+            (
+                lease_expires_at,
+                _json_text(request_obj),
+                now,
+                request_id,
+                worker_id,
+            ),
+        )
+        connection.commit()
+    return True
 
 
 def save_ai_model_config(config_obj: dict) -> None:

@@ -4,14 +4,13 @@ import {
   AI_ORGANIZATION_CONTEXT_MODES,
   AI_PROCESSING_MODES,
   DEFAULT_AI_COURSE_OPTIONS,
-  addAiSuggestedCourse,
   buildAiCourseRequestPayload,
   getChannels,
-  getPlan,
+  getAiModelConfigs,
   getPlaylists,
   getVideos,
+  submitAiCourseRequest,
 } from '../api/client'
-import { MOCK_AI_MODEL_CONFIGS } from '../api/mockAiModelConfigs'
 import { setChannelPlaylists, setSubscribedChannels } from '../store/sourcesSlice'
 
 function ChannelAvatar({ title, thumbnail }) {
@@ -37,7 +36,7 @@ function sortSources(items, sortBy) {
     : (left.title || '').localeCompare(right.title || ''))
 }
 
-export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
+export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
   const dispatch = useDispatch()
   const cachedChannels = useSelector(state => state.sources.subscribedChannels)
   const cachedPlaylists = useSelector(state => state.sources.playlistsByChannel)
@@ -53,14 +52,32 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
   const [showPlaylists, setShowPlaylists] = useState(false)
   const [channelSortBy, setChannelSortBy] = useState('name')
   const [playlistSortBy, setPlaylistSortBy] = useState('name')
-  const defaultModel = MOCK_AI_MODEL_CONFIGS.find(model => model.is_default) || MOCK_AI_MODEL_CONFIGS[0]
-  const [selectedModelId, setSelectedModelId] = useState(defaultModel?.id || '')
+  const [models, setModels] = useState([])
+  const [modelsLoading, setModelsLoading] = useState(true)
+  const [selectedModelId, setSelectedModelId] = useState('')
   const [processingMode, setProcessingMode] = useState(DEFAULT_AI_COURSE_OPTIONS.processingMode)
-  const [batchSize, setBatchSize] = useState(defaultModel?.default_batch_size || DEFAULT_AI_COURSE_OPTIONS.batchSize)
+  const [batchSize, setBatchSize] = useState(DEFAULT_AI_COURSE_OPTIONS.batchSize)
   const [organizationContextMode, setOrganizationContextMode] = useState(DEFAULT_AI_COURSE_OPTIONS.organizationContextMode)
   const [descriptionMaxWords, setDescriptionMaxWords] = useState(DEFAULT_AI_COURSE_OPTIONS.descriptionMaxWords)
   const [maxTagsPerVideo, setMaxTagsPerVideo] = useState(DEFAULT_AI_COURSE_OPTIONS.maxTagsPerVideo)
-  const selectedModel = MOCK_AI_MODEL_CONFIGS.find(model => model.id === selectedModelId)
+  const selectedModel = models.find(model => model.id === selectedModelId)
+
+  useEffect(() => {
+    let active = true
+    getAiModelConfigs({ enabled: true }).then(data => {
+      if (!active) return
+      const available = data.items || []
+      const defaultModel = available.find(model => model.is_default) || available[0]
+      setModels(available)
+      setSelectedModelId(defaultModel?.id || '')
+      setBatchSize(defaultModel?.default_batch_size || DEFAULT_AI_COURSE_OPTIONS.batchSize)
+    }).catch(err => {
+      if (active) setError(`Unable to load AI models: ${err.message}`)
+    }).finally(() => {
+      if (active) setModelsLoading(false)
+    })
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     if (cachedChannels !== null) {
@@ -116,7 +133,7 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
   function deselectAllPlaylists(items) { const ids = new Set(items.map(item => item.playlist_id)); setSelectedPlaylists(prev => prev.filter(item => !ids.has(item.playlist_id))) }
 
   function selectModel(modelId) {
-    const model = MOCK_AI_MODEL_CONFIGS.find(item => item.id === modelId)
+    const model = models.find(item => item.id === modelId)
     setSelectedModelId(modelId)
     if (model) setBatchSize(model.default_batch_size)
   }
@@ -210,7 +227,7 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
           last_video_published_at: playlist.last_video_published_at || null,
         })),
       }))
-      await addAiSuggestedCourse(plan.id, buildAiCourseRequestPayload({
+      const accepted = await submitAiCourseRequest(plan.id, buildAiCourseRequestPayload({
         modelConfigId: selectedModelId,
         processingMode,
         batchSize,
@@ -220,7 +237,7 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
         videos: requestVideos,
         sourceChannels: requestSources,
       }))
-      onCourseCreated(await getPlan(plan.id))
+      onRequestSubmitted?.(accepted)
       onClose()
     } catch (err) {
       setError('AI suggest failed: ' + err.message)
@@ -271,14 +288,15 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
           {!showPlaylists && (
             <div className="add-course-source-step">
               <section className="ai-course-settings">
-                <header><div><span>Generation settings</span><h3>Choose how AI organizes this course</h3></div><small>Model catalog preview</small></header>
+                <header><div><span>Generation settings</span><h3>Choose how AI organizes this course</h3></div><small>{modelsLoading ? 'Loading models...' : `${models.length} ready`}</small></header>
                 <div className="ai-course-settings-grid">
                   <label className="ai-course-setting-field ai-course-model-field">
                     <span>AI model</span>
                     <select value={selectedModelId} onChange={event => selectModel(event.target.value)}>
-                      {MOCK_AI_MODEL_CONFIGS.filter(model => model.enabled && model.credential_status === 'configured').map(model => <option key={model.id} value={model.id}>{model.name} · {model.provider}</option>)}
+                      {!models.length && <option value="">No tested models available</option>}
+                      {models.map(model => <option key={model.id} value={model.id}>{model.name} · {model.provider}</option>)}
                     </select>
-                    <small>{selectedModel?.model} · {selectedModel?.note}</small>
+                    <small>{selectedModel ? `${selectedModel.model} · ${selectedModel.max_input_tokens} token limit` : 'Test and enable a model configuration first.'}</small>
                   </label>
 
                   <div className="ai-course-setting-field">
@@ -390,7 +408,7 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
           {!showPlaylists && (
             <>
               <button className="btn btn-secondary" onClick={closeDrawer}>Cancel</button>
-              <button className="btn btn-primary" onClick={loadPlaylists} disabled={selectedChannels.length === 0 || loading}>
+              <button className="btn btn-primary" onClick={loadPlaylists} disabled={selectedChannels.length === 0 || loading || !selectedModel}>
                 {loading ? <><span className="spinner" /> Loading...</> : 'Playlist Options'}
               </button>
             </>
@@ -399,7 +417,7 @@ export default function AiCourseModal({ plan, onClose, onCourseCreated }) {
             <>
               <button className="btn btn-secondary" onClick={() => setShowPlaylists(false)}>Back</button>
               <button className="btn btn-primary" onClick={handleAiGenerate} disabled={loading}>
-                {loading ? <><span className="spinner" /> Generating...</> : 'Generate AI Suggestions'}
+                {loading ? <><span className="spinner" /> Submitting...</> : 'Submit AI Request'}
               </button>
             </>
           )}

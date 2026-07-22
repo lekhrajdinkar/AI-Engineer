@@ -5,8 +5,11 @@ verified Firebase Auth uid for each request before calling this repository.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from typing import Optional
+
+from firebase_admin import firestore
 
 from src.y2026.youtube_agent_2.backend.shared.platform import settings
 from src.y2026.youtube_agent_2.backend.shared.platform.firebase import firestore_client
@@ -18,6 +21,19 @@ AI_INPUT_VIDEO_CHUNK_SIZE = 100
 def _json_value(value):
     """Firestore accepts native JSON-like values; stringify datetime objects."""
     return json.loads(json.dumps(value, default=str))
+
+
+def _datetime_value(value) -> datetime | None:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(value))
+        except ValueError:
+            return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 class FirestoreStore:
@@ -341,6 +357,89 @@ class FirestoreStore:
             .stream()
         ]
         return sorted(rows, key=lambda row: (row.get("number", 0), row.get("id", "")))
+
+    def claim_next_ai_course_request(
+        self,
+        worker_id: str,
+        now: datetime,
+        lease_expires_at: datetime,
+    ) -> Optional[dict]:
+        snapshots = list(
+            self.client.collection_group("ai_course_requests")
+            .where(
+                "status",
+                "in",
+                ["queued", "running", "waiting_for_rate_limit"],
+            )
+            .stream()
+        )
+        snapshots.sort(
+            key=lambda snapshot: (
+                str(snapshot.to_dict().get("created_at") or ""),
+                snapshot.id,
+            )
+        )
+
+        @firestore.transactional
+        def claim(transaction, reference):
+            snapshot = reference.get(transaction=transaction)
+            if not snapshot.exists:
+                return None
+            candidate = snapshot.to_dict()
+            candidate_status = candidate.get("status")
+            if candidate_status == "running":
+                eligible = (
+                    _datetime_value(candidate.get("lease_expires_at")) or now
+                ) <= now
+            elif candidate_status == "waiting_for_rate_limit":
+                eligible = (
+                    _datetime_value(candidate.get("next_attempt_at")) or now
+                ) <= now
+            else:
+                eligible = candidate_status == "queued"
+            if not eligible:
+                return None
+            candidate.update(
+                status="running",
+                claimed_by=worker_id,
+                lease_expires_at=lease_expires_at,
+                next_attempt_at=None,
+                started_at=candidate.get("started_at") or now,
+                updated_at=now,
+            )
+            transaction.set(reference, _json_value(candidate), merge=False)
+            return candidate
+
+        for snapshot in snapshots:
+            claimed = claim(self.client.transaction(), snapshot.reference)
+            if claimed:
+                return claimed
+        return None
+
+    def renew_ai_course_request_lease(
+        self,
+        request_id: str,
+        worker_id: str,
+        user_id: str,
+        now: datetime,
+        lease_expires_at: datetime,
+    ) -> bool:
+        reference = self._ai_request(request_id, user_id)
+
+        @firestore.transactional
+        def renew(transaction):
+            snapshot = reference.get(transaction=transaction)
+            if not snapshot.exists:
+                return False
+            request = snapshot.to_dict()
+            if request.get("status") != "running" or request.get("claimed_by") != worker_id:
+                return False
+            request["lease_expires_at"] = lease_expires_at
+            request["updated_at"] = now
+            transaction.set(reference, _json_value(request), merge=False)
+            return True
+
+        return renew(self.client.transaction())
 
     def _ai_model_configs(self):
         return self.client.collection("ai_model_configs")

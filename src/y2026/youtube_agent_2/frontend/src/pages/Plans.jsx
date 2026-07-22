@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { createPlan, deletePlan as deletePlanRequest } from '../api/client'
 import { updatePlanLabels, updatePlanMetadata } from '../api/client'
 import EditMetadataDrawer from '../components/EditMetadataDrawer'
-import { EditIcon, LabelIcon, WorkspaceIcon } from '../components/Icons'
+import { EditIcon, LabelIcon, RefreshIcon, WorkspaceIcon } from '../components/Icons'
 import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
 
-export default function Plans({ newPlanRequest }) {
+export default function Plans({ newPlanRequest, onRefresh, refreshing = false }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const plans = useSelector(state => state.plans.items)
@@ -129,7 +129,7 @@ export default function Plans({ newPlanRequest }) {
       )}
 
       <div>
-          <div className="page-header plan-overview-header"><h1>YouTube Learning</h1><div className="plan-action-panel"><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search learning plans..." aria-label="Search learning plans" /><button className="btn btn-secondary btn-sm icon-button" title="Sort learning plans" aria-label="Sort learning plans" onClick={() => setShowSort(true)}><WorkspaceIcon name="sort" /></button><div className="add-course-group"><button className="btn btn-secondary btn-sm" onClick={() => setShowDrawer(true)}><WorkspaceIcon name="manual" />New plan</button></div></div></div>
+          <div className="page-header plan-overview-header"><h1>YouTube Learning</h1><div className="plan-action-panel"><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search learning plans..." aria-label="Search learning plans" /><button className="btn btn-secondary btn-sm icon-button" title="Sort learning plans" aria-label="Sort learning plans" onClick={() => setShowSort(true)}><WorkspaceIcon name="sort" /></button><button className="btn btn-secondary btn-sm icon-button" title="Refresh learning plans" aria-label="Refresh learning plans" onClick={onRefresh} disabled={refreshing}>{refreshing ? <span className="spinner" /> : <RefreshIcon />}</button><div className="add-course-group"><button className="btn btn-secondary btn-sm" onClick={() => setShowDrawer(true)}><WorkspaceIcon name="manual" />New plan</button></div></div></div>
           <div className="page-header course-toolbar"><h4>Learning plans <span className="badge badge-green">{plans.length}</span></h4></div>
           <div className="label-tabs" role="tablist"><button className={planLabelTab === 'ALL' ? 'active' : ''} onClick={() => setPlanLabelTab('ALL')}>All <span>{plans.length}</span></button>{planLabels.map(label => <button key={label} className={planLabelTab === label ? 'active' : ''} onClick={() => setPlanLabelTab(label)}>{label.replaceAll('_', ' ')} <span>{plans.filter(plan => plan.labels?.includes(label)).length}</span></button>)}</div>
           {plans.length === 0 && (

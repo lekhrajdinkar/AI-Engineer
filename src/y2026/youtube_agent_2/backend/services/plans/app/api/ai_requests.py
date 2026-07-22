@@ -25,6 +25,11 @@ from src.y2026.youtube_agent_2.backend.services.plans.app.models import (
     LearningPlan,
 )
 from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import store
+from src.y2026.youtube_agent_2.backend.services.plans.app.domain.ai_capacity import (
+    estimate_tokens,
+    fits_capacity,
+    safe_token_budget,
+)
 from src.y2026.youtube_agent_2.backend.shared.platform import identity
 
 
@@ -202,6 +207,17 @@ def _validate_capacity(
             detail=(
                 f"{snapshot['name']} supports at most "
                 f"{snapshot['max_whole_videos']} videos in whole mode; choose batch mode"
+            ),
+        )
+    if request.processing.mode == "whole" and not fits_capacity(
+        videos, request.organization_context, snapshot
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Whole mode is estimated at {estimate_tokens(videos, request.organization_context)} "
+                f"tokens, above the safe budget of {safe_token_budget(snapshot)}; "
+                "choose batch mode"
             ),
         )
 
@@ -459,6 +475,8 @@ def cancel_ai_course_request(plan_id: str, request_id: str):
     parent.updated_at = now
     parent.completed_at = now
     parent.next_attempt_at = None
+    parent.claimed_by = None
+    parent.lease_expires_at = None
     store.save_ai_course_request(parent.model_dump())
 
     for row in store.list_ai_course_batches(parent.id):
