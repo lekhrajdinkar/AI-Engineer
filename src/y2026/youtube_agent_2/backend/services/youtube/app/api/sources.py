@@ -18,5 +18,9 @@ def get_channel_playlists(channel_id: str):
 
 
 @router.get("/api/videos", tags=["videos"])
-def get_videos(channel_id: str | None = None, playlist_id: str | None = None):
-    return catalog.videos(channel_id, playlist_id)
+def get_videos(
+    channel_id: str | None = None,
+    playlist_id: str | None = None,
+    published_after: str | None = None,
+):
+    return catalog.videos(channel_id, playlist_id, published_after)

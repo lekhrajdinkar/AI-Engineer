@@ -16,6 +16,8 @@ class Video(BaseModel):
     thumbnail: str
     duration_secs: Optional[int] = None
     published_at: Optional[datetime] = None
+    playlist_item_id: Optional[str] = None
+    added_to_playlist_at: Optional[datetime] = None
     tags: List[str] = Field(default_factory=list)
     category_id: Optional[str] = None
     caption_available: bool = False

@@ -32,4 +32,7 @@ class VideoRecord(TypedDict):
     thumbnail: NotRequired[str]
     url: NotRequired[str]
     published_at: NotRequired[str]
+    playlist_id: NotRequired[str]
+    playlist_item_id: NotRequired[str]
+    added_to_playlist_at: NotRequired[str]
     duration_secs: NotRequired[int]

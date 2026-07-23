@@ -14,6 +14,8 @@ class PlansRouteTests(unittest.TestCase):
         paths = set(app.openapi()["paths"])
         self.assertIn("/api/plans", paths)
         self.assertIn("/api/sources/sync-metadata", paths)
+        self.assertIn("/api/sources/sync-metadata/organize-new-feeds", paths)
+        self.assertIn("/api/sources/sync-metadata/confirm-organization", paths)
         self.assertNotIn("/auth/google/login", paths)
 
 

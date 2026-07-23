@@ -44,10 +44,7 @@ FIREBASE_ENABLED=false
 FIREBASE_AUTH_REQUIRED=false
 ```
 
-Deploy/Run to render
-- [deploy-to-render.md](deployment/render/README.md)
-- [render-microservices.yaml](deployment/render/render-microservices.yaml)
-
-Local Kubernetes
+**Future Deployment**
+- [deploy-to-render.md](deployment/render/README.md) | [render-microservices.yaml](deployment/render/render-microservices.yaml)
 - [deployment/kubernetes/README.md](deployment/kubernetes/README.md)
 - [deployment/helm/README.md](deployment/helm/README.md)

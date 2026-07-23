@@ -18,9 +18,17 @@ def playlists(channel_id: str) -> dict:
     return {"channel_id": channel_id, "playlists": youtube_client.get_channel_playlists(channel_id)}
 
 
-def videos(channel_id: str | None, playlist_id: str | None) -> dict:
+def videos(
+    channel_id: str | None,
+    playlist_id: str | None,
+    published_after: str | None = None,
+) -> dict:
     if not channel_id:
         raise HTTPException(status_code=400, detail="channel_id is required")
-    raw_videos = youtube_client.get_playlist_videos(playlist_id) if playlist_id else youtube_client.get_channel_videos(channel_id)
+    raw_videos = (
+        youtube_client.get_playlist_videos(playlist_id)
+        if playlist_id
+        else youtube_client.get_channel_videos(channel_id, published_after)
+    )
     result = [{**video, "description": _trim_description(video.get("description"))} for video in raw_videos]
     return {"channel_id": channel_id, **({"playlist_id": playlist_id} if playlist_id else {}), "videos": result}

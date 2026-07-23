@@ -68,13 +68,48 @@ export function createPlan(data) {
 }
 
 export function getSourceSyncMetadata() { return request('/api/sources/sync-metadata') }
-export function syncSourceMetadata() { return request('/api/sources/sync-metadata', { method: 'POST' }) }
-export function pushNewSourceFeeds({ channelId, playlistId } = {}) {
+export function syncSourceMetadata({ channelId } = {}) {
   const params = new URLSearchParams()
   if (channelId) params.set('channel_id', channelId)
-  if (playlistId) params.set('playlist_id', playlistId)
   const query = params.toString()
-  return request(`/api/sources/sync-metadata/push-new-feeds${query ? `?${query}` : ''}`, { method: 'POST' })
+  return request(`/api/sources/sync-metadata${query ? `?${query}` : ''}`, { method: 'POST' })
+}
+export function pushNewSourceFeeds({ channelId, playlistId, planId, courseId, moduleId, newModuleTitle, videoIds }) {
+  return request('/api/sources/sync-metadata/push-new-feeds', {
+    method: 'POST',
+    body: JSON.stringify({
+      channel_id: channelId,
+      playlist_id: playlistId || null,
+      plan_id: planId,
+      course_id: courseId,
+      module_id: moduleId || null,
+      new_module_title: newModuleTitle || null,
+      video_ids: videoIds,
+    }),
+  })
+}
+export function organizeNewSourceFeeds({ channelId, playlistId, videoIds, modelConfigId, userPrompt, previousSuggestion }) {
+  return request('/api/sources/sync-metadata/organize-new-feeds', {
+    method: 'POST',
+    body: JSON.stringify({
+      channel_id: channelId,
+      model_config_id: modelConfigId,
+      playlist_id: playlistId || null,
+      video_ids: videoIds,
+      user_prompt: userPrompt || null,
+      previous_suggestion: previousSuggestion || null,
+    }),
+  })
+}
+export function confirmSourceFeedOrganization({ channelId, playlistId, placements }) {
+  return request('/api/sources/sync-metadata/confirm-organization', {
+    method: 'POST',
+    body: JSON.stringify({
+      channel_id: channelId,
+      playlist_id: playlistId || null,
+      placements,
+    }),
+  })
 }
 export function discoverNewCourseVideos(planId, courseId, { channelId, playlistId } = {}) {
   const params = new URLSearchParams()
