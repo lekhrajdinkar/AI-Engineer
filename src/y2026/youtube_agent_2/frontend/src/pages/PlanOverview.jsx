@@ -13,6 +13,19 @@ import {
 import EditMetadataDrawer from "../components/EditMetadataDrawer";
 import { EditIcon, LabelIcon, WorkspaceIcon } from "../components/Icons";
 
+function JsonActionIcon({ name }) {
+  const paths = {
+    download: "M12 3v12m0 0 4-4m-4 4-4-4M5 20h14",
+    load: "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Zm0 0v6h6M12 18v-6m0 0-3 3m3-3 3 3",
+    edit: "m8 7-5 5 5 5m8-10 5 5-5 5M14 4l-4 16",
+  };
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d={paths[name]} />
+    </svg>
+  );
+}
+
 function LearningPlanOverviewDrawer({
   plan,
   sourceChannels,
@@ -170,11 +183,13 @@ function LearningPlanOverviewDrawer({
           </button>
           {tab === "json" && (
             <>
-              <button className="overview-download-json" onClick={downloadJson}>
-                Download JSON
+              <button className="overview-json-action overview-download-json" onClick={downloadJson}>
+                <JsonActionIcon name="download" />
+                <span>Download JSON</span>
               </button>
-              <button onClick={() => jsonFileInputRef.current?.click()} disabled={uploadingJson}>
-                Load JSON File
+              <button className="overview-json-action overview-load-json" onClick={() => jsonFileInputRef.current?.click()} disabled={uploadingJson}>
+                <JsonActionIcon name="load" />
+                <span>Load JSON File</span>
               </button>
               <input
                 ref={jsonFileInputRef}
@@ -184,7 +199,10 @@ function LearningPlanOverviewDrawer({
                 hidden
               />
               {!editingJson ? (
-                <button onClick={startJsonEdit}>Edit JSON</button>
+                <button className="overview-json-action overview-edit-json" onClick={startJsonEdit}>
+                  <JsonActionIcon name="edit" />
+                  <span>Edit JSON</span>
+                </button>
               ) : (
                 <>
                   <button onClick={cancelJsonEdit} disabled={uploadingJson}>Cancel</button>

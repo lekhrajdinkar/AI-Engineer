@@ -37,7 +37,7 @@ function DetailField({ label, value, configKey }) {
   return <div className="ai-model-detail-field"><span>{label}{configKey && <code>{configKey}</code>}</span><strong>{readable(value)}</strong></div>
 }
 
-function ModelForm({ form, items, providers, currentId, onChange }) {
+export function ModelForm({ form, items, providers, currentId, onChange }) {
   const numberChange = key => event => onChange(key, Number(event.target.value))
   const selectedProvider = providers.find(provider => provider.id === form.provider)
   const providerOptions = selectedProvider || !form.provider
@@ -88,16 +88,20 @@ function ModelForm({ form, items, providers, currentId, onChange }) {
   )
 }
 
-function ModelDetails({ model, items, providers }) {
+export function ModelDetails({ model, items, providers, compactHeader = false }) {
   const fallback = items.find(item => item.id === model.fallback_model_config_id)
   const provider = providers.find(item => item.id === model.provider)
   const providerName = provider?.name || model.provider
   return (
     <div className="ai-model-detail-sections">
-      <section>
+      {!compactHeader && <section>
         <h3>Connection</h3>
         <div className="ai-model-detail-grid"><DetailField label="Configuration ID" configKey="AI_LLM_CONFIG_ID" value={model.id} /><DetailField label="Configuration name" configKey="AI_LLM_DISPLAY_NAME" value={model.name} /><DetailField label="Provider" configKey="AI_LLM_PROVIDER" value={providerName} /><DetailField label="Model ID" configKey="AI_LLM_MODEL" value={model.model} /><DetailField label="Credential" configKey={provider?.credential_env || 'PROVIDER_API_KEY'} value={model.credential_status} /><DetailField label="Availability" configKey="enabled" value={model.enabled ? 'Enabled' : 'Disabled'} /></div>
-      </section>
+      </section>}
+      {compactHeader && <section>
+        <h3>Connection</h3>
+        <div className="ai-model-detail-grid"><DetailField label="Configuration ID" configKey="AI_LLM_CONFIG_ID" value={model.id} /><DetailField label="Credential environment" configKey={provider?.credential_env || 'PROVIDER_API_KEY'} value={model.credential_status} /></div>
+      </section>}
       <section>
         <h3>Generation</h3>
         <div className="ai-model-detail-grid"><DetailField label="Temperature" configKey="AI_LLM_TEMPERATURE" value={model.temperature} /><DetailField label="Structured output" configKey="structured_output_mode" value={model.structured_output_mode} /><DetailField label="Fallback model" configKey="fallback_model_config_id" value={fallback?.name || 'None'} /><DetailField label="Default" configKey="is_default" value={model.is_default ? 'Yes' : 'No'} /></div>
@@ -106,17 +110,11 @@ function ModelDetails({ model, items, providers }) {
         <h3>Capacity</h3>
         <div className="ai-model-detail-grid"><DetailField label="Max input tokens" configKey="AI_LLM_MAX_INPUT_TOKENS" value={model.max_input_tokens?.toLocaleString()} /><DetailField label="Default batch" configKey="AI_LLM_DEFAULT_BATCH_SIZE" value={model.default_batch_size} /><DetailField label="Maximum batch" configKey="AI_LLM_MAX_BATCH_SIZE" value={model.max_batch_size} /><DetailField label="Whole-mode limit" configKey="AI_LLM_MAX_WHOLE_VIDEOS" value={`${model.max_whole_videos} videos`} /></div>
       </section>
-      <section>
-        <h3>Connection test</h3>
-        <div className={`ai-model-test-result ${model.test_status}`}><div><span className="ai-model-test-dot" /><strong>{readable(model.test_status)}</strong><small>{formatDate(model.last_tested_at)}</small></div><p>{model.test_message || 'This model has not been tested yet.'}</p></div>
-      </section>
-      <section>
-        <h3>Record</h3>
-        <div className="ai-model-detail-grid"><DetailField label="Created" configKey="created_at" value={formatDate(model.created_at)} /><DetailField label="Updated" configKey="updated_at" value={formatDate(model.updated_at)} /></div>
-      </section>
     </div>
   )
 }
+
+export { EMPTY, editableValues, readable, formatDate }
 
 export default function AiModelConfigs() {
   const [items, setItems] = React.useState([])

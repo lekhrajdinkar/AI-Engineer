@@ -1,6 +1,7 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
+import LearningPathNav from '../components/LearningPathNav'
 
 export default function CourseOverview() {
   const { planId, courseId } = useParams()
@@ -13,6 +14,7 @@ export default function CourseOverview() {
   const bookmarked = videos.filter(video => video.labels?.includes('bookmarked')).length
   const markedForDelete = videos.filter(video => video.labels?.includes('mark_for_delete')).length
   return <div>
+    <LearningPathNav plan={plan} course={course} />
     <div className="page-header"><h1>{course.title}</h1><button className="btn btn-secondary btn-sm" onClick={() => navigate(`/plans/${planId}`)}>← {plan.name}</button></div>
     <div className="card"><h3>Course overview</h3><p>{course.description || 'No description provided.'}</p><div className="metadata-row"><span>Created: {course.created_at ? new Date(course.created_at).toLocaleString() : '—'}</span><span>Updated: {course.updated_at ? new Date(course.updated_at).toLocaleString() : '—'}</span></div><div className="grid-3"><div><strong>{course.modules?.length || 0}</strong><br />Modules</div><div><strong>{videos.length}</strong><br />Total videos</div><div><strong>{watched}</strong><br />✓ Watched</div><div><strong>{bookmarked}</strong><br />🔖 Bookmarked</div><div><strong>{markedForDelete}</strong><br />🗑 Marked for delete</div><div><strong>{videos.length - watched}</strong><br />Unwatched</div></div></div>
     <div className="card"><h3>Content sources</h3>{course.source_channels?.length ? <div className="course-source-list">{course.source_channels.map(channel => {

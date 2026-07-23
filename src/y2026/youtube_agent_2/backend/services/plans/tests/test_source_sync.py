@@ -45,6 +45,80 @@ class FakeSourceProvider:
 
 
 class SourceSyncTests(unittest.TestCase):
+    def test_get_metadata_rebinds_cached_targets_from_current_plans(self):
+        previous = {
+            "updated_at": "2026-07-21T12:00:00+00:00",
+            "channels": [
+                {
+                    "channel_id": "channel-a",
+                    "title": "Channel A",
+                    "target_courses": [],
+                    "new_videos": [{"video_id": "pending-video"}],
+                    "playlists": [
+                        {
+                            "playlist_id": "playlist-a",
+                            "target_courses": [],
+                            "last_feed_checked_at": "2026-07-21T10:00:00+00:00",
+                        }
+                    ],
+                }
+            ],
+        }
+        channel_targets = [
+            {
+                "plan_id": "plan-a",
+                "course_id": f"course-{index}",
+                "course_sequence": index,
+            }
+            for index in range(1, 12)
+        ]
+        playlist_targets = [
+            {
+                "plan_id": "plan-a",
+                "course_id": "playlist-course",
+                "course_sequence": 12,
+            }
+        ]
+        saved = []
+
+        with (
+            patch.object(
+                source_sync.db,
+                "load_source_sync_metadata",
+                return_value=previous,
+            ),
+            patch.object(
+                source_sync.db,
+                "save_source_sync_metadata",
+                side_effect=lambda metadata: saved.append(metadata),
+            ),
+            patch.object(
+                source_sync,
+                "_source_targets",
+                return_value={
+                    "channel-a": {
+                        "target_courses": channel_targets,
+                        "playlists": {"playlist-a": playlist_targets},
+                    }
+                },
+            ),
+        ):
+            result = source_sync.get_sync_metadata()
+
+        channel = result["channels"][0]
+        self.assertEqual(len(channel["target_courses"]), 11)
+        self.assertEqual(
+            channel["playlists"][0]["target_courses"], playlist_targets
+        )
+        self.assertEqual(
+            channel["new_videos"], previous["channels"][0]["new_videos"]
+        )
+        self.assertEqual(
+            channel["playlists"][0]["last_feed_checked_at"],
+            "2026-07-21T10:00:00+00:00",
+        )
+        self.assertEqual(saved, [result])
+
     def test_channel_sync_merges_one_channel_and_uses_feed_checkpoint(self):
         provider = FakeSourceProvider()
         previous = {

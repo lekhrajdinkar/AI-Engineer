@@ -78,6 +78,42 @@ def _source_targets() -> dict:
     return targets
 
 
+def _refresh_target_bindings(metadata: dict) -> tuple[dict, bool]:
+    """Rebind cached source metadata to the current learning plans."""
+    target_map = _source_targets()
+    changed = False
+    refreshed_channels = []
+
+    for channel in metadata.get("channels", []):
+        channel_id = channel.get("channel_id")
+        target_entry = target_map.get(
+            channel_id, {"target_courses": [], "playlists": {}}
+        )
+        channel_targets = target_entry["target_courses"]
+        if channel.get("target_courses", []) != channel_targets:
+            changed = True
+
+        refreshed_playlists = []
+        for playlist in channel.get("playlists", []):
+            playlist_id = playlist.get("playlist_id") or playlist.get("id")
+            playlist_targets = target_entry["playlists"].get(playlist_id, [])
+            if playlist.get("target_courses", []) != playlist_targets:
+                changed = True
+            refreshed_playlists.append(
+                {**playlist, "target_courses": playlist_targets}
+            )
+
+        refreshed_channels.append(
+            {
+                **channel,
+                "target_courses": channel_targets,
+                "playlists": refreshed_playlists,
+            }
+        )
+
+    return {**metadata, "channels": refreshed_channels}, changed
+
+
 def _known_source_video_ids(target_courses: list) -> set:
     known = set()
     for plan_id in {target["plan_id"] for target in target_courses}:
@@ -342,7 +378,12 @@ def _apply_sync_to_courses(
 
 
 def get_sync_metadata() -> dict:
-    return db.load_source_sync_metadata()
+    metadata, changed = _refresh_target_bindings(
+        db.load_source_sync_metadata()
+    )
+    if changed:
+        db.save_source_sync_metadata(metadata)
+    return metadata
 
 
 def sync_metadata(channel_id: Optional[str] = None) -> dict:

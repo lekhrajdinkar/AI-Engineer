@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
 import PlanDetail from '../components/PlanDetail'
 import { WorkspaceIcon } from '../components/Icons'
+import LearningPathNav from '../components/LearningPathNav'
 import { submitCourseRefreshFeed } from '../api/client'
 import { updatePlan } from '../store/plansSlice'
 
@@ -36,7 +37,6 @@ export default function CourseWorkspace() {
   const bookmarked = videos.filter(video => video.labels?.includes('bookmarked')).length
   const markedForDelete = videos.filter(video => video.labels?.includes('mark_for_delete')).length
   const progress = videos.length ? Math.round((watched / videos.length) * 100) : 0
-  const breadcrumbLabel = value => value?.length > 100 ? `${value.slice(0, 100)}…` : value
   const refreshNeeded = course.labels?.includes('refresh_needed')
   const stagedFeeds = course.new_video_feeds || []
   const stagedVideoCount = stagedFeeds.reduce((count, feed) => count + (feed.videos?.length || 0), 0)
@@ -62,10 +62,7 @@ export default function CourseWorkspace() {
   }
 
   return <div>
-    <div className="page-header workspace-header">
-      <nav className="workspace-breadcrumb" aria-label="Workspace breadcrumb"><div className="workspace-breadcrumb-line"><span>Learning Workspace</span><span aria-hidden="true">›</span><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}`)}>Plan: {breadcrumbLabel(plan.name)}</button></div><div className="workspace-breadcrumb-line"><button type="button" className="workspace-breadcrumb-link" onClick={() => navigate(`/plans/${planId}/courses/${courseId}`)}>Course: {breadcrumbLabel(course.title)}</button></div></nav>
-      <div id="workspace-actions" className="workspace-action-panel"><button className={`btn btn-secondary btn-sm icon-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button><button className={`btn btn-secondary btn-sm icon-button course-edit-mode-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-label={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-pressed={isCourseEditing} onClick={() => setIsCourseEditing(value => !value)}><WorkspaceIcon name="edit" /></button></div>
-    </div>
+    <LearningPathNav plan={plan} course={course} mode="learn" showHome={false} actions={<div id="workspace-actions" className="workspace-action-panel"><button className={`btn btn-secondary btn-sm icon-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button><button className={`btn btn-secondary btn-sm icon-button course-edit-mode-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-label={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-pressed={isCourseEditing} onClick={() => setIsCourseEditing(value => !value)}><WorkspaceIcon name="edit" /></button></div>} />
     <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} isCourseEditing={isCourseEditing} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
     {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header course-overview-drawer-header"><div><h2>{course.title}</h2>{course.description && <p>{course.description}</p>}</div><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}>×</button></div><div className="drawer-body">
       {refreshError && <div className="alert alert-error">{refreshError}</div>}
