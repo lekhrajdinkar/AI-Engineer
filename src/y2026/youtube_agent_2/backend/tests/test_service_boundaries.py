@@ -79,7 +79,7 @@ class ServiceBoundaryTests(unittest.TestCase):
         def whoami():
             return {"user_id": identity.current_user_id()}
 
-        with patch.object(settings, "FIREBASE_AUTH_REQUIRED", True), patch.object(
+        with patch.object(settings, "FIREBASE_AUTH_ENABLED", True), patch.object(
             settings, "INTERNAL_SERVICE_TOKEN", "test-service-secret"
         ):
             response = TestClient(internal_app).get(
@@ -105,7 +105,7 @@ class ServiceBoundaryTests(unittest.TestCase):
 
     def test_plans_api_keeps_the_existing_create_contract(self):
         client = TestClient(plans_app)
-        with patch.object(settings, "FIREBASE_AUTH_REQUIRED", False), patch(
+        with patch.object(settings, "FIREBASE_AUTH_ENABLED", False), patch(
             "src.y2026.youtube_agent_2.backend.services.plans.app.domain.plans.db.save_plan"
         ) as save_plan:
             response = client.post(

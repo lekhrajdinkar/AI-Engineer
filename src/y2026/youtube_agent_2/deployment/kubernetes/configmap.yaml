@@ -3,8 +3,8 @@ kind: ConfigMap
 metadata:
   name: youtube-agent-config
 data:
-  FIREBASE_ENABLED: "false"
-  FIREBASE_AUTH_REQUIRED: "false"
+  STORAGE_BACKEND: sqlite
+  FIREBASE_AUTH_ENABLED: "false"
   FIREBASE_PROJECT_ID: agent-2026-d3f51
   FIREBASE_DEFAULT_USER_ID: local-kubernetes-user
   FRONTEND_URL: http://localhost:5173

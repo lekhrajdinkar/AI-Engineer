@@ -5,8 +5,8 @@ metadata:
   labels:
     {{- include "youtube-agent.labels" (dict "root" . "component" "platform") | nindent 4 }}
 data:
-  FIREBASE_ENABLED: {{ ternary "true" "false" .Values.config.firebaseEnabled | quote }}
-  FIREBASE_AUTH_REQUIRED: {{ ternary "true" "false" .Values.config.firebaseAuthRequired | quote }}
+  STORAGE_BACKEND: {{ .Values.config.storageBackend | quote }}
+  FIREBASE_AUTH_ENABLED: {{ ternary "true" "false" .Values.config.firebaseAuthEnabled | quote }}
   FIREBASE_PROJECT_ID: {{ .Values.config.firebaseProjectId | quote }}
   FIREBASE_DEFAULT_USER_ID: {{ .Values.config.firebaseDefaultUserId | quote }}
   FRONTEND_URL: {{ .Values.config.frontendUrl | quote }}

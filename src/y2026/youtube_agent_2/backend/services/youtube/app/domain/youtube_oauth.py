@@ -71,7 +71,7 @@ def callback(code: str | None, error: str | None, state: str | None):
         raise HTTPException(status_code=400, detail=f"OAuth error: {error}")
     if not code:
         raise HTTPException(status_code=400, detail="Missing code parameter")
-    uid = _verify_state(state) if config.FIREBASE_ENABLED else None
+    uid = _verify_state(state) if config.FIREBASE_AUTH_ENABLED else None
     context_token = identity.set_current_user(uid) if uid else None
     try:
         tokens = youtube_client.exchange_code_for_tokens(code, os.getenv("GOOGLE_CLIENT_ID"), os.getenv("GOOGLE_CLIENT_SECRET"), os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8001/auth/google/callback"))
@@ -80,7 +80,7 @@ def callback(code: str | None, error: str | None, state: str | None):
             identity.reset_current_user(context_token)
     if not tokens:
         raise HTTPException(status_code=400, detail="Token exchange failed")
-    if config.FIREBASE_ENABLED:
+    if config.FIREBASE_AUTH_ENABLED:
         return RedirectResponse(f"{config.FRONTEND_URL.rstrip('/')}/profile?youtube=connected")
     return {"message": "authentication successful", "next": "/", "info": "Tokens saved (single-user demo)"}
 

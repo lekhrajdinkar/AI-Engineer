@@ -45,7 +45,7 @@ def create_app(
             finally:
                 identity.reset_current_user(context_token)
 
-        if not settings.FIREBASE_AUTH_REQUIRED:
+        if not settings.FIREBASE_AUTH_ENABLED:
             return await call_next(request)
 
         authorization = request.headers.get("Authorization", "")
@@ -93,7 +93,8 @@ def create_app(
         return {
             "status": "ok",
             "service": service_name,
-            "firebase_enabled": settings.FIREBASE_ENABLED,
+            "storage_backend": settings.STORAGE_BACKEND,
+            "firebase_auth_enabled": settings.FIREBASE_AUTH_ENABLED,
         }
 
     @app.get("/", tags=["meta"])
