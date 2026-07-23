@@ -85,6 +85,19 @@ def update_plan_metadata(plan_id: str, request: MetadataUpdateRequest) -> Learni
     return plan
 
 
+def replace_plan(plan_id: str, replacement: LearningPlan) -> LearningPlan:
+    existing = _load_plan(plan_id)
+    if replacement.id != plan_id:
+        raise HTTPException(
+            status_code=422,
+            detail="The uploaded plan id must match the current plan",
+        )
+    replacement.created_at = existing.created_at
+    replacement.updated_at = _now()
+    db.save_plan(replacement.model_dump())
+    return replacement
+
+
 def update_course_metadata(plan_id: str, course_id: str, request: MetadataUpdateRequest) -> LearningPlan:
     now = _now()
     direct_fields = {key: value for key, value in {

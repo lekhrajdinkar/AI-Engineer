@@ -94,6 +94,7 @@ export function deletePlan(planId) {
 }
 
 export function updatePlanMetadata(planId, data) { return request(`/api/plans/${planId}`, { method: 'PATCH', body: JSON.stringify(data) }) }
+export function replacePlan(planId, data) { return request(`/api/plans/${planId}`, { method: 'PUT', body: JSON.stringify(data) }) }
 export function updateCourseMetadata(planId, courseId, data) { return request(`/api/plans/${planId}/courses/${courseId}`, { method: 'PATCH', body: JSON.stringify(data) }) }
 
 export function addManualCourse(planId, course) {

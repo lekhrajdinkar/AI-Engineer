@@ -6,14 +6,33 @@ import AiCourseModal from "../components/AiCourseModal";
 import { updatePlan } from "../store/plansSlice";
 import {
   deleteCourses,
+  replacePlan,
   updateCourseLabels,
   updateCourseMetadata,
 } from "../api/client";
 import EditMetadataDrawer from "../components/EditMetadataDrawer";
 import { EditIcon, LabelIcon, WorkspaceIcon } from "../components/Icons";
 
-function LearningPlanOverviewDrawer({ plan, sourceChannels, onClose }) {
+function LearningPlanOverviewDrawer({
+  plan,
+  sourceChannels,
+  onClose,
+  onPlanUpdated,
+}) {
   const [tab, setTab] = React.useState("visual");
+  const [editingJson, setEditingJson] = React.useState(false);
+  const [jsonDraft, setJsonDraft] = React.useState(() =>
+    JSON.stringify(plan, null, 2),
+  );
+  const [jsonError, setJsonError] = React.useState("");
+  const [jsonMessage, setJsonMessage] = React.useState("");
+  const [uploadingJson, setUploadingJson] = React.useState(false);
+  const jsonFileInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!editingJson) setJsonDraft(JSON.stringify(plan, null, 2));
+  }, [plan, editingJson]);
+
   const modules = plan.courses?.flatMap((course) => course.modules || []) || [];
   const videos = modules.flatMap((module) => module.videos || []);
   const watched = videos.filter(
@@ -40,6 +59,87 @@ function LearningPlanOverviewDrawer({ plan, sourceChannels, onClose }) {
     URL.revokeObjectURL(url);
   };
 
+  const startJsonEdit = () => {
+    setJsonDraft(JSON.stringify(plan, null, 2));
+    setJsonError("");
+    setJsonMessage("");
+    setEditingJson(true);
+  };
+
+  const cancelJsonEdit = () => {
+    setJsonDraft(JSON.stringify(plan, null, 2));
+    setJsonError("");
+    setEditingJson(false);
+  };
+
+  const loadJsonFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setJsonError("The JSON file must be 10 MB or smaller.");
+      setJsonMessage("");
+      return;
+    }
+
+    setJsonError("");
+    setJsonMessage("");
+    try {
+      const contents = await file.text();
+      setJsonDraft(contents);
+      setEditingJson(true);
+      try {
+        const parsed = JSON.parse(contents);
+        setJsonDraft(JSON.stringify(parsed, null, 2));
+        if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
+          setJsonError("File loaded, but it must contain one learning-plan object.");
+        } else if (parsed.id !== plan.id) {
+          setJsonError(`File loaded, but its plan id must be “${plan.id}” before upload.`);
+        } else {
+          setJsonMessage(`Loaded ${file.name}. Review the JSON before uploading.`);
+        }
+      } catch (error) {
+        setJsonError(`File loaded with invalid JSON: ${error.message}`);
+      }
+    } catch (error) {
+      setJsonError(`Unable to read ${file.name}: ${error.message}`);
+    }
+  };
+
+  const uploadJson = async () => {
+    setJsonError("");
+    setJsonMessage("");
+    let replacement;
+    try {
+      replacement = JSON.parse(jsonDraft);
+    } catch (error) {
+      setJsonError(`Invalid JSON: ${error.message}`);
+      return;
+    }
+    if (!replacement || Array.isArray(replacement) || typeof replacement !== "object") {
+      setJsonError("The uploaded JSON must be one learning-plan object.");
+      return;
+    }
+    if (replacement.id !== plan.id) {
+      setJsonError("The plan id cannot be changed when uploading JSON.");
+      return;
+    }
+    if (!window.confirm("Upload this JSON and replace the complete learning plan? Courses omitted from the JSON will be removed.")) return;
+
+    setUploadingJson(true);
+    try {
+      const response = await replacePlan(plan.id, replacement);
+      onPlanUpdated(response.plan);
+      setJsonDraft(JSON.stringify(response.plan, null, 2));
+      setEditingJson(false);
+      setJsonMessage("Learning plan JSON uploaded successfully.");
+    } catch (error) {
+      setJsonError(`Unable to upload JSON: ${error.message}`);
+    } finally {
+      setUploadingJson(false);
+    }
+  };
+
   return (
     <>
       <div className="drawer-overlay" onClick={onClose} />
@@ -53,7 +153,12 @@ function LearningPlanOverviewDrawer({ plan, sourceChannels, onClose }) {
         <div className="refresh-feed-tabs">
           <button
             className={tab === "visual" ? "active" : ""}
-            onClick={() => setTab("visual")}
+            onClick={() => {
+              setTab("visual");
+              setJsonError("");
+              setJsonMessage("");
+              setEditingJson(false);
+            }}
           >
             Visual
           </button>
@@ -64,9 +169,31 @@ function LearningPlanOverviewDrawer({ plan, sourceChannels, onClose }) {
             Raw JSON
           </button>
           {tab === "json" && (
-            <button className="overview-download-json" onClick={downloadJson}>
-              Download JSON
-            </button>
+            <>
+              <button className="overview-download-json" onClick={downloadJson}>
+                Download JSON
+              </button>
+              <button onClick={() => jsonFileInputRef.current?.click()} disabled={uploadingJson}>
+                Load JSON File
+              </button>
+              <input
+                ref={jsonFileInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={loadJsonFile}
+                hidden
+              />
+              {!editingJson ? (
+                <button onClick={startJsonEdit}>Edit JSON</button>
+              ) : (
+                <>
+                  <button onClick={cancelJsonEdit} disabled={uploadingJson}>Cancel</button>
+                  <button className="overview-upload-json" onClick={uploadJson} disabled={uploadingJson}>
+                    {uploadingJson ? "Uploading…" : "Upload JSON"}
+                  </button>
+                </>
+              )}
+            </>
           )}
         </div>
         <div className="drawer-body">
@@ -179,9 +306,26 @@ function LearningPlanOverviewDrawer({ plan, sourceChannels, onClose }) {
               </section>
             </>
           ) : (
-            <pre className="refresh-feed-json">
-              {JSON.stringify(plan, null, 2)}
-            </pre>
+            <div className="plan-json-workspace">
+              {jsonError && <div className="alert alert-error">{jsonError}</div>}
+              {jsonMessage && <div className="alert alert-success">{jsonMessage}</div>}
+              {editingJson && (
+                <p className="plan-json-warning">
+                  Upload replaces the complete plan hierarchy. The plan ID and creation timestamp remain server-controlled.
+                </p>
+              )}
+              {editingJson ? (
+                <textarea
+                  className="refresh-feed-json plan-json-editor"
+                  value={jsonDraft}
+                  onChange={(event) => setJsonDraft(event.target.value)}
+                  aria-label="Edit learning plan JSON"
+                  spellCheck="false"
+                />
+              ) : (
+                <pre className="refresh-feed-json">{JSON.stringify(plan, null, 2)}</pre>
+              )}
+            </div>
           )}
         </div>
       </aside>
@@ -530,6 +674,7 @@ export default function PlanOverview() {
           plan={plan}
           sourceChannels={sourceChannels}
           onClose={() => setShowOverview(false)}
+          onPlanUpdated={(updated) => dispatch(updatePlan(updated))}
         />
       )}
       {showSortFilter && (

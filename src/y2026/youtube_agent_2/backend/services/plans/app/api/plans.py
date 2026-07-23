@@ -37,6 +37,14 @@ def update_plan_metadata(plan_id: str, request: MetadataUpdateRequest):
     return {"plan": service.update_plan_metadata(plan_id, request)}
 
 
+@router.put("/api/plans/{plan_id}")
+def replace_plan(plan_id: str, plan: LearningPlan):
+    return {
+        "message": "Plan JSON uploaded",
+        "plan": service.replace_plan(plan_id, plan),
+    }
+
+
 @router.patch("/api/plans/{plan_id}/courses/{course_id}", tags=["courses"])
 def update_course_metadata(plan_id: str, course_id: str, request: MetadataUpdateRequest):
     return {"plan": service.update_course_metadata(plan_id, course_id, request)}

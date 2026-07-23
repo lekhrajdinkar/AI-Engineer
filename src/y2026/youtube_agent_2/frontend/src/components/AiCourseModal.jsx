@@ -36,6 +36,93 @@ function sortSources(items, sortBy) {
     : (left.title || '').localeCompare(right.title || ''))
 }
 
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return 'Duration unavailable'
+  const totalSeconds = Math.round(seconds)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const remainingSeconds = totalSeconds % 60
+  return hours
+    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+    : `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
+function AiRequestPreview({ payload, model, tab, onTabChange, onDownload }) {
+  const videos = payload.videos || []
+  const sources = payload.source_channels || []
+  const contextMode = payload.organization_context.mode
+  const batchSize = payload.processing.batch_size
+  const estimatedBatches = payload.processing.mode === AI_PROCESSING_MODES.BATCH
+    ? Math.ceil(videos.length / batchSize)
+    : 1
+  const channelNames = new Map(sources.map(source => [source.channel_id, source.title]))
+  const playlistNames = new Map(sources.flatMap(source =>
+    (source.playlists || []).map(playlist => [playlist.playlist_id || playlist.id, playlist.title])
+  ))
+
+  return (
+    <div className="ai-request-preview">
+      <div className="refresh-feed-tabs ai-request-preview-tabs">
+        <button type="button" className={tab === 'visual' ? 'active' : ''} onClick={() => onTabChange('visual')}>Visual</button>
+        <button type="button" className={tab === 'json' ? 'active' : ''} onClick={() => onTabChange('json')}>Request JSON</button>
+        <button type="button" className="overview-download-json" onClick={onDownload}>Download JSON</button>
+      </div>
+
+      {tab === 'json' ? (
+        <pre className="refresh-feed-json ai-request-preview-json">{JSON.stringify(payload, null, 2)}</pre>
+      ) : (
+        <div className="ai-request-preview-visual">
+          <section className="ai-request-preview-metrics">
+            <div><span>Model</span><strong>{model?.name || payload.model_config_id}</strong><small>{model?.model || payload.model_config_id}</small></div>
+            <div><span>Processing</span><strong>{payload.processing.mode}</strong><small>{batchSize ? `${batchSize} videos per batch` : 'One model call'}</small></div>
+            <div><span>Prompt context</span><strong>{contextMode.replaceAll('_', ' ')}</strong><small>{contextMode === AI_ORGANIZATION_CONTEXT_MODES.TITLE_ONLY ? 'Titles only' : contextMode === AI_ORGANIZATION_CONTEXT_MODES.TITLE_TAGS ? `Up to ${payload.organization_context.max_tags_per_video} tags` : `Descriptions up to ${payload.organization_context.description_max_words} words`}</small></div>
+            <div><span>Request size</span><strong>{videos.length} videos</strong><small>{sources.length} channels · {estimatedBatches} estimated {estimatedBatches === 1 ? 'call' : 'calls'}</small></div>
+          </section>
+
+          <p className="ai-request-preview-note">This is the exact API request. Full video metadata is retained in the job record; the prompt-context setting controls which fields are sent to the model.</p>
+
+          <section className="ai-request-preview-section">
+            <header><div><span>Content sources</span><h3>{sources.length} selected {sources.length === 1 ? 'channel' : 'channels'}</h3></div></header>
+            <div className="ai-request-preview-sources">
+              {sources.map(source => {
+                const sourceVideoCount = videos.filter(video => video.channel_id === source.channel_id).length
+                return (
+                  <article key={source.channel_id}>
+                    <ChannelAvatar title={source.title} thumbnail={source.thumbnail} />
+                    <div><strong>{source.title}</strong><small>{sourceVideoCount} request videos</small></div>
+                    <span>{source.playlists?.length ? `${source.playlists.length} selected playlists` : 'All channel videos'}</span>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+
+          <section className="ai-request-preview-section ai-request-preview-video-section">
+            <header><div><span>Videos</span><h3>{videos.length} items in request order</h3></div><small>Scroll to inspect all items</small></header>
+            <div className="ai-request-preview-videos">
+              {videos.map((video, index) => (
+                <article key={`${video.video_id}-${index}`}>
+                  <span className="ai-request-preview-video-number">{index + 1}</span>
+                  {video.thumbnail ? <img src={video.thumbnail} alt="" /> : <div className="ai-request-preview-video-thumb" />}
+                  <div className="ai-request-preview-video-copy">
+                    <strong>{video.title || 'Untitled video'}</strong>
+                    <small>{channelNames.get(video.channel_id) || video.channel_id}{video.playlist_id ? ` · ${playlistNames.get(video.playlist_id) || video.playlist_id}` : ''}</small>
+                    <code>{video.video_id}</code>
+                  </div>
+                  <div className="ai-request-preview-video-meta">
+                    <span>{formatDuration(video.duration_secs)}</span>
+                    <small>{video.tags?.length || 0} tags{video.description ? ' · description available' : ''}</small>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
   const dispatch = useDispatch()
   const cachedChannels = useSelector(state => state.sources.subscribedChannels)
@@ -60,6 +147,9 @@ export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
   const [organizationContextMode, setOrganizationContextMode] = useState(DEFAULT_AI_COURSE_OPTIONS.organizationContextMode)
   const [descriptionMaxWords, setDescriptionMaxWords] = useState(DEFAULT_AI_COURSE_OPTIONS.descriptionMaxWords)
   const [maxTagsPerVideo, setMaxTagsPerVideo] = useState(DEFAULT_AI_COURSE_OPTIONS.maxTagsPerVideo)
+  const [loadingAction, setLoadingAction] = useState('')
+  const [previewPayload, setPreviewPayload] = useState(null)
+  const [previewTab, setPreviewTab] = useState('visual')
   const selectedModel = models.find(model => model.id === selectedModelId)
 
   useEffect(() => {
@@ -104,6 +194,7 @@ export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
 
   async function loadPlaylists() {
     setLoading(true)
+    setLoadingAction('playlists')
     const all = { ...playlists }
     for (const ch of selectedChannels) {
       if (Object.prototype.hasOwnProperty.call(cachedPlaylists, ch.channel_id)) {
@@ -118,6 +209,7 @@ export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
     }
     setPlaylists(all)
     setLoading(false)
+    setLoadingAction('')
     setShowPlaylists(true)
   }
 
@@ -155,94 +247,139 @@ export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
     return ''
   }
 
-  async function handleAiGenerate() {
-    if (selectedChannels.length === 0) { setError('Select at least one channel'); return }
-    const optionsError = validateGenerationOptions()
-    if (optionsError) { setError(optionsError); return }
-    setLoading(true)
-    setError('')
-    try {
-      const videos = []
-      for (const channel of selectedChannels) {
-        const channelPlaylists = selectedPlaylists.filter(playlist =>
-          playlists[channel.channel_id]?.some(item => item.playlist_id === playlist.playlist_id)
-        )
-        if (channelPlaylists.length) {
-          for (const playlist of channelPlaylists) {
-            const data = await getVideos(channel.channel_id, playlist.playlist_id)
-            videos.push(...(data.videos || []).map(video => ({
-              ...video,
-              channel_id: data.channel_id || channel.channel_id,
-              playlist_id: data.playlist_id || playlist.playlist_id,
-            })))
-          }
-        } else {
-          const data = await getVideos(channel.channel_id)
+  function requestValidationError() {
+    if (selectedChannels.length === 0) return 'Select at least one channel'
+    return validateGenerationOptions()
+  }
+
+  async function prepareRequestPayload() {
+    const videos = []
+    for (const channel of selectedChannels) {
+      const channelPlaylists = selectedPlaylists.filter(playlist =>
+        playlists[channel.channel_id]?.some(item => item.playlist_id === playlist.playlist_id)
+      )
+      if (channelPlaylists.length) {
+        for (const playlist of channelPlaylists) {
+          const data = await getVideos(channel.channel_id, playlist.playlist_id)
           videos.push(...(data.videos || []).map(video => ({
             ...video,
             channel_id: data.channel_id || channel.channel_id,
-            playlist_id: null,
+            playlist_id: data.playlist_id || playlist.playlist_id,
           })))
         }
+      } else {
+        const data = await getVideos(channel.channel_id)
+        videos.push(...(data.videos || []).map(video => ({
+          ...video,
+          channel_id: data.channel_id || channel.channel_id,
+          playlist_id: null,
+        })))
       }
-      if (!videos.length) throw new Error('No videos found for the selected sources')
-      if (processingMode === AI_PROCESSING_MODES.WHOLE && videos.length > selectedModel.max_whole_videos) {
-        throw new Error(`${selectedModel.name} supports up to ${selectedModel.max_whole_videos} videos in whole mode; ${videos.length} were found. Choose batch mode.`)
-      }
-      const requestVideos = videos.map(video => ({
-        video_id: video.video_id || video.id,
-        title: video.title,
-        revised_title_from_ai: video.title,
-        description: video.description || null,
-        thumbnail: video.thumbnail || '',
-        url: video.url || null,
-        duration_secs: video.duration_secs ?? null,
-        published_at: video.published_at || null,
-        tags: video.tags || [],
-        category_id: video.category_id || null,
-        caption_available: Boolean(video.caption_available),
-        embeddable: video.embeddable !== false,
-        view_count: video.view_count ?? 0,
-        like_count: video.like_count ?? 0,
-        recording_date: video.recording_date || null,
-        channel_id: video.channel_id,
-        playlist_id: video.playlist_id,
-      }))
-      const requestSources = selectedChannels.map(channel => ({
-        channel_id: channel.channel_id,
-        title: channel.title,
-        url: channel.url || '',
-        video_count: channel.video_count || channel.videos_count || 0,
-        videos_count: channel.videos_count || channel.video_count || 0,
-        thumbnail: channel.thumbnail || channel.logo_url || channel.logo || '',
-        source_created_at: channel.source_created_at || null,
-        last_video_published_at: channel.last_video_published_at || null,
-        playlists: selectedPlaylists.filter(playlist => playlists[channel.channel_id]?.some(item => item.playlist_id === playlist.playlist_id)).map(playlist => ({
-          id: playlist.playlist_id,
-          playlist_id: playlist.playlist_id,
-          title: playlist.title,
-          thumbnail: playlist.thumbnail || '',
-          videos_count: playlist.videos_count || playlist.video_count || 0,
-          source_created_at: playlist.source_created_at || null,
-          last_video_published_at: playlist.last_video_published_at || null,
-        })),
-      }))
-      const accepted = await submitAiCourseRequest(plan.id, buildAiCourseRequestPayload({
-        modelConfigId: selectedModelId,
-        processingMode,
-        batchSize,
-        organizationContextMode,
-        descriptionMaxWords,
-        maxTagsPerVideo,
-        videos: requestVideos,
-        sourceChannels: requestSources,
-      }))
+    }
+    if (!videos.length) throw new Error('No videos found for the selected sources')
+    if (processingMode === AI_PROCESSING_MODES.WHOLE && videos.length > selectedModel.max_whole_videos) {
+      throw new Error(`${selectedModel.name} supports up to ${selectedModel.max_whole_videos} videos in whole mode; ${videos.length} were found. Choose batch mode.`)
+    }
+    const requestVideos = videos.map(video => ({
+      video_id: video.video_id || video.id,
+      title: video.title,
+      revised_title_from_ai: video.title,
+      description: video.description || null,
+      thumbnail: video.thumbnail || '',
+      url: video.url || null,
+      duration_secs: video.duration_secs ?? null,
+      published_at: video.published_at || null,
+      tags: video.tags || [],
+      category_id: video.category_id || null,
+      caption_available: Boolean(video.caption_available),
+      embeddable: video.embeddable !== false,
+      view_count: video.view_count ?? 0,
+      like_count: video.like_count ?? 0,
+      recording_date: video.recording_date || null,
+      channel_id: video.channel_id,
+      playlist_id: video.playlist_id,
+    }))
+    const requestSources = selectedChannels.map(channel => ({
+      channel_id: channel.channel_id,
+      title: channel.title,
+      url: channel.url || '',
+      video_count: channel.video_count || channel.videos_count || 0,
+      videos_count: channel.videos_count || channel.video_count || 0,
+      thumbnail: channel.thumbnail || channel.logo_url || channel.logo || '',
+      source_created_at: channel.source_created_at || null,
+      last_video_published_at: channel.last_video_published_at || null,
+      playlists: selectedPlaylists.filter(playlist => playlists[channel.channel_id]?.some(item => item.playlist_id === playlist.playlist_id)).map(playlist => ({
+        id: playlist.playlist_id,
+        playlist_id: playlist.playlist_id,
+        title: playlist.title,
+        thumbnail: playlist.thumbnail || '',
+        videos_count: playlist.videos_count || playlist.video_count || 0,
+        source_created_at: playlist.source_created_at || null,
+        last_video_published_at: playlist.last_video_published_at || null,
+      })),
+    }))
+    return buildAiCourseRequestPayload({
+      modelConfigId: selectedModelId,
+      processingMode,
+      batchSize,
+      organizationContextMode,
+      descriptionMaxWords,
+      maxTagsPerVideo,
+      videos: requestVideos,
+      sourceChannels: requestSources,
+    })
+  }
+
+  async function handlePreviewRequest() {
+    const validationError = requestValidationError()
+    if (validationError) { setError(validationError); return }
+    setLoading(true)
+    setLoadingAction('preview')
+    setError('')
+    try {
+      setPreviewPayload(await prepareRequestPayload())
+      setPreviewTab('visual')
+    } catch (err) {
+      setError('Unable to prepare request: ' + err.message)
+    } finally {
+      setLoading(false)
+      setLoadingAction('')
+    }
+  }
+
+  async function handleAiGenerate() {
+    const validationError = requestValidationError()
+    if (validationError) { setError(validationError); return }
+    setLoading(true)
+    setLoadingAction('submit')
+    setError('')
+    try {
+      const payload = previewPayload || await prepareRequestPayload()
+      const accepted = await submitAiCourseRequest(plan.id, payload)
       onRequestSubmitted?.(accepted)
       onClose()
     } catch (err) {
       setError('AI suggest failed: ' + err.message)
+    } finally {
+      setLoading(false)
+      setLoadingAction('')
     }
-    setLoading(false)
+  }
+
+  function downloadPreviewJson() {
+    if (!previewPayload) return
+    const file = new Blob([JSON.stringify(previewPayload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(file)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `ai-course-request-${plan.id}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function closePreview() {
+    setPreviewPayload(null)
+    setPreviewTab('visual')
   }
 
   function closeDrawer() {
@@ -254,6 +391,8 @@ export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
     setShowPlaylists(false)
     setChannelSortBy('name')
     setPlaylistSortBy('name')
+    setPreviewPayload(null)
+    setPreviewTab('visual')
     onClose()
   }
 
@@ -279,13 +418,13 @@ export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
       <div className="drawer-overlay" onClick={closeDrawer} />
       <div className="drawer-wide">
         <div className="drawer-header">
-          <h2>AI Suggested Course Creation</h2>
+          <h2>{previewPayload ? 'Preview AI Request' : 'AI Suggested Course Creation'}</h2>
           <button className="btn btn-secondary btn-sm" onClick={closeDrawer}>✕</button>
         </div>
         <div className="drawer-body add-course-drawer-body">
           {error && <div className="alert alert-error">{error}</div>}
 
-          {!showPlaylists && (
+          {!showPlaylists && !previewPayload && (
             <div className="add-course-source-step">
               <section className="ai-course-settings">
                 <header><div><span>Generation settings</span><h3>Choose how AI organizes this course</h3></div><small>{modelsLoading ? 'Loading models...' : `${models.length} ready`}</small></header>
@@ -358,7 +497,7 @@ export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
             </div>
           )}
 
-          {showPlaylists && (
+          {showPlaylists && !previewPayload && (
             <div className="add-course-source-step">
               <div className="ai-course-settings-summary"><span><strong>{selectedModel?.name}</strong><small>{processingMode === AI_PROCESSING_MODES.BATCH ? `Batch · up to ${batchSize} videos` : 'Whole · one model call'}</small></span><span><strong>{organizationContextMode.replaceAll('_', ' ')}</strong><small>{estimatedSelectedVideos || 'Unknown'} estimated videos</small></span></div>
               {wholeLikelyUnsafe && <div className="ai-course-capacity-warning">Whole mode exceeds this model's estimated capacity. Go back and choose batch mode.</div>}
@@ -403,21 +542,42 @@ export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
             </div>
           )}
 
+          {previewPayload && (
+            <AiRequestPreview
+              payload={previewPayload}
+              model={selectedModel}
+              tab={previewTab}
+              onTabChange={setPreviewTab}
+              onDownload={downloadPreviewJson}
+            />
+          )}
+
         </div>
         <div className="drawer-footer">
-          {!showPlaylists && (
+          {!showPlaylists && !previewPayload && (
             <>
               <button className="btn btn-secondary" onClick={closeDrawer}>Cancel</button>
               <button className="btn btn-primary" onClick={loadPlaylists} disabled={selectedChannels.length === 0 || loading || !selectedModel}>
-                {loading ? <><span className="spinner" /> Loading...</> : 'Playlist Options'}
+                {loadingAction === 'playlists' ? <><span className="spinner" /> Loading...</> : 'Playlist Options'}
               </button>
             </>
           )}
-          {showPlaylists && (
+          {showPlaylists && !previewPayload && (
             <>
               <button className="btn btn-secondary" onClick={() => setShowPlaylists(false)}>Back</button>
+              <button className="btn btn-secondary" onClick={handlePreviewRequest} disabled={loading}>
+                {loadingAction === 'preview' ? <><span className="spinner" /> Preparing...</> : 'Preview Request'}
+              </button>
               <button className="btn btn-primary" onClick={handleAiGenerate} disabled={loading}>
-                {loading ? <><span className="spinner" /> Submitting...</> : 'Submit AI Request'}
+                {loadingAction === 'submit' ? <><span className="spinner" /> Submitting...</> : 'Submit AI Request'}
+              </button>
+            </>
+          )}
+          {previewPayload && (
+            <>
+              <button className="btn btn-secondary" onClick={closePreview} disabled={loading}>Edit Request</button>
+              <button className="btn btn-primary" onClick={handleAiGenerate} disabled={loading}>
+                {loadingAction === 'submit' ? <><span className="spinner" /> Submitting...</> : 'Submit AI Request'}
               </button>
             </>
           )}
