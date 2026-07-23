@@ -29,6 +29,20 @@ _HOP_BY_HOP_RESPONSE_HEADERS = {
 }
 
 
+def _upstream_request_headers(request: Request) -> dict[str, str]:
+    headers = {
+        name: value
+        for name, value in request.headers.items()
+        if name.lower() not in {"host", "content-length", "accept-encoding"}
+    }
+    # httpx only decodes optional Brotli/Zstandard encodings when their extra
+    # packages are installed. Asking service-to-service calls for identity
+    # prevents encoded bytes from being forwarded as an application/json body.
+    headers["Accept-Encoding"] = "identity"
+    headers["X-Forwarded-Host"] = request.headers.get("host", "")
+    return headers
+
+
 @app.api_route(
     "/{path:path}",
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
@@ -47,12 +61,7 @@ async def proxy(path: str, request: Request):
     target_url = f"{base_url}{public_path}"
     if request.url.query:
         target_url = f"{target_url}?{request.url.query}"
-    request_headers = {
-        name: value
-        for name, value in request.headers.items()
-        if name.lower() not in {"host", "content-length"}
-    }
-    request_headers["X-Forwarded-Host"] = request.headers.get("host", "")
+    request_headers = _upstream_request_headers(request)
     request_headers["X-Gateway-Service"] = service_name
 
     try:

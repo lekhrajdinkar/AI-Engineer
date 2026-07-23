@@ -43,6 +43,7 @@ fallback to SQLite
 FIREBASE_ENABLED=false
 FIREBASE_AUTH_REQUIRED=false
 ```
+> openai/gpt-oss-20b | models/gemini-3.6-flash
 
 **Future Deployment**
 - [deploy-to-render.md](deployment/render/README.md) | [render-microservices.yaml](deployment/render/render-microservices.yaml)
