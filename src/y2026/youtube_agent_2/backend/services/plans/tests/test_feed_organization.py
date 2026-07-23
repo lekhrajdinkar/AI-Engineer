@@ -40,6 +40,28 @@ class FakeProvider:
         return {"method": method}
 
 
+class RetryStructuredModel(FakeStructuredModel):
+    def __init__(self):
+        super().__init__()
+        self.methods = []
+        self.current_method = None
+
+    def with_structured_output(self, schema, **options):
+        self.current_method = options["method"]
+        self.methods.append(self.current_method)
+        return self
+
+    def invoke(self, messages):
+        if self.current_method == "json_schema":
+            raise RuntimeError("Google rejected this schema")
+        return super().invoke(messages)
+
+
+class RetryProvider(FakeProvider):
+    def supports_structured_output(self, method):
+        return method in {"json_schema", "json_mode"}
+
+
 class FeedOrganizationTests(unittest.TestCase):
     def setUp(self):
         self.metadata = {
@@ -105,7 +127,7 @@ class FeedOrganizationTests(unittest.TestCase):
             patch.object(feed_organization.db, "load_plan", return_value=self.plan),
             patch.object(
                 feed_organization,
-                "_default_model",
+                "_configured_model",
                 return_value=(model_config, model),
             ),
             patch.object(
@@ -115,7 +137,7 @@ class FeedOrganizationTests(unittest.TestCase):
             ),
         ):
             result = feed_organization.suggest_organization(
-                "channel-a", None, ["video-a"]
+                "channel-a", None, ["video-a"], "model-a"
             )
 
         prompt = model.messages[1][1]
@@ -126,6 +148,39 @@ class FeedOrganizationTests(unittest.TestCase):
         self.assertEqual(
             result["proposal"]["placements"][0]["module_id"], "module-a"
         )
+
+    def test_google_style_structured_failure_retries_json_mode(self):
+        model = RetryStructuredModel()
+        model_config = SimpleNamespace(
+            id="model-google",
+            name="Google Model",
+            provider="google",
+            structured_output_mode="auto",
+        )
+        with (
+            patch.object(
+                feed_organization.db,
+                "load_source_sync_metadata",
+                return_value=self.metadata,
+            ),
+            patch.object(feed_organization.db, "load_plan", return_value=self.plan),
+            patch.object(
+                feed_organization,
+                "_configured_model",
+                return_value=(model_config, model),
+            ),
+            patch.object(
+                feed_organization.provider_registry,
+                "require",
+                return_value=RetryProvider(),
+            ),
+        ):
+            result = feed_organization.suggest_organization(
+                "channel-a", None, ["video-a"], "model-google"
+            )
+
+        self.assertEqual(model.methods, ["json_schema", "json_mode"])
+        self.assertEqual(result["proposal"]["placements"][0]["video_id"], "video-a")
 
     def test_confirmed_proposal_moves_only_selected_videos(self):
         saved_plans = []

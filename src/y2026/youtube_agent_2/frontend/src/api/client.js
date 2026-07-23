@@ -24,7 +24,14 @@ async function request(path, options = {}) {
   })
   if (!res.ok) {
     const body = await res.text()
-    throw new Error(`HTTP ${res.status}: ${body}`)
+    let detail = body
+    try {
+      const parsed = JSON.parse(body)
+      detail = typeof parsed.detail === 'string' ? parsed.detail : body
+    } catch {
+      // Preserve non-JSON upstream error text.
+    }
+    throw new Error(`HTTP ${res.status}: ${detail}`)
   }
   return res.json()
 }

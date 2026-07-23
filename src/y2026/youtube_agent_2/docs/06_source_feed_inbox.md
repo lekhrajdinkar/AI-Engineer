@@ -63,13 +63,15 @@ sequenceDiagram
     UI->>UI: Show videos and target-course picker
     alt Manual organization
         User->>UI: Select course and existing/new module
+        UI->>User: Ask for manual-push confirmation
+        User->>UI: Confirm push
         UI->>Client: POST /api/sources/sync-metadata/push-new-feeds
         Client->>Gateway: Send authenticated request
         Gateway->>Plans: Forward request
         Plans->>Store: Validate selected target course and module
         Plans->>Plans: Deduplicate and append videos to selected module
     else AI organization
-        User->>UI: Select videos and Organise with AI
+        User->>UI: Select videos, configured AI model, and Organise with AI
         UI->>Client: POST /api/sources/sync-metadata/organize-new-feeds
         Client->>Plans: Request reviewable proposal
         Plans->>Store: Load trimmed plans and selected feed
@@ -186,12 +188,12 @@ IDs already present in the target learning plan and pending feeds.
 3. The user can select one or many videos. The destination action applies only to that selection, so separate selections from the same feed can be routed to different courses.
 4. Course choices are limited to the feed's configured target courses.
 5. After selecting a course, the user selects one of its existing modules or enters a name for a new module.
-6. **Organise with AI** sends only the selected videos and a trimmed learning-plan hierarchy to the configured default LLM.
+6. **Organise with AI** provides the same enabled-model selector used by AI course creation and sends only the selected videos and a trimmed learning-plan hierarchy to the chosen LLM.
 7. The learning-plan context contains opaque IDs plus titles and descriptions for the plan, allowed target courses, and their existing modules. It excludes existing video collections and unrelated plan metadata. The feed context contains each selected video's ID, title, and description.
 8. The model must place every selected video exactly once into an existing allowed course and module. The backend rejects missing, duplicate, or invented IDs.
 9. The first AI response is only a proposal. The user can select **Proceed**, or enter feedback and select **Re-think** to request a revised proposal.
 10. **Proceed** revalidates the proposal against current persisted data before moving videos and removing the selected IDs from the inbox.
-11. For manual organization, the UI posts the selected video IDs, channel, optional playlist, selected plan/course, and existing-module ID or new-module title to `POST /api/sources/sync-metadata/push-new-feeds`.
+11. Manual organization shows a destination summary and requires explicit confirmation before the UI posts the selected video IDs, channel, optional playlist, selected plan/course, and existing-module ID or new-module title to `POST /api/sources/sync-metadata/push-new-feeds`.
 12. The Plans service validates that every selected video is still pending, the course is a target of that feed, and the selected module belongs to it.
 13. It removes video IDs already present in the learning plan, appends the remaining selected videos directly to the destination module, and creates the module when requested.
 14. It removes only the selected IDs from the inbox. Unselected videos remain in the preview and can be routed separately.
@@ -206,6 +208,19 @@ IDs already present in the target learning plan and pending feeds.
   "module_id": "existing-module-id",
   "new_module_title": null,
   "video_ids": ["video-id-1", "video-id-2"]
+}
+```
+
+The AI proposal request contains:
+
+```json
+{
+  "channel_id": "channel-id",
+  "playlist_id": null,
+  "model_config_id": "configured-model-id",
+  "video_ids": ["video-id-1", "video-id-2"],
+  "user_prompt": null,
+  "previous_suggestion": null
 }
 ```
 

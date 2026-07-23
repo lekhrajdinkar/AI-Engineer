@@ -136,9 +136,9 @@ export default function SourceFeedPreviewDialog({
       const response = await onOrganize({
         channelId: preview.channelId,
         playlistId: preview.playlistId,
-      videoIds: selectedVideoIds,
-      modelConfigId: selectedModelId,
-      userPrompt: rethink ? rethinkPrompt.trim() : null,
+        videoIds: selectedVideoIds,
+        modelConfigId: selectedModelId,
+        userPrompt: rethink ? rethinkPrompt.trim() : null,
         previousSuggestion: rethink ? aiProposal?.proposal : null,
       })
       setAiProposal(response)

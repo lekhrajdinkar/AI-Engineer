@@ -156,6 +156,16 @@ def _configured_model(model_config_id: str) -> tuple[AiModelConfigRecord, Any]:
             status_code=422,
             detail=f"Unsupported AI provider '{model_config.provider}'",
         )
+    if model_config.test_status != "passed":
+        raise HTTPException(
+            status_code=422,
+            detail="Test the selected AI model configuration before using it",
+        )
+    if provider.credential_status() != "configured":
+        raise HTTPException(
+            status_code=503,
+            detail=f"Server credential for {model_config.provider} is missing",
+        )
     snapshot = {
         "provider": model_config.provider,
         "model": model_config.model,

@@ -1369,6 +1369,14 @@ body:has(.workspace-filter-drawer) .drawer-overlay:not(.workspace-filter-overlay
 .source-feed-destination-tabs button + button { border-left: 1px solid var(--border-color); }
 .source-feed-destination-tabs button.active { background: var(--primary); color: #fff; }
 .source-feed-destination-tabs button:disabled { cursor: not-allowed; opacity: 0.45; }
+.source-feed-manual-confirmation { display: grid; gap: 0.45rem; padding: 0.75rem; border: 1px solid var(--warning); border-radius: 9px; background: var(--warning-bg); }
+.source-feed-manual-confirmation > span { color: var(--warning); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+.source-feed-manual-confirmation strong { color: var(--text-primary); font-size: 0.82rem; }
+.source-feed-manual-confirmation p { color: var(--text-primary); line-height: 1.4; }
+.source-feed-manual-confirmation > div { display: flex; justify-content: flex-end; gap: 0.4rem; }
+.source-feed-ai-config { display: grid; gap: 0.55rem; margin-top: 0.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+.source-feed-ai-config h4 { margin: 0; color: var(--text-primary); font-size: 0.9rem; }
+.source-feed-ai-config > small { color: var(--text-secondary); font-size: 0.68rem; text-transform: capitalize; }
 .source-feed-ai-proposal { display: grid; gap: 0.7rem; margin-top: 0.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
 .source-feed-ai-proposal h4 { margin: 0; color: var(--text-primary); font-size: 0.9rem; }
 .source-feed-ai-kicker { color: var(--primary); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
