@@ -29,7 +29,7 @@ def _connect():
 
 
 def _user_id() -> str:
-    return identity.current_user_id() or config.FIREBASE_DEFAULT_USER_ID
+    return identity.require_current_user()
 
 
 def _integration_ref(provider: str):

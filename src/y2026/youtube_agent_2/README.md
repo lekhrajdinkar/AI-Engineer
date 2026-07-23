@@ -40,8 +40,7 @@ cd src\y2026\youtube_agent_2\frontend; npm run dev
 
 fallback to SQLite
 ```properties
-FIREBASE_ENABLED=false
-FIREBASE_AUTH_REQUIRED=false
+STORAGE_BACKEND=sqlite
 ```
 > openai/gpt-oss-20b | models/gemini-3.6-flash
 

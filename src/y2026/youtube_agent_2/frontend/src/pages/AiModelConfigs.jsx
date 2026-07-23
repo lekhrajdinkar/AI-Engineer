@@ -33,8 +33,8 @@ function formatDate(value) {
   return value ? new Date(value).toLocaleString() : 'Never'
 }
 
-function DetailField({ label, value }) {
-  return <div className="ai-model-detail-field"><span>{label}</span><strong>{readable(value)}</strong></div>
+function DetailField({ label, value, configKey }) {
+  return <div className="ai-model-detail-field"><span>{label}{configKey && <code>{configKey}</code>}</span><strong>{readable(value)}</strong></div>
 }
 
 function ModelForm({ form, items, providers, currentId, onChange }) {
@@ -90,20 +90,21 @@ function ModelForm({ form, items, providers, currentId, onChange }) {
 
 function ModelDetails({ model, items, providers }) {
   const fallback = items.find(item => item.id === model.fallback_model_config_id)
-  const providerName = providers.find(provider => provider.id === model.provider)?.name || model.provider
+  const provider = providers.find(item => item.id === model.provider)
+  const providerName = provider?.name || model.provider
   return (
     <div className="ai-model-detail-sections">
       <section>
         <h3>Connection</h3>
-        <div className="ai-model-detail-grid"><DetailField label="Provider" value={providerName} /><DetailField label="Model ID" value={model.model} /><DetailField label="Credential" value={model.credential_status} /><DetailField label="Availability" value={model.enabled ? 'Enabled' : 'Disabled'} /></div>
+        <div className="ai-model-detail-grid"><DetailField label="Configuration ID" configKey="AI_LLM_CONFIG_ID" value={model.id} /><DetailField label="Configuration name" configKey="AI_LLM_DISPLAY_NAME" value={model.name} /><DetailField label="Provider" configKey="AI_LLM_PROVIDER" value={providerName} /><DetailField label="Model ID" configKey="AI_LLM_MODEL" value={model.model} /><DetailField label="Credential" configKey={provider?.credential_env || 'PROVIDER_API_KEY'} value={model.credential_status} /><DetailField label="Availability" configKey="enabled" value={model.enabled ? 'Enabled' : 'Disabled'} /></div>
       </section>
       <section>
         <h3>Generation</h3>
-        <div className="ai-model-detail-grid"><DetailField label="Temperature" value={model.temperature} /><DetailField label="Structured output" value={model.structured_output_mode} /><DetailField label="Fallback model" value={fallback?.name || 'None'} /><DetailField label="Default" value={model.is_default ? 'Yes' : 'No'} /></div>
+        <div className="ai-model-detail-grid"><DetailField label="Temperature" configKey="AI_LLM_TEMPERATURE" value={model.temperature} /><DetailField label="Structured output" configKey="structured_output_mode" value={model.structured_output_mode} /><DetailField label="Fallback model" configKey="fallback_model_config_id" value={fallback?.name || 'None'} /><DetailField label="Default" configKey="is_default" value={model.is_default ? 'Yes' : 'No'} /></div>
       </section>
       <section>
         <h3>Capacity</h3>
-        <div className="ai-model-detail-grid"><DetailField label="Max input tokens" value={model.max_input_tokens?.toLocaleString()} /><DetailField label="Default batch" value={model.default_batch_size} /><DetailField label="Maximum batch" value={model.max_batch_size} /><DetailField label="Whole-mode limit" value={`${model.max_whole_videos} videos`} /></div>
+        <div className="ai-model-detail-grid"><DetailField label="Max input tokens" configKey="AI_LLM_MAX_INPUT_TOKENS" value={model.max_input_tokens?.toLocaleString()} /><DetailField label="Default batch" configKey="AI_LLM_DEFAULT_BATCH_SIZE" value={model.default_batch_size} /><DetailField label="Maximum batch" configKey="AI_LLM_MAX_BATCH_SIZE" value={model.max_batch_size} /><DetailField label="Whole-mode limit" configKey="AI_LLM_MAX_WHOLE_VIDEOS" value={`${model.max_whole_videos} videos`} /></div>
       </section>
       <section>
         <h3>Connection test</h3>
@@ -111,7 +112,7 @@ function ModelDetails({ model, items, providers }) {
       </section>
       <section>
         <h3>Record</h3>
-        <div className="ai-model-detail-grid"><DetailField label="Created" value={formatDate(model.created_at)} /><DetailField label="Updated" value={formatDate(model.updated_at)} /></div>
+        <div className="ai-model-detail-grid"><DetailField label="Created" configKey="created_at" value={formatDate(model.created_at)} /><DetailField label="Updated" configKey="updated_at" value={formatDate(model.updated_at)} /></div>
       </section>
     </div>
   )
@@ -122,6 +123,7 @@ export default function AiModelConfigs() {
   const [providers, setProviders] = React.useState([])
   const [form, setForm] = React.useState({ ...EMPTY })
   const [drawerMode, setDrawerMode] = React.useState(null)
+  const [detailTab, setDetailTab] = React.useState('visual')
   const [selectedModel, setSelectedModel] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [actionLoading, setActionLoading] = React.useState(false)
@@ -158,8 +160,8 @@ export default function AiModelConfigs() {
   }, [drawerMode, actionLoading])
 
   const change = (key, value) => setForm(current => ({ ...current, [key]: value }))
-  const closeDrawer = () => { if (!actionLoading) { setDrawerMode(null); setSelectedModel(null); setForm({ ...EMPTY }) } }
-  const openView = item => { setSelectedModel(item); setDrawerMode('view') }
+  const closeDrawer = () => { if (!actionLoading) { setDrawerMode(null); setSelectedModel(null); setDetailTab('visual'); setForm({ ...EMPTY }) } }
+  const openView = item => { setSelectedModel(item); setDetailTab('visual'); setDrawerMode('view') }
   const openEdit = item => { setSelectedModel(item); setForm(editableValues(item)); setDrawerMode('edit') }
   const openCreate = () => { setSelectedModel(null); setForm({ ...EMPTY }); setDrawerMode('create') }
 
@@ -253,7 +255,7 @@ export default function AiModelConfigs() {
       {drawerMode && (
         <><div className="drawer-overlay" onClick={closeDrawer} /><aside className="drawer ai-model-drawer" role="dialog" aria-modal="true" aria-labelledby="ai-model-drawer-title">
           <div className="drawer-header course-overview-drawer-header"><div><h2 id="ai-model-drawer-title">{drawerTitle}</h2><p>{drawerSubtitle}</p></div><button className="btn btn-secondary btn-sm" onClick={closeDrawer} disabled={actionLoading} aria-label="Close">×</button></div>
-          {drawerMode === 'view' ? <div className="drawer-body"><ModelDetails model={selectedModel} items={items} providers={providers} /></div> : <form id="ai-model-config-form" className="drawer-body ai-model-config-form" onSubmit={save}><ModelForm form={form} items={items} providers={providers} currentId={selectedModel?.id} onChange={change} /></form>}
+          {drawerMode === 'view' ? <div className="drawer-body ai-model-detail-body"><div className="ai-model-detail-tabs" role="tablist" aria-label="AI model configuration detail format"><button type="button" role="tab" aria-selected={detailTab === 'visual'} className={detailTab === 'visual' ? 'active' : ''} onClick={() => setDetailTab('visual')}>Visual</button><button type="button" role="tab" aria-selected={detailTab === 'json'} className={detailTab === 'json' ? 'active' : ''} onClick={() => setDetailTab('json')}>Raw JSON</button></div>{detailTab === 'visual' ? <ModelDetails model={selectedModel} items={items} providers={providers} /> : <pre className="ai-model-raw-json">{JSON.stringify(selectedModel, null, 2)}</pre>}</div> : <form id="ai-model-config-form" className="drawer-body ai-model-config-form" onSubmit={save}><ModelForm form={form} items={items} providers={providers} currentId={selectedModel?.id} onChange={change} /></form>}
           <div className={`drawer-footer ${drawerMode === 'edit' ? 'ai-model-edit-footer' : ''}`}>
             {drawerMode === 'view' && <><button className="btn btn-secondary" onClick={() => openEdit(selectedModel)} disabled={actionLoading}>Edit</button><button className="btn btn-primary" onClick={() => test()} disabled={actionLoading}>{actionLoading ? <><span className="spinner" /> Testing...</> : 'Test connection'}</button></>}
             {drawerMode === 'edit' && <><button className="btn btn-danger ai-model-delete-action" onClick={remove} disabled={actionLoading}>Delete</button><button className="btn btn-secondary" onClick={closeDrawer} disabled={actionLoading}>Cancel</button><button className="btn btn-primary" type="submit" form="ai-model-config-form" disabled={actionLoading}>{actionLoading ? <><span className="spinner" /> Saving...</> : 'Save changes'}</button></>}

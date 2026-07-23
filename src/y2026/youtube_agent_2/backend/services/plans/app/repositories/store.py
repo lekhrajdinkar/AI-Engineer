@@ -13,7 +13,7 @@ from src.y2026.youtube_agent_2.backend.services.plans.app import config
 
 
 _firestore_store = None
-if config.FIREBASE_ENABLED:
+if config.STORAGE_BACKEND == "firebase_firestore":
     from .firestore_store import FirestoreStore
 
     _firestore_store = FirestoreStore()
@@ -24,11 +24,11 @@ def _active_user_id() -> str | None:
 
 
 def _ai_user_id(user_id: str | None = None) -> str:
-    return user_id or _active_user_id() or config.FIREBASE_DEFAULT_USER_ID
+    return user_id or identity.require_current_user()
 
 
 def _storage_user_id() -> str:
-    return _active_user_id() or config.FIREBASE_DEFAULT_USER_ID
+    return identity.require_current_user()
 
 
 def _json_text(value: dict) -> str:

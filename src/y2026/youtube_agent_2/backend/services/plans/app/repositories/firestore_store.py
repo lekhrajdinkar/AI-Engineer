@@ -1,8 +1,4 @@
-"""Firestore persistence for the learning platform.
-
-The current API still uses a transitional default user. Step 3 will set the
-verified Firebase Auth uid for each request before calling this repository.
-"""
+"""Firestore persistence scoped to the verified Firebase user."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -11,7 +7,7 @@ from typing import Optional
 
 from firebase_admin import firestore
 
-from src.y2026.youtube_agent_2.backend.shared.platform import settings
+from src.y2026.youtube_agent_2.backend.shared.platform import identity
 from src.y2026.youtube_agent_2.backend.shared.platform.firebase import firestore_client
 
 
@@ -42,7 +38,7 @@ class FirestoreStore:
 
     def _user(self, user_id: Optional[str] = None):
         return self.client.collection("users").document(
-            user_id or settings.FIREBASE_DEFAULT_USER_ID
+            user_id or identity.require_current_user()
         )
 
     def save_plan(self, plan: dict, user_id: Optional[str] = None):

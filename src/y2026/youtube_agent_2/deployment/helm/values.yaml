@@ -3,9 +3,7 @@ fullnameOverride: ""
 
 config:
   storageBackend: sqlite
-  firebaseAuthEnabled: false
   firebaseProjectId: agent-2026-d3f51
-  firebaseDefaultUserId: local-helm-user
   frontendUrl: http://localhost:5173
   serviceRequestTimeoutSecs: 30
   googleRedirectUri: http://localhost:8001/auth/google/callback

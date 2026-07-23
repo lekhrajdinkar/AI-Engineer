@@ -30,8 +30,6 @@ services:
         value: postgres
       - key: DATABASE_URL
         sync: false
-      - key: FIREBASE_AUTH_ENABLED
-        value: "true"
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
@@ -65,8 +63,6 @@ services:
         value: postgres
       - key: DATABASE_URL
         sync: false
-      - key: FIREBASE_AUTH_ENABLED
-        value: "true"
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON

@@ -58,40 +58,17 @@ def connection_status() -> dict:
     return {"connected": bool(tokens and tokens.get("refresh_token")), "scope": tokens.get("scope") if tokens else None, "connected_at": tokens.get("created_at") if tokens else None}
 
 
-def login() -> RedirectResponse:
-    client_id = os.getenv("GOOGLE_CLIENT_ID")
-    if not client_id:
-        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured in environment")
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8001/auth/google/callback")
-    return RedirectResponse(youtube_client.get_oauth_authorize_url(client_id, redirect_uri, "https://www.googleapis.com/auth/youtube.readonly openid email"))
-
-
 def callback(code: str | None, error: str | None, state: str | None):
     if error:
         raise HTTPException(status_code=400, detail=f"OAuth error: {error}")
     if not code:
         raise HTTPException(status_code=400, detail="Missing code parameter")
-    uid = _verify_state(state) if config.FIREBASE_AUTH_ENABLED else None
-    context_token = identity.set_current_user(uid) if uid else None
+    uid = _verify_state(state)
+    context_token = identity.set_current_user(uid)
     try:
         tokens = youtube_client.exchange_code_for_tokens(code, os.getenv("GOOGLE_CLIENT_ID"), os.getenv("GOOGLE_CLIENT_SECRET"), os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8001/auth/google/callback"))
     finally:
-        if context_token:
-            identity.reset_current_user(context_token)
+        identity.reset_current_user(context_token)
     if not tokens:
         raise HTTPException(status_code=400, detail="Token exchange failed")
-    if config.FIREBASE_AUTH_ENABLED:
-        return RedirectResponse(f"{config.FRONTEND_URL.rstrip('/')}/profile?youtube=connected")
-    return {"message": "authentication successful", "next": "/", "info": "Tokens saved (single-user demo)"}
-
-
-def debug() -> dict:
-    tokens = token_store.load_latest_tokens("google")
-    if not tokens:
-        return {"status": "no tokens stored"}
-    return {"status": "token found", "has_access_token": "access_token" in tokens, "has_refresh_token": "refresh_token" in tokens, "scope": tokens.get("scope", "NOT PRESENT"), "token_type": tokens.get("token_type"), "created_at": tokens.get("created_at")}
-
-
-def logout() -> dict:
-    token_store.delete_tokens("google")
-    return {"message": "logged out", "next": "/auth/google/login"}
+    return RedirectResponse(f"{config.FRONTEND_URL.rstrip('/')}/profile?youtube=connected")

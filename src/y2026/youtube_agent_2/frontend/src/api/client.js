@@ -36,18 +36,6 @@ async function request(path, options = {}) {
   return res.json()
 }
 
-export function googleLogin() {
-  window.location.href = `${BASE}/auth/google/login`
-}
-
-export function googleLogout() {
-  return request('/auth/google/logout', { method: 'POST' })
-}
-
-export function getAuthDebug() {
-  return request('/auth/google/debug')
-}
-
 export function getYouTubeConnectionStatus() {
   return request('/api/integrations/youtube/status')
 }

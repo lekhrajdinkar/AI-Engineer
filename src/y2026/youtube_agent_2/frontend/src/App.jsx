@@ -12,10 +12,10 @@ import AiRequests from './pages/AiRequests'
 import AiModelConfigs from './pages/AiModelConfigs'
 import { WorkspaceIcon } from './components/Icons'
 import SourceFeedPreviewDialog from './components/SourceFeedPreviewDialog'
-import { confirmSourceFeedOrganization, getAuthDebug, getPlans, getSourceSyncMetadata, organizeNewSourceFeeds, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
+import { confirmSourceFeedOrganization, getPlans, getSourceSyncMetadata, organizeNewSourceFeeds, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
 import { setPlans } from './store/plansSlice'
 import { setSourceSyncMetadata } from './store/sourcesSlice'
-import { firebaseAuth, firebaseEnabled } from './firebase'
+import { firebaseAuth } from './firebase'
 
 function useTheme() {
   const [theme, setTheme] = React.useState(() => localStorage.getItem('yt_theme') || 'light')
@@ -64,6 +64,8 @@ function AppLayout() {
   const [sourcePushLoading, setSourcePushLoading] = React.useState(false)
   const [sourceAiLoading, setSourceAiLoading] = React.useState(false)
   const [sourceSyncError, setSourceSyncError] = React.useState('')
+  const [sourceMetadataLoaded, setSourceMetadataLoaded] = React.useState(false)
+  const [sourceSyncBootstrapping, setSourceSyncBootstrapping] = React.useState(false)
   const [sourceSyncChannelErrors, setSourceSyncChannelErrors] = React.useState({})
   const [showSourceSyncDrawer, setShowSourceSyncDrawer] = React.useState(false)
   const [sourceSyncSearch, setSourceSyncSearch] = React.useState('')
@@ -78,6 +80,7 @@ function AppLayout() {
   const [expandedPlanIds, setExpandedPlanIds] = React.useState({})
   const [expandedCourseIds, setExpandedCourseIds] = React.useState({})
   const [planCourseSearches, setPlanCourseSearches] = React.useState({})
+  const sourceBootstrapUserRef = React.useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
   const [lastAccessedCourse, setLastAccessedCourse] = React.useState(() => {
@@ -97,20 +100,72 @@ function AppLayout() {
   }, [dispatch])
 
   React.useEffect(() => {
-    if (firebaseEnabled && firebaseAuth) {
-      setAccessTokenProvider(() => firebaseAuth.currentUser?.getIdToken() || Promise.resolve(null))
-      return firebaseAuth.onIdTokenChanged(user => setAuth(user))
+    if (!firebaseAuth) return undefined
+    setAccessTokenProvider(() => firebaseAuth.currentUser?.getIdToken() || Promise.resolve(null))
+    return firebaseAuth.onIdTokenChanged(user => setAuth(user))
+  }, [])
+
+  React.useEffect(() => {
+    if (auth && plans.length === 0) loadPlans()
+  }, [auth?.uid])
+
+  React.useEffect(() => {
+    if (!auth) return
+    let cancelled = false
+    setSourceMetadataLoaded(false)
+    getSourceSyncMetadata()
+      .then(data => {
+        if (!cancelled) dispatch(setSourceSyncMetadata(data))
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setSourceMetadataLoaded(true)
+      })
+    return () => { cancelled = true }
+  }, [auth?.uid, dispatch])
+
+  React.useEffect(() => {
+    if (
+      !showSourceSyncDrawer
+      || !sourceMetadataLoaded
+      || (syncMetadata?.channels?.length || 0) > 0
+      || !auth
+    ) return
+
+    const userKey = auth.uid
+    if (sourceBootstrapUserRef.current === userKey) return
+    sourceBootstrapUserRef.current = userKey
+    let cancelled = false
+
+    const bootstrapSourceInbox = async () => {
+      setSourceSyncBootstrapping(true)
+      setSourceSyncError('')
+      try {
+        const metadata = await syncSourceMetadata()
+        if (cancelled) return
+        setSourceSyncBootstrapping(false)
+        dispatch(setSourceSyncMetadata(metadata))
+        await loadPlans()
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Unable to initialize source metadata:', error)
+          setSourceSyncError(error.message || 'Unable to load subscribed channels.')
+        }
+      } finally {
+        if (!cancelled) setSourceSyncBootstrapping(false)
+      }
     }
-    getAuthDebug().then(data => setAuth(data.has_access_token ? data : null)).catch(() => setAuth(null))
-  }, [])
 
-  React.useEffect(() => {
-    if (plans.length === 0) loadPlans()
-  }, [])
-
-  React.useEffect(() => {
-    getSourceSyncMetadata().then(data => dispatch(setSourceSyncMetadata(data))).catch(() => {})
-  }, [dispatch])
+    bootstrapSourceInbox()
+    return () => { cancelled = true }
+  }, [
+    auth?.uid,
+    dispatch,
+    loadPlans,
+    showSourceSyncDrawer,
+    sourceMetadataLoaded,
+    syncMetadata?.channels?.length,
+  ])
 
   const refreshSourceMetadata = async channelId => {
     setSourcePullingChannelIds(current => ({ ...current, [channelId]: true }))
@@ -364,7 +419,7 @@ function AppLayout() {
         {sourceSyncError && <div className="alert alert-error">{sourceSyncError}</div>}
         <section className="source-sync-channel-section">
           <div className="source-sync-channel-controls"><input value={sourceSyncSearch} onChange={event => setSourceSyncSearch(event.target.value)} placeholder="Search channels or playlists..." aria-label="Search content sources" /><div className="picker-sort-toggle"><button className={sourceSyncFilter === 'all' ? 'active' : ''} onClick={() => setSourceSyncFilter('all')}>All ({syncMetadata?.channels?.length || 0})</button><button className={sourceSyncFilter === 'pending' ? 'active' : ''} onClick={() => setSourceSyncFilter('pending')}>Pending ({sourceSyncPendingCount})</button></div><label className="source-sync-target-switch"><input type="checkbox" checked={sourceSyncTargetsOnly} onChange={event => setSourceSyncTargetsOnly(event.target.checked)} /><span className="source-sync-target-switch-track" aria-hidden="true" /><span>Targets only</span></label><div className="picker-sort-toggle"><button className={sourceSyncSort === 'name' ? 'active' : ''} onClick={() => setSourceSyncSort('name')}>Name</button><button className={sourceSyncSort === 'date' ? 'active' : ''} onClick={() => setSourceSyncSort('date')}>Last sync</button></div></div>
-          <div className="source-sync-channel-list">{sourceSyncChannels.length ? sourceSyncChannels.map(channel => {
+          <div className="source-sync-channel-list">{sourceSyncBootstrapping ? <p className="source-sync-empty">Loading subscribed channels…</p> : sourceSyncChannels.length ? sourceSyncChannels.map(channel => {
             const expanded = Boolean(expandedSyncChannels[channel.channel_id])
             const channelNewCount = channel.new_videos?.length || 0
             const pendingCount = pendingVideosForChannel(channel)

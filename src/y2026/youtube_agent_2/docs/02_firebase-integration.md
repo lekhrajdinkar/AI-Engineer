@@ -65,7 +65,8 @@ Do not configure the final Google YouTube OAuth callback URL yet; that will be d
 - Legacy SQLite migration code was removed after the microservice split. Any
   future migration must be service-owned so plans and OAuth tokens can be
   assigned explicitly to the correct Firebase user.
-- Current data is temporarily stored beneath `users/legacy-single-user`; Step 3 will replace this transitional owner with the verified Firebase Auth `uid` per request.
+- User-owned data is stored beneath the verified Firebase Auth `uid`; there is
+  no fallback or shared default user.
 
 ### User action required before deployment
 
@@ -84,13 +85,13 @@ Do not configure the final Google YouTube OAuth callback URL yet; that will be d
 
 **Status:** Complete — code is ready; frontend token attachment is Step 4.
 
-- Added Firebase ID-token verification middleware for `/api/*` routes when
-  `FIREBASE_AUTH_ENABLED=true`.
+- Added mandatory Firebase ID-token verification middleware for `/api/*`
+  routes.
 - Rejects missing, invalid, expired, or revoked tokens with `401` before route execution.
 - Stores the verified Firebase `uid` in request-local context and scopes Firestore plans, sync metadata, and integration tokens to that user.
 - Added CORS configuration from `FRONTEND_URL` and a public `/health` endpoint for Render.
-- Authentication and storage are independent. For example, production can use
-  `STORAGE_BACKEND=postgres` with `FIREBASE_AUTH_ENABLED=true`.
+- Authentication is always Firebase-backed, while storage remains independently
+  selectable with `STORAGE_BACKEND`.
 
 ### User action required before deployment
 

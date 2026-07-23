@@ -36,7 +36,7 @@ class ServiceBoundaryTests(unittest.TestCase):
 
     def test_youtube_service_owns_only_integration_and_catalog_features(self):
         paths = route_paths(youtube_app)
-        self.assertIn("/auth/google/login", paths)
+        self.assertIn("/auth/google/callback", paths)
         self.assertIn("/api/channels", paths)
         self.assertNotIn("/api/plans", paths)
         self.assertNotIn("/api/sources/sync-metadata", paths)
@@ -46,11 +46,11 @@ class ServiceBoundaryTests(unittest.TestCase):
         self.assertIn("/api/plans", paths)
         self.assertIn("/api/sources/sync-metadata", paths)
         self.assertIn("/api/plans/{plan_id}/add-course-ai-suggested", paths)
-        self.assertNotIn("/auth/google/login", paths)
+        self.assertNotIn("/auth/google/callback", paths)
         self.assertNotIn("/api/channels", paths)
 
     def test_gateway_routes_requests_to_the_owning_service(self):
-        self.assertEqual(select_upstream("/auth/google/login")[0], "youtube-service")
+        self.assertEqual(select_upstream("/auth/google/callback")[0], "youtube-service")
         self.assertEqual(select_upstream("/api/channels")[0], "youtube-service")
         self.assertEqual(
             select_upstream("/api/channel-1/playlists")[0], "youtube-service"
@@ -79,9 +79,7 @@ class ServiceBoundaryTests(unittest.TestCase):
         def whoami():
             return {"user_id": identity.current_user_id()}
 
-        with patch.object(settings, "FIREBASE_AUTH_ENABLED", True), patch.object(
-            settings, "INTERNAL_SERVICE_TOKEN", "test-service-secret"
-        ):
+        with patch.object(settings, "INTERNAL_SERVICE_TOKEN", "test-service-secret"):
             response = TestClient(internal_app).get(
                 "/api/whoami",
                 headers={
@@ -93,24 +91,35 @@ class ServiceBoundaryTests(unittest.TestCase):
         self.assertEqual(response.json(), {"user_id": "firebase-user-1"})
         self.assertIsNone(identity.current_user_id())
 
-    def test_http_provider_has_a_local_user_fallback(self):
+    def test_http_provider_requires_and_preserves_user_identity(self):
         provider = HttpYouTubeProvider("http://youtube-service:8002")
         with patch.object(
             plans_config, "INTERNAL_SERVICE_TOKEN", "test-service-secret"
         ):
+            with self.assertRaisesRegex(Exception, "Firebase user identity"):
+                provider._headers()
+            context_token = identity.set_current_user("firebase-user-1")
+            try:
+                headers = provider._headers()
+            finally:
+                identity.reset_current_user(context_token)
             self.assertEqual(
-                provider._headers()["X-Internal-User-ID"],
-                plans_config.FIREBASE_DEFAULT_USER_ID,
+                headers["X-Internal-User-ID"],
+                "firebase-user-1",
             )
 
     def test_plans_api_keeps_the_existing_create_contract(self):
         client = TestClient(plans_app)
-        with patch.object(settings, "FIREBASE_AUTH_ENABLED", False), patch(
+        with patch.object(settings, "INTERNAL_SERVICE_TOKEN", "test-service-secret"), patch(
             "src.y2026.youtube_agent_2.backend.services.plans.app.domain.plans.db.save_plan"
         ) as save_plan:
             response = client.post(
                 "/api/plans",
                 json={"name": "Microservices", "description": "Test plan"},
+                headers={
+                    "X-Internal-Service-Token": "test-service-secret",
+                    "X-Internal-User-ID": "firebase-user-1",
+                },
             )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["plan"]["name"], "Microservices")

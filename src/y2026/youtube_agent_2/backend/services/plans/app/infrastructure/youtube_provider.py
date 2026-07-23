@@ -38,10 +38,15 @@ class HttpYouTubeProvider:
                 status_code=503,
                 detail="INTERNAL_SERVICE_TOKEN is required for YouTube service calls",
             )
+        user_id = identity.current_user_id()
+        if not user_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Firebase user identity is required for YouTube service calls",
+            )
         return {
             "X-Internal-Service-Token": config.INTERNAL_SERVICE_TOKEN,
-            "X-Internal-User-ID": identity.current_user_id()
-            or config.FIREBASE_DEFAULT_USER_ID,
+            "X-Internal-User-ID": user_id,
         }
 
     def _get(self, path: str, params: dict | None = None) -> dict:

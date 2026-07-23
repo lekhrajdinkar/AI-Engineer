@@ -67,6 +67,7 @@ class ProviderAdapter(ABC):
             "id": self.id,
             "name": self.display_name,
             "adapter": self.adapter_type,
+            "credential_env": self.credential_env,
             "credential_status": self.credential_status(),
             "structured_output_modes": list(self.structured_output_modes),
         }

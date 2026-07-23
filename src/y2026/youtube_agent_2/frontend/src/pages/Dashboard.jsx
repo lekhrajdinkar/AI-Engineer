@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getChannels, getAuthDebug, googleLogin } from '../api/client'
+import { getChannels, getYouTubeConnectionStatus, startYouTubeConnection } from '../api/client'
 
 export default function Dashboard() {
   const [auth, setAuth] = useState(null)
@@ -8,13 +8,18 @@ export default function Dashboard() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    getAuthDebug()
+    getYouTubeConnectionStatus()
       .then(data => {
-        if (data.has_access_token === true) setAuth(data)
+        if (data.connected === true) setAuth(data)
         else setAuth(null)
       })
       .catch(() => setAuth(null))
   }, [])
+
+  async function connectYouTube() {
+    const { authorize_url } = await startYouTubeConnection()
+    window.location.assign(authorize_url)
+  }
 
   async function handleFetchChannels() {
     setLoading(true)
@@ -38,8 +43,8 @@ export default function Dashboard() {
         <div className="alert alert-info">
           <strong>Not authenticated.</strong> Please sign in with Google to access your YouTube subscriptions.
           <br /><br />
-          <button className="btn btn-primary" onClick={googleLogin}>
-            Sign in with Google
+          <button className="btn btn-primary" onClick={connectYouTube}>
+            Connect YouTube
           </button>
         </div>
       )}

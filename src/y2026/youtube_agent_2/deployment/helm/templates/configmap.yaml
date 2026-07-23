@@ -6,14 +6,10 @@ metadata:
     {{- include "youtube-agent.labels" (dict "root" . "component" "platform") | nindent 4 }}
 data:
   STORAGE_BACKEND: {{ .Values.config.storageBackend | quote }}
-  FIREBASE_AUTH_ENABLED: {{ ternary "true" "false" .Values.config.firebaseAuthEnabled | quote }}
   FIREBASE_PROJECT_ID: {{ .Values.config.firebaseProjectId | quote }}
-  FIREBASE_DEFAULT_USER_ID: {{ .Values.config.firebaseDefaultUserId | quote }}
   FRONTEND_URL: {{ .Values.config.frontendUrl | quote }}
   SERVICE_REQUEST_TIMEOUT_SECS: {{ .Values.config.serviceRequestTimeoutSecs | quote }}
   GATEWAY_YOUTUBE_SERVICE_URL: {{ printf "http://%s-youtube:%v" (include "youtube-agent.fullname" .) .Values.youtube.service.port | quote }}
   GATEWAY_PLANS_SERVICE_URL: {{ printf "http://%s-plans:%v" (include "youtube-agent.fullname" .) .Values.plans.service.port | quote }}
   YOUTUBE_SERVICE_URL: {{ printf "http://%s-youtube:%v" (include "youtube-agent.fullname" .) .Values.youtube.service.port | quote }}
-  YOUTUBE_DATABASE_PATH: /data/youtube.sqlite3
-  PLANS_DATABASE_PATH: /data/plans.sqlite3
   GOOGLE_REDIRECT_URI: {{ .Values.config.googleRedirectUri | quote }}

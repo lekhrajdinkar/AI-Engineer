@@ -57,8 +57,6 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       STORAGE_BACKEND: ${STORAGE_BACKEND:-postgres}
       DATABASE_URL: postgresql://${POSTGRES_USER:-youtube_agent}:${POSTGRES_PASSWORD:-local-postgres-change-me}@postgres:5432/${POSTGRES_DB:-youtube_agent}
-      FIREBASE_AUTH_ENABLED: ${FIREBASE_AUTH_ENABLED:-false}
-      YOUTUBE_DATABASE_PATH: /data/youtube.sqlite3
     volumes:
       - youtube-data:/data
     depends_on:
@@ -81,8 +79,6 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       STORAGE_BACKEND: ${STORAGE_BACKEND:-postgres}
       DATABASE_URL: postgresql://${POSTGRES_USER:-youtube_agent}:${POSTGRES_PASSWORD:-local-postgres-change-me}@postgres:5432/${POSTGRES_DB:-youtube_agent}
-      FIREBASE_AUTH_ENABLED: ${FIREBASE_AUTH_ENABLED:-false}
-      PLANS_DATABASE_PATH: /data/plans.sqlite3
       YOUTUBE_SERVICE_URL: http://youtube-service:8002
     volumes:
       - plans-data:/data
@@ -107,8 +103,6 @@ services:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-microservice-token-change-me}
       STORAGE_BACKEND: ${STORAGE_BACKEND:-postgres}
       DATABASE_URL: postgresql://${POSTGRES_USER:-youtube_agent}:${POSTGRES_PASSWORD:-local-postgres-change-me}@postgres:5432/${POSTGRES_DB:-youtube_agent}
-      FIREBASE_AUTH_ENABLED: ${FIREBASE_AUTH_ENABLED:-false}
-      PLANS_DATABASE_PATH: /data/plans.sqlite3
       YOUTUBE_SERVICE_URL: http://youtube-service:8002
       AI_WORKER_POLL_INTERVAL_SECS: ${AI_WORKER_POLL_INTERVAL_SECS:-2}
       AI_WORKER_LEASE_SECS: ${AI_WORKER_LEASE_SECS:-300}
