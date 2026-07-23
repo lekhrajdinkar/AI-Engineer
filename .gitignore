@@ -124,7 +124,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+src/y2026/lab_01_ai_agent/.env
 .venv
 env/
 venv/
@@ -167,3 +167,5 @@ cython_debug/
 /src/y2026/youtube_agent_2/frontend/node_modules/
 /chroma_db/
 /src/y2026/youtube_agent_2/backend/youtubeldb.sqlite3
+
+**/.env

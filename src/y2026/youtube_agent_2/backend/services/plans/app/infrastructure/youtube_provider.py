@@ -23,7 +23,9 @@ class SourceProvider(Protocol):
 
     def get_playlist_videos(self, playlist_id: str) -> list[VideoRecord]: ...
 
-    def get_channel_videos(self, channel_id: str) -> list[VideoRecord]: ...
+    def get_channel_videos(
+        self, channel_id: str, published_after: str | None = None
+    ) -> list[VideoRecord]: ...
 
 
 class HttpYouTubeProvider:
@@ -70,8 +72,13 @@ class HttpYouTubeProvider:
     def get_playlist_videos(self, playlist_id: str) -> list[dict]:
         return self._get("/api/videos", {"channel_id": "internal", "playlist_id": playlist_id}).get("videos", [])
 
-    def get_channel_videos(self, channel_id: str) -> list[dict]:
-        return self._get("/api/videos", {"channel_id": channel_id}).get("videos", [])
+    def get_channel_videos(
+        self, channel_id: str, published_after: str | None = None
+    ) -> list[dict]:
+        params = {"channel_id": channel_id}
+        if published_after:
+            params["published_after"] = published_after
+        return self._get("/api/videos", params).get("videos", [])
 
 
 _provider_override: SourceProvider | None = None

@@ -2,7 +2,7 @@
 
 
 ## Environment Setup and run
-- https://console.groq.com/keys | [.env](../../../../.env)
+- https://console.groq.com/keys | [.env](../.env)
 - lib:
   - `chromadb` - Vector database
   - `sentence-transformers` - Embeddings (local)
@@ -37,7 +37,7 @@ cd C:\Users\Manisha\Documents\github-2025\genai; python -m src.y2026.lab_01_ai_a
 - ![img_1.png](../../../../docs/99_img/2026/01/05/img_1.png)
 
 ### Task 3: LLM Integration 🤖
-- https://console.groq.com/keys | [.env](../../../../.env)
+- https://console.groq.com/keys | [.env](../.env)
 - Configure LangChain ChatOpenAI client
 - Set temperature (0.3) for focused answers
 - Configure max tokens (500) for concise responses

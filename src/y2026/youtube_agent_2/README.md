@@ -8,7 +8,9 @@
 ```
 - python -m venv .venv
 - .\.venv\Scripts\Activate.ps1
-- pip install -r requirements.txt
+- uv add  -r src/y2026/youtube_agent_2/backend/services/plans/requirements.txt 
+- uv add  -r src/y2026/youtube_agent_2/backend/services/youtube/requirements.txt 
+- uv add  -r src/y2026/youtube_agent_2/backend/services/gateway/requirements.txt 
 ```
 
 ```bash
@@ -33,8 +35,7 @@ React UI
 ```bash
 # Start Vite
 # Dependencies are installed at the repo root (`../../..`). No separate `npm install` needed here.
-cd src\y2026\youtube_agent_2\frontend;
-npm run dev
+cd src\y2026\youtube_agent_2\frontend; npm run dev
 ```
 
 fallback to SQLite
@@ -43,10 +44,7 @@ FIREBASE_ENABLED=false
 FIREBASE_AUTH_REQUIRED=false
 ```
 
-Deploy/Run to render
-- [deploy-to-render.md](deployment/render/README.md)
-- [render-microservices.yaml](deployment/render/render-microservices.yaml)
-
-Local Kubernetes
+**Future Deployment**
+- [deploy-to-render.md](deployment/render/README.md) | [render-microservices.yaml](deployment/render/render-microservices.yaml)
 - [deployment/kubernetes/README.md](deployment/kubernetes/README.md)
 - [deployment/helm/README.md](deployment/helm/README.md)

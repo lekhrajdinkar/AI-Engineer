@@ -33,7 +33,6 @@ python -m src.y2026.lab_01_ai_agent.langGraph_06.langgraph_test
 ---
 ## Tasks
 check task 6 and task 7 only in future  👈🏻👈🏻👈🏻
-
 ```
 ├── task_1_understanding_imports.py    # Learn imports (44 lines)
 ├── task_2_creating_nodes.py          # Create nodes (61 lines)

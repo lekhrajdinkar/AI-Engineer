@@ -8,7 +8,7 @@ from langchain_core.prompts import PromptTemplate
 
 def task_1_langchain_approach():
     """LangChain - clean and simple"""
-    print("\n🟢 TASk-1 LANGCHAIN APPROACH")
+    print("\n🟢 TASK-1 LANGCHAIN APPROACH")
     from langchain_openai import ChatOpenAI
     llm = ChatOpenAI(
         model="openai/gpt-4.1-mini",
@@ -175,7 +175,14 @@ def task_4_output_parser():
 
     print("\n✅ Task 4 completed! You can now parse AI outputs into data structures!")
 
+# ======== Run =========
+
 if __name__ == "__main__":
+    from pathlib import Path
+    from dotenv import load_dotenv
+    BASE_DIR = Path(__file__).resolve().parent
+    load_dotenv(BASE_DIR / ".env")
+
     task_1_langchain_approach()
     task_2_multi_model()
     task_4_output_parser()

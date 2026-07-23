@@ -1,3 +1,13 @@
+export {
+  AI_ORGANIZATION_CONTEXT_MODES,
+  AI_PROCESSING_MODES,
+  AI_REQUEST_STATUSES,
+  AI_REQUEST_TERMINAL_STATUSES,
+  DEFAULT_AI_COURSE_OPTIONS,
+  buildAiCourseRequestPayload,
+  isTerminalAiRequestStatus,
+} from './aiContracts'
+
 const BASE = import.meta.env.VITE_API_BASE_URL || ''
 let accessTokenProvider = async () => null
 
@@ -14,7 +24,14 @@ async function request(path, options = {}) {
   })
   if (!res.ok) {
     const body = await res.text()
-    throw new Error(`HTTP ${res.status}: ${body}`)
+    let detail = body
+    try {
+      const parsed = JSON.parse(body)
+      detail = typeof parsed.detail === 'string' ? parsed.detail : body
+    } catch {
+      // Preserve non-JSON upstream error text.
+    }
+    throw new Error(`HTTP ${res.status}: ${detail}`)
   }
   return res.json()
 }
@@ -58,13 +75,48 @@ export function createPlan(data) {
 }
 
 export function getSourceSyncMetadata() { return request('/api/sources/sync-metadata') }
-export function syncSourceMetadata() { return request('/api/sources/sync-metadata', { method: 'POST' }) }
-export function pushNewSourceFeeds({ channelId, playlistId } = {}) {
+export function syncSourceMetadata({ channelId } = {}) {
   const params = new URLSearchParams()
   if (channelId) params.set('channel_id', channelId)
-  if (playlistId) params.set('playlist_id', playlistId)
   const query = params.toString()
-  return request(`/api/sources/sync-metadata/push-new-feeds${query ? `?${query}` : ''}`, { method: 'POST' })
+  return request(`/api/sources/sync-metadata${query ? `?${query}` : ''}`, { method: 'POST' })
+}
+export function pushNewSourceFeeds({ channelId, playlistId, planId, courseId, moduleId, newModuleTitle, videoIds }) {
+  return request('/api/sources/sync-metadata/push-new-feeds', {
+    method: 'POST',
+    body: JSON.stringify({
+      channel_id: channelId,
+      playlist_id: playlistId || null,
+      plan_id: planId,
+      course_id: courseId,
+      module_id: moduleId || null,
+      new_module_title: newModuleTitle || null,
+      video_ids: videoIds,
+    }),
+  })
+}
+export function organizeNewSourceFeeds({ channelId, playlistId, videoIds, modelConfigId, userPrompt, previousSuggestion }) {
+  return request('/api/sources/sync-metadata/organize-new-feeds', {
+    method: 'POST',
+    body: JSON.stringify({
+      channel_id: channelId,
+      model_config_id: modelConfigId,
+      playlist_id: playlistId || null,
+      video_ids: videoIds,
+      user_prompt: userPrompt || null,
+      previous_suggestion: previousSuggestion || null,
+    }),
+  })
+}
+export function confirmSourceFeedOrganization({ channelId, playlistId, placements }) {
+  return request('/api/sources/sync-metadata/confirm-organization', {
+    method: 'POST',
+    body: JSON.stringify({
+      channel_id: channelId,
+      playlist_id: playlistId || null,
+      placements,
+    }),
+  })
 }
 export function discoverNewCourseVideos(planId, courseId, { channelId, playlistId } = {}) {
   const params = new URLSearchParams()
@@ -84,6 +136,7 @@ export function deletePlan(planId) {
 }
 
 export function updatePlanMetadata(planId, data) { return request(`/api/plans/${planId}`, { method: 'PATCH', body: JSON.stringify(data) }) }
+export function replacePlan(planId, data) { return request(`/api/plans/${planId}`, { method: 'PUT', body: JSON.stringify(data) }) }
 export function updateCourseMetadata(planId, courseId, data) { return request(`/api/plans/${planId}/courses/${courseId}`, { method: 'PATCH', body: JSON.stringify(data) }) }
 
 export function addManualCourse(planId, course) {
@@ -92,6 +145,60 @@ export function addManualCourse(planId, course) {
 
 export function addAiSuggestedCourse(planId, data) {
   return request(`/api/plans/${planId}/add-course-ai-suggested`, { method: 'POST', body: JSON.stringify(data) })
+}
+
+// Persistent AI course request API blueprint. The legacy synchronous endpoint
+// above remains available until the modal migrates to this contract.
+export function submitAiCourseRequest(planId, data) {
+  return request(`/api/plans/${planId}/ai-course-requests`, { method: 'POST', body: JSON.stringify(data) })
+}
+
+export function getAiCourseRequests(planId, { status, cursor, limit = 20 } = {}) {
+  const params = new URLSearchParams()
+  if (status) params.set('status', status)
+  if (cursor) params.set('cursor', cursor)
+  if (limit) params.set('limit', String(limit))
+  const query = params.toString()
+  return request(`/api/plans/${planId}/ai-course-requests${query ? `?${query}` : ''}`)
+}
+
+export function getAiCourseRequest(planId, requestId) {
+  return request(`/api/plans/${planId}/ai-course-requests/${requestId}`)
+}
+
+export function retryAiCourseRequest(planId, requestId) {
+  return request(`/api/plans/${planId}/ai-course-requests/${requestId}/retry`, { method: 'POST' })
+}
+
+export function cancelAiCourseRequest(planId, requestId) {
+  return request(`/api/plans/${planId}/ai-course-requests/${requestId}/cancel`, { method: 'POST' })
+}
+
+export function getAiModelConfigs({ enabled } = {}) {
+  const params = new URLSearchParams()
+  if (typeof enabled === 'boolean') params.set('enabled', String(enabled))
+  const query = params.toString()
+  return request(`/api/ai-model-configs${query ? `?${query}` : ''}`)
+}
+
+export function getAiModelProviders() {
+  return request('/api/ai-model-providers')
+}
+
+export function createAiModelConfig(data) {
+  return request('/api/ai-model-configs', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export function updateAiModelConfig(configId, data) {
+  return request(`/api/ai-model-configs/${configId}`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
+export function deleteAiModelConfig(configId) {
+  return request(`/api/ai-model-configs/${configId}`, { method: 'DELETE' })
+}
+
+export function testAiModelConfig(configId) {
+  return request(`/api/ai-model-configs/${configId}/test`, { method: 'POST' })
 }
 
 export function deleteCourses(planId, courseIds) {

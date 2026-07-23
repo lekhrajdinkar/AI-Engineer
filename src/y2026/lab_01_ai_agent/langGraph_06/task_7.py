@@ -54,8 +54,6 @@ except ImportError:
 #
 # This is a production-ready pattern!
 
-
-
 # State for our research agent
 class State(TypedDict):
     query: str
@@ -64,10 +62,10 @@ class State(TypedDict):
 
 # Initialize LLM
 llm = ChatOpenAI(
-    model=os.getenv("OPENAI_MODEL", "openai/gpt-4.1-mini"),
-    base_url=os.getenv("OPENAI_API_BASE"),
-    api_key=os.getenv("OPENAI_API_KEY"),
-    temperature=0.7
+    base_url    = os.getenv("GROQ_API_BASE"),
+    api_key     = os.getenv("GROQ_API_KEY"),
+    model       = os.getenv("GROQ_MODEL_ID"),
+    temperature = 0  # Low temperature for math accuracy
 )
 
 # DuckDuckGo search

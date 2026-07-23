@@ -667,7 +667,6 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
         <AiCourseModal
           plan={plan}
           onClose={() => setShowAiModal(false)}
-          onCourseCreated={handleCourseCreated}
         />
       )}
       {showVideoFilter && <WorkspaceFilterDrawer modules={activeCourse?.modules || []} videoLabels={videoLabelFilters} moduleIds={moduleFilters} setVideoLabels={setVideoLabelFilters} setModuleIds={setModuleFilters} deletedVideoVisibility={deletedVideoVisibility} setDeletedVideoVisibility={setDeletedVideoVisibility} onClose={() => setShowVideoFilter(false)} />}

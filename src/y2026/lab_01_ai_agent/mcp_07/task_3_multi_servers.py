@@ -1,42 +1,15 @@
-#!/usr/bin/env python3
-"""Task 3: Multiple MCP Servers - Orchestrating calculator and weather servers"""
-
 import os
 import asyncio
 from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 
-# ╔════════════════════════════════════════════╗
-# ║     Multiple MCP Servers Architecture      ║
-# ╚════════════════════════════════════════════╝
-#
-#              [User Query]
-#                    │
-#                    ▼
-#            ┌──────────────┐
-#            │  LangGraph   │
-#            │ React Agent  │
-#            └──────┬───────┘
-#                   │
-#         ┌─────────┴─────────┐
-#         │MultiServerMCPClient│
-#         └─────────┬─────────┘
-#                   │
-#      ┌────────────┴────────────┐
-#      ▼                         ▼
-# ┌──────────┐            ┌──────────┐
-# │Calculator│            │ Weather  │
-# │MCP Server│            │MCP Server│
-# │    🔢    │            │    ☁️    │
-# └──────────┘            └──────────┘
-#
-# The agent "automatically" routes to the appropriate MCP server
-# based on the query content and available tools
-
+from pathlib import Path
+from dotenv import load_dotenv
+BASE_DIR = Path(__file__).resolve().parents[1]
+print(f"BASE_DIR : {BASE_DIR}")
+load_dotenv(BASE_DIR / ".env")
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
-
-
 
 async def run_multi_server_agent():
     """Create and run agent with multiple MCP servers"""
@@ -44,33 +17,36 @@ async def run_multi_server_agent():
     print("📦 Loading tools from multiple servers...")
 
     model = ChatOpenAI(
-        model=os.getenv("OPENAI_MODEL", "openai/gpt-4.1-mini"),
-        base_url=os.getenv("OPENAI_API_BASE"),
-        api_key=os.getenv("OPENAI_API_KEY"),
-        temperature=0
+        base_url    = os.getenv("GROQ_API_BASE"),
+        api_key     = os.getenv("GROQ_API_KEY"),
+        model       = os.getenv("GROQ_MODEL_ID"),
+        temperature = 0
     )
 
     client = MultiServerMCPClient(
         {
             "calculator": {
                 "command": "python",
-                "args": ["/root/code/mcp_servers/calculator_server.py"],
-                "transport": "stdio"
+                "args": [
+                    "-m",
+                    "src.y2026.lab_01_ai_agent.mcp_07.mcp_server.calculator_server",
+                ],
+                "transport": "stdio",
             },
             "weather": {
                 "command": "python",
-                "args": ["/root/code/mcp_servers/weather_server.py"],
-                "transport": "stdio"
-            }
+                "args": [
+                    "-m",
+                    "src.y2026.lab_01_ai_agent.mcp_07.mcp_server.weather_server",
+                ],
+                "transport": "stdio",
+            },
         }
     )
 
     tools = await client.get_tools()
-
-    print(f"✅ Loaded {len(tools) if hasattr(tools, '__len__') else 'multiple'} tools from MCP servers")
-
-    # Create react agent with all tools
     agent = create_react_agent(model, tools)
+    print(f"✅ Loaded {len(tools) if hasattr(tools, '__len__') else 'multiple'} tools from MCP servers")
 
     print("\n" + "=" * 60)
     print("TESTING MULTI-SERVER ORCHESTRATION:")
@@ -111,23 +87,11 @@ async def run_multi_server_agent():
     })
     print(f"Response: {mixed_response['messages'][-1].content}")
 
-# Run the multi-server agent
+
 if __name__ == "__main__":
     print("Starting Multi-Server MCP Orchestration...")
     print("This demonstrates how a single agent can use multiple MCP servers\n")
-
-    # Run async function
     asyncio.run(run_multi_server_agent())
-
-    print("\n" + "=" * 60)
-    print("💡 KEY CONCEPTS:")
-    print("- MultiServerMCPClient manages multiple MCP servers")
-    print("- Each server exposes different tools")
-    print("- Agent automatically selects appropriate tools")
-    print("- Seamless orchestration across servers")
-    print("- Extensible to many servers and domains")
-    print("=" * 60)
-
 
 
 """

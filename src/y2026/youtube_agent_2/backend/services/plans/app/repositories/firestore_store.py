@@ -5,16 +5,35 @@ verified Firebase Auth uid for each request before calling this repository.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from typing import Optional
+
+from firebase_admin import firestore
 
 from src.y2026.youtube_agent_2.backend.shared.platform import settings
 from src.y2026.youtube_agent_2.backend.shared.platform.firebase import firestore_client
 
 
+AI_INPUT_VIDEO_CHUNK_SIZE = 100
+
+
 def _json_value(value):
     """Firestore accepts native JSON-like values; stringify datetime objects."""
     return json.loads(json.dumps(value, default=str))
+
+
+def _datetime_value(value) -> datetime | None:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(value))
+        except ValueError:
+            return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 class FirestoreStore:
@@ -195,6 +214,285 @@ class FirestoreStore:
     def load_source_sync_metadata(self, user_id: Optional[str] = None) -> dict:
         snapshot = self._user(user_id).collection("source_sync").document("current").get()
         return snapshot.to_dict() if snapshot.exists else {"channels": [], "updated_at": None}
+
+    def _ai_request(self, request_id: str, user_id: Optional[str] = None):
+        return self._user(user_id).collection("ai_course_requests").document(request_id)
+
+    def create_ai_course_request(
+        self,
+        request: dict,
+        details: dict,
+        batches: list,
+        user_id: Optional[str] = None,
+    ):
+        """Create the durable job snapshot before the API acknowledges it."""
+        request_ref = self._ai_request(request["id"], user_id)
+        detail_data = {key: value for key, value in details.items() if key != "videos"}
+        write_batch = self.client.batch()
+        write_batch.set(request_ref, _json_value(request), merge=False)
+        write_batch.set(
+            request_ref.collection("details").document("captured"),
+            _json_value(detail_data),
+            merge=False,
+        )
+        videos = details.get("videos", [])
+        for start in range(0, len(videos), AI_INPUT_VIDEO_CHUNK_SIZE):
+            chunk_number = start // AI_INPUT_VIDEO_CHUNK_SIZE
+            write_batch.set(
+                request_ref.collection("input_video_chunks").document(
+                    f"{chunk_number:05d}"
+                ),
+                _json_value({"number": chunk_number, "videos": videos[start:start + AI_INPUT_VIDEO_CHUNK_SIZE]}),
+                merge=False,
+            )
+        for item in batches:
+            write_batch.set(
+                request_ref.collection("batches").document(item["id"]),
+                _json_value(item),
+                merge=False,
+            )
+        write_batch.commit()
+
+    def save_ai_course_request(self, request: dict, user_id: Optional[str] = None):
+        self._ai_request(request["id"], user_id).set(
+            _json_value(request), merge=False
+        )
+
+    def load_ai_course_request(
+        self, request_id: str, user_id: Optional[str] = None
+    ) -> Optional[dict]:
+        snapshot = self._ai_request(request_id, user_id).get()
+        return snapshot.to_dict() if snapshot.exists else None
+
+    def list_ai_course_requests(
+        self, plan_id: str, user_id: Optional[str] = None
+    ) -> list[dict]:
+        collection = self._user(user_id).collection("ai_course_requests")
+        requests = [
+            snapshot.to_dict()
+            for snapshot in collection.where("plan_id", "==", plan_id).stream()
+        ]
+        return sorted(
+            requests,
+            key=lambda request: (
+                str(request.get("created_at") or ""),
+                request.get("id", ""),
+            ),
+            reverse=True,
+        )
+
+    def save_ai_course_request_details(
+        self, details: dict, user_id: Optional[str] = None
+    ):
+        request_ref = self._ai_request(details["request_id"], user_id)
+        detail_data = {key: value for key, value in details.items() if key != "videos"}
+        request_ref.collection("details").document("captured").set(
+            _json_value(detail_data), merge=False
+        )
+        videos = details.get("videos", [])
+        expected_chunks = set()
+        for start in range(0, len(videos), AI_INPUT_VIDEO_CHUNK_SIZE):
+            chunk_number = start // AI_INPUT_VIDEO_CHUNK_SIZE
+            chunk_id = f"{chunk_number:05d}"
+            expected_chunks.add(chunk_id)
+            request_ref.collection("input_video_chunks").document(chunk_id).set(
+                _json_value(
+                    {
+                        "number": chunk_number,
+                        "videos": videos[start:start + AI_INPUT_VIDEO_CHUNK_SIZE],
+                    }
+                ),
+                merge=False,
+            )
+        for existing in request_ref.collection("input_video_chunks").stream():
+            if existing.id not in expected_chunks:
+                existing.reference.delete()
+
+    def load_ai_course_request_details(
+        self, request_id: str, user_id: Optional[str] = None
+    ) -> Optional[dict]:
+        request_ref = self._ai_request(request_id, user_id)
+        snapshot = request_ref.collection("details").document("captured").get()
+        if not snapshot.exists:
+            return None
+        details = snapshot.to_dict()
+        chunks = [
+            chunk.to_dict()
+            for chunk in request_ref.collection("input_video_chunks").stream()
+        ]
+        chunks.sort(key=lambda chunk: chunk.get("number", 0))
+        details["videos"] = [
+            video for chunk in chunks for video in chunk.get("videos", [])
+        ]
+        return details
+
+    def save_ai_course_batch(self, batch: dict, user_id: Optional[str] = None):
+        self._ai_request(batch["request_id"], user_id).collection("batches").document(
+            batch["id"]
+        ).set(_json_value(batch), merge=False)
+
+    def list_ai_course_batches(
+        self, request_id: str, user_id: Optional[str] = None
+    ) -> list[dict]:
+        rows = [
+            snapshot.to_dict()
+            for snapshot in self._ai_request(request_id, user_id)
+            .collection("batches")
+            .stream()
+        ]
+        return sorted(rows, key=lambda row: (row.get("number", 0), row.get("id", "")))
+
+    def save_ai_course_attempt(self, attempt: dict, user_id: Optional[str] = None):
+        self._ai_request(attempt["request_id"], user_id).collection("attempts").document(
+            attempt["id"]
+        ).set(_json_value(attempt), merge=False)
+
+    def list_ai_course_attempts(
+        self, request_id: str, user_id: Optional[str] = None
+    ) -> list[dict]:
+        rows = [
+            snapshot.to_dict()
+            for snapshot in self._ai_request(request_id, user_id)
+            .collection("attempts")
+            .stream()
+        ]
+        return sorted(rows, key=lambda row: (row.get("number", 0), row.get("id", "")))
+
+    def claim_next_ai_course_request(
+        self,
+        worker_id: str,
+        now: datetime,
+        lease_expires_at: datetime,
+    ) -> Optional[dict]:
+        snapshots = list(
+            self.client.collection_group("ai_course_requests")
+            .where(
+                "status",
+                "in",
+                ["queued", "running", "waiting_for_rate_limit"],
+            )
+            .stream()
+        )
+        snapshots.sort(
+            key=lambda snapshot: (
+                str(snapshot.to_dict().get("created_at") or ""),
+                snapshot.id,
+            )
+        )
+
+        @firestore.transactional
+        def claim(transaction, reference):
+            snapshot = reference.get(transaction=transaction)
+            if not snapshot.exists:
+                return None
+            candidate = snapshot.to_dict()
+            candidate_status = candidate.get("status")
+            if candidate_status == "running":
+                eligible = (
+                    _datetime_value(candidate.get("lease_expires_at")) or now
+                ) <= now
+            elif candidate_status == "waiting_for_rate_limit":
+                eligible = (
+                    _datetime_value(candidate.get("next_attempt_at")) or now
+                ) <= now
+            else:
+                eligible = candidate_status == "queued"
+            if not eligible:
+                return None
+            candidate.update(
+                status="running",
+                claimed_by=worker_id,
+                lease_expires_at=lease_expires_at,
+                next_attempt_at=None,
+                started_at=candidate.get("started_at") or now,
+                updated_at=now,
+            )
+            transaction.set(reference, _json_value(candidate), merge=False)
+            return candidate
+
+        for snapshot in snapshots:
+            claimed = claim(self.client.transaction(), snapshot.reference)
+            if claimed:
+                return claimed
+        return None
+
+    def renew_ai_course_request_lease(
+        self,
+        request_id: str,
+        worker_id: str,
+        user_id: str,
+        now: datetime,
+        lease_expires_at: datetime,
+    ) -> bool:
+        reference = self._ai_request(request_id, user_id)
+
+        @firestore.transactional
+        def renew(transaction):
+            snapshot = reference.get(transaction=transaction)
+            if not snapshot.exists:
+                return False
+            request = snapshot.to_dict()
+            if request.get("status") != "running" or request.get("claimed_by") != worker_id:
+                return False
+            request["lease_expires_at"] = lease_expires_at
+            request["updated_at"] = now
+            transaction.set(reference, _json_value(request), merge=False)
+            return True
+
+        return renew(self.client.transaction())
+
+    def _ai_model_configs(self):
+        return self.client.collection("ai_model_configs")
+
+    def ensure_default_ai_model_config(self, default_config: dict):
+        collection = self._ai_model_configs()
+        if next(collection.limit(1).stream(), None) is None:
+            collection.document(default_config["id"]).set(
+                _json_value(default_config), merge=False
+            )
+
+    def save_ai_model_config(self, config: dict):
+        self._ai_model_configs().document(config["id"]).set(
+            _json_value(config), merge=False
+        )
+
+    def load_ai_model_config(
+        self, config_id: str, *, include_deleted: bool = False
+    ) -> Optional[dict]:
+        snapshot = self._ai_model_configs().document(config_id).get()
+        if not snapshot.exists:
+            return None
+        config = snapshot.to_dict()
+        if config.get("deleted_at") and not include_deleted:
+            return None
+        return config
+
+    def list_ai_model_configs(self, *, include_deleted: bool = False) -> list[dict]:
+        configs = [snapshot.to_dict() for snapshot in self._ai_model_configs().stream()]
+        if not include_deleted:
+            configs = [config for config in configs if not config.get("deleted_at")]
+        return sorted(
+            configs,
+            key=lambda config: (
+                not config.get("is_default", False),
+                config.get("provider", ""),
+                config.get("name", ""),
+                config.get("id", ""),
+            ),
+        )
+
+    def delete_ai_model_config(self, config_id: str) -> bool:
+        ref = self._ai_model_configs().document(config_id)
+        if not ref.get().exists:
+            return False
+        ref.delete()
+        return True
+
+    def is_ai_model_config_referenced(self, config_id: str) -> bool:
+        query = self.client.collection_group("ai_course_requests").where(
+            "model_config_id", "==", config_id
+        ).limit(1)
+        return next(query.stream(), None) is not None
 
     def _delete_document_tree(self, ref):
         for collection in ref.collections():

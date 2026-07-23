@@ -8,32 +8,25 @@
   - 🏅 https://learn.kodekloud.com/user/certificate/fc188fcc-6bcb-4144-98f2-1dca6c695909
 
 ---
-## env setup
-- python3, venv, [requirements.txt](requirements.txt)
-- env variables:  [.env](../../../.env)
-  - `OPENAI_API_KEY`
-  - `OPENAI_API_BASE`
-
----
 ## Lab-1
 - First API call ( with `openai SDK`) 
 - [01_02_openai.py](lab_01_openai.py)
+- python3, venv, [requirements.txt](requirements.txt)
+- env variables:  [.env](.env) ⚠️ missing
 
 ```bash
 cd C:\Users\Manisha\Documents\github-2025\genai; 
-
 python -m src.y2026.lab_01_ai_agent.lab_01_openai
-python -m src.y2026.lab_01_ai_agent.lab_02_lanchain
 ```
 ---
 ## lab-2
 - lanChain abstraction
 - [02_01_lanchain.py](lab_02_lanchain.py)
+- python3, venv, [requirements.txt](requirements.txt)
+- env variables:  [.env](.env) ⚠️ missing
 
 ```bash
 cd C:\Users\Manisha\Documents\github-2025\genai; 
-
-python -m src.y2026.lab_01_ai_agent.lab_01_openai
 python -m src.y2026.lab_01_ai_agent.lab_02_lanchain
 ```
 ---

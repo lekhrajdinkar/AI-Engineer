@@ -1,4 +1,36 @@
 # Advance MCP lab
+## Environment Setup and run
+- [.env.example](../.env.example) | [.env](../.env)
+- [requirements.txt](../requirements.txt)|  `pip install langgraph langchain langchain-openai langchain-mcp-adapters mcp`
+- .\.venv\Scripts\activate
+
+```bash
+#---1
+# start mcp1 (calculator)
+# 1.1. python -m src.y2026.lab_01_ai_agent.mcp_07.task_1_try_fastMCP
+
+# 1.2
+fastmcp run src\y2026\lab_01_ai_agent\mcp_07\task_1_try_fastMCP.py:mcp --transport streamable-http --host 127.0.0.1 --port 8000
+# http://127.0.0.1:8000/mcp 
+
+# 1.3
+fastmcp dev src\y2026\lab_01_ai_agent\mcp_07\task_1_try_fastMCP.py
+# Starting MCP inspector...
+#🔗 Open inspector with token pre-filled:
+   #http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=XXXXXXXXXx
+
+#---2 start agent-1 (calculator mcp)
+python -m src.y2026.lab_01_ai_agent.mcp_07.task_2_mcp_langgraph
+
+#---3
+# Start MCP/s (not needed)
+python -m src.y2026.lab_01_ai_agent.mcp_07.mcp_server.calculator_servers
+python -m src.y2026.lab_01_ai_agent.mcp_07.mcp_server.weather_servers
+
+# start agent-2 (calculator + weather)
+python -m src.y2026.lab_01_ai_agent.mcp_07.task_3_multi_servers
+```
+---
 ## overview
 - agent(mcp-client in it) with no langGraph
 - [03_01_MCP.md](../../../../docs/2026/02_AgenticAI/03_protocol/01_MCP.md)
@@ -28,11 +60,7 @@ Tools    to Graphs    Servers        MCP!
     ```
 
 ---
-## tasks
-- **Task 1**: Basic MCP server (no LangGraph)
-- **Task 2**: Single server + LangGraph
-- **Task 3**: Multiple servers + orchestration
-
+## Tasks
 ```
 ├── task_1_mcp_basics.py              # Basic MCP server
 ├── task_2_mcp_langgraph.py           # MCP + LangGraph
@@ -52,9 +80,9 @@ Create a **simple calculator MCP server**
 # MCP is like a USB port for AI - a standard way for
 # AI models to connect to external tools and data sources.
 #
-# ┌─────────────────┐     MCP Protocol    ┌─────────────────┐
+# ┌─────────────────┐     MCP Protocol     ┌─────────────────┐
 # │   AI Assistant  │◄────────────────────►│   MCP Server    │
-# │   (LangGraph)   │   stdio/SSE/HTTP    │  (Your Tools)   │
+# │   (LangGraph)   │   stdio/SSE/HTTP     │  (Your Tools)   │
 # └─────────────────┘                      └─────────────────┘
 #
 # MCP Server Components:
@@ -148,40 +176,6 @@ Create a **simple calculator MCP server**
 #
 # The agent "automatically" routes to the appropriate MCP server
 # based on the query content and available tools
-```
----
-
-
-## Environment Setup and run
-```bash
-pip install langgraph langchain langchain-openai langchain-mcp-adapters mcp
-```
-- **Required Packages**
-  - `langgraph` - Stateful graph framework
-  - `langchain` - Core LLM abstractions
-  - `langchain-openai` - OpenAI integration
-  - `langchain-mcp-adapters` - MCP integration for LangChain
-  - `mcp` - Model Context Protocol SDK (includes FastMCP)
-
-- **Environment Variables**
-  - `OPENAI_API_BASE` - Proxy endpoint for LLM access
-  - `OPENAI_API_KEY` - Authentication
-  - `OPENAI_MODEL` - Default model (gpt-4.1-mini)
-
-- **Run**
-```bash
-#---1
-# start mcp1 (my-basic-mcp : calculator)
-python -m src.y2026.lab_01_ai_agent.mcp_07.task_1_mcp_basics
-# start agent-1 (simgle mcp - calculator)
-python -m src.y2026.lab_01_ai_agent.mcp_07.task_2_mcp_langgraph
-
-#---2
-# Start MCP/s
-python -m src.y2026.lab_01_ai_agent.mcp_07.mcp_server.calculator_servers
-python -m src.y2026.lab_01_ai_agent.mcp_07.mcp_server.weather_servers
-# start agent-2 (multiple mcp/s as above - calculator + weather)
-python -m src.y2026.lab_01_ai_agent.mcp_07.task_3_multi_servers
 ```
 
 ---

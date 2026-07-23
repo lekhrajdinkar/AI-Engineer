@@ -72,6 +72,8 @@ def _enrich_video_details(videos: List[dict], headers: dict) -> List[dict]:
         for item in response.json().get("items", []):
             snippet = item.get("snippet", {})
             details[item.get("id")] = {
+                "title": snippet.get("title", ""),
+                "description": snippet.get("description", ""),
                 "duration_secs": _parse_iso_duration(item.get("contentDetails", {}).get("duration", "")),
                 "published_at": snippet.get("publishedAt", ""),
                 "thumbnail": _best_thumbnail(snippet),
@@ -85,6 +87,8 @@ def _enrich_video_details(videos: List[dict], headers: dict) -> List[dict]:
             }
     for video in videos:
         detail = details.get(video.get("video_id"), {})
+        video["title"] = detail.get("title") or video.get("title") or "Untitled video"
+        video["description"] = detail.get("description") or video.get("description", "")
         video["duration_secs"] = detail.get("duration_secs", 0)
         video["published_at"] = detail.get("published_at") or video.get("published_at", "")
         video["thumbnail"] = detail.get("thumbnail") or video.get("thumbnail", "")
@@ -299,12 +303,15 @@ def get_playlist_videos(playlist_id: str) -> List[dict]:
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
     
     if not tokens or "access_token" not in tokens:
-        print(f"❌ [get_playlist_videos] No tokens, returning empty list")
-        return []
+        raise RuntimeError("YouTube authentication is required to fetch playlist videos")
     
     access_token = tokens["access_token"]
     headers = {"Authorization": f"Bearer {access_token}"}
-    params = {"part": "snippet", "playlistId": playlist_id, "maxResults": 50}
+    params = {
+        "part": "snippet,contentDetails",
+        "playlistId": playlist_id,
+        "maxResults": 50,
+    }
     items = []
     nextPage = None
     
@@ -315,27 +322,33 @@ def get_playlist_videos(playlist_id: str) -> List[dict]:
         print(f"📡 [get_playlist_videos] Fetching videos for playlist {playlist_id}...")
         try:
             resp = requests.get("https://www.googleapis.com/youtube/v3/playlistItems", headers=headers, params=params, timeout=10)
-        except Exception as e:
-            print(f"   Request error: {e}")
-            return []
+        except Exception as error:
+            raise RuntimeError(
+                f"YouTube playlist-items request failed: {error}"
+            ) from error
         
         if resp.status_code == 401 and client_id and client_secret and tokens.get("refresh_token"):
             print(f"⚠️  Got 401, refreshing token...")
             refreshed = refresh_access_token(tokens.get("refresh_token"), client_id, client_secret)
             if not refreshed:
-                return []
+                raise RuntimeError("YouTube token refresh failed")
             access_token = refreshed["access_token"]
             headers["Authorization"] = f"Bearer {access_token}"
             continue
         
         if resp.status_code != 200:
-            print(f"❌ API returned {resp.status_code}")
-            return []
+            raise RuntimeError(
+                f"YouTube playlist-items API returned {resp.status_code}: {resp.text}"
+            )
         
         data = resp.json()
         for it in data.get("items", []):
             snip = it.get("snippet", {})
-            vid_id = snip.get("resourceId", {}).get("videoId")
+            content_details = it.get("contentDetails", {})
+            vid_id = (
+                content_details.get("videoId")
+                or snip.get("resourceId", {}).get("videoId")
+            )
             if vid_id:
                 items.append({
                     "video_id": vid_id,
@@ -343,8 +356,11 @@ def get_playlist_videos(playlist_id: str) -> List[dict]:
                     "description": snip.get("description"),
                     "thumbnail": snip.get("thumbnails", {}).get("default", {}).get("url"),
                     "url": f"https://youtube.com/watch?v={vid_id}",
-                    "position": it.get("position"),
-                    "published_at": snip.get("publishedAt", ""),
+                    "position": snip.get("position"),
+                    "playlist_id": snip.get("playlistId") or playlist_id,
+                    "playlist_item_id": it.get("id"),
+                    "added_to_playlist_at": snip.get("publishedAt", ""),
+                    "published_at": content_details.get("videoPublishedAt", ""),
                 })
         
         nextPage = data.get("nextPageToken")
@@ -356,18 +372,88 @@ def get_playlist_videos(playlist_id: str) -> List[dict]:
     return items
 
 
-def get_channel_videos(channel_id: str) -> List[dict]:
-    """Fetch all videos uploaded to a channel (via its uploads playlist)."""
+def get_channel_videos(
+    channel_id: str, published_after: Optional[str] = None
+) -> List[dict]:
+    """Fetch channel uploads incrementally, or reconcile the full uploads list."""
     tokens = token_store.load_latest_tokens("google")
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
     
     if not tokens or "access_token" not in tokens:
-        print(f"❌ [get_channel_videos] No tokens, returning empty list")
-        return []
+        raise RuntimeError("YouTube authentication is required to fetch channel videos")
     
     access_token = tokens["access_token"]
     headers = {"Authorization": f"Bearer {access_token}"}
+
+    if published_after:
+        params = {
+            "part": "snippet,contentDetails",
+            "channelId": channel_id,
+            "publishedAfter": published_after,
+            "maxResults": 50,
+        }
+        videos = []
+        seen_ids = set()
+        next_page = None
+        while True:
+            if next_page:
+                params["pageToken"] = next_page
+            try:
+                resp = requests.get(
+                    "https://www.googleapis.com/youtube/v3/activities",
+                    headers=headers,
+                    params=params,
+                    timeout=10,
+                )
+            except requests.RequestException as error:
+                raise RuntimeError(
+                    f"YouTube activities request failed: {error}"
+                ) from error
+            if (
+                resp.status_code == 401
+                and client_id
+                and client_secret
+                and tokens.get("refresh_token")
+            ):
+                refreshed = refresh_access_token(
+                    tokens["refresh_token"], client_id, client_secret
+                )
+                if not refreshed:
+                    raise RuntimeError("YouTube token refresh failed")
+                headers["Authorization"] = f"Bearer {refreshed['access_token']}"
+                continue
+            if resp.status_code != 200:
+                raise RuntimeError(
+                    f"YouTube activities API returned {resp.status_code}: {resp.text}"
+                )
+            data = resp.json()
+            for activity in data.get("items", []):
+                snippet = activity.get("snippet", {})
+                video_id = (
+                    activity.get("contentDetails", {})
+                    .get("upload", {})
+                    .get("videoId")
+                )
+                if snippet.get("type") != "upload" or not video_id:
+                    continue
+                if video_id in seen_ids:
+                    continue
+                seen_ids.add(video_id)
+                videos.append(
+                    {
+                        "video_id": video_id,
+                        "title": snippet.get("title") or "Untitled video",
+                        "description": snippet.get("description") or "",
+                        "thumbnail": _best_thumbnail(snippet),
+                        "url": f"https://youtube.com/watch?v={video_id}",
+                        "published_at": snippet.get("publishedAt", ""),
+                    }
+                )
+            next_page = data.get("nextPageToken")
+            if not next_page:
+                break
+        return _enrich_video_details(videos, headers)
     
     # First, get the uploads playlist ID for this channel
     print(f"📡 [get_channel_videos] Fetching uploads playlist for channel {channel_id}...")
@@ -378,15 +464,16 @@ def get_channel_videos(channel_id: str) -> List[dict]:
             params={"part": "contentDetails", "id": channel_id},
             timeout=10
         )
-    except Exception as e:
-        print(f"   Request error: {e}")
-        return []
+    except requests.RequestException as error:
+        raise RuntimeError(
+            f"YouTube channels request failed: {error}"
+        ) from error
     
     if resp.status_code == 401 and client_id and client_secret and tokens.get("refresh_token"):
         print(f"⚠️  Got 401, refreshing token...")
         refreshed = refresh_access_token(tokens.get("refresh_token"), client_id, client_secret)
         if not refreshed:
-            return []
+            raise RuntimeError("YouTube token refresh failed")
         access_token = refreshed["access_token"]
         headers["Authorization"] = f"Bearer {access_token}"
         # Retry
@@ -397,24 +484,26 @@ def get_channel_videos(channel_id: str) -> List[dict]:
                 params={"part": "contentDetails", "id": channel_id},
                 timeout=10
             )
-        except Exception as e:
-            print(f"   Request error on retry: {e}")
-            return []
+        except requests.RequestException as error:
+            raise RuntimeError(
+                f"YouTube channels retry failed: {error}"
+            ) from error
     
     if resp.status_code != 200:
-        print(f"❌ Channels API returned {resp.status_code}")
-        return []
+        raise RuntimeError(
+            f"YouTube channels API returned {resp.status_code}: {resp.text}"
+        )
     
     data = resp.json()
     items = data.get("items", [])
     if not items:
-        print(f"❌ No channel found with id {channel_id}")
-        return []
+        raise RuntimeError(f"YouTube channel not found: {channel_id}")
     
     uploads_playlist_id = items[0].get("contentDetails", {}).get("relatedPlaylists", {}).get("uploads")
     if not uploads_playlist_id:
-        print(f"❌ Could not find uploads playlist for channel {channel_id}")
-        return []
+        raise RuntimeError(
+            f"YouTube uploads playlist not found for channel {channel_id}"
+        )
     
     print(f"✅ Found uploads playlist: {uploads_playlist_id}")
     # Now fetch videos from the uploads playlist
