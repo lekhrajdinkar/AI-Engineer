@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { selectDashboardAnalytics, setDashboardPlan } from '../store/dashboardSlice'
 import { firebaseAuth } from '../firebase'
 import { LearningPlanDropdown } from '../components/LearningPathNav'
+import appLogo from '../../app-logo.png'
 
 function DashboardIcon({ name }) {
   const paths = {
@@ -49,10 +50,13 @@ export default function Dashboard({ onOpenAiModels }) {
   return (
     <div className="dashboard-page">
       <header className="dashboard-hero">
-        <div>
-          <span className="dashboard-eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
-          <h1>{greeting()}{firstName ? `, ${firstName}` : ''}</h1>
-          <p>Pick up where you left off and keep your learning library moving.</p>
+        <div className="dashboard-hero-brand">
+          <span className="dashboard-brand-mark"><img src={appLogo} alt="" /></span>
+          <div>
+            <span className="dashboard-eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+            <h1>{greeting()}{firstName ? `, ${firstName}` : ''}</h1>
+            <p>Pick up where you left off and keep your learning library moving.</p>
+          </div>
         </div>
         <div className="dashboard-hero-actions">
           <div className="dashboard-view-switcher"><span>View</span><LearningPlanDropdown plans={plans} selectedPlan={selectedPlan} includeAll onSelect={plan => dispatch(setDashboardPlan(plan?.id || 'all'))} /></div>

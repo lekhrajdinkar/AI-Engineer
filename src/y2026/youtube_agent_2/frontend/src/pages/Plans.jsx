@@ -6,6 +6,8 @@ import { updatePlanLabels, updatePlanMetadata } from '../api/client'
 import EditMetadataDrawer from '../components/EditMetadataDrawer'
 import { EditIcon, LabelIcon, RefreshIcon, WorkspaceIcon } from '../components/Icons'
 import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
+import { rememberLearningLocation, updatePlansPage } from '../store/learningUiSlice'
+import appLogo from '../../app-logo.png'
 
 export default function Plans({ newPlanRequest, onRefresh, refreshing = false }) {
   const dispatch = useDispatch()
@@ -17,16 +19,28 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
   const [creating, setCreating] = useState(false)
   const [planToDelete, setPlanToDelete] = useState(null)
   const [planToEdit, setPlanToEdit] = useState(null)
-  const [query, setQuery] = useState('')
-  const [sortBy, setSortBy] = useState('updated')
   const [showSort, setShowSort] = useState(false)
-  const [planLabelTab, setPlanLabelTab] = useState('ALL')
+  const [showMobileActions, setShowMobileActions] = useState(false)
+  const { query, sortBy, labelTab: planLabelTab } = useSelector(state => state.learningUi.plansPage)
   const planLabels = [...new Set(plans.flatMap(plan => plan.labels || []))]
   const visiblePlans = [...plans].filter(plan => `${plan.name} ${plan.description || ''}`.toLowerCase().includes(query.toLowerCase()) && (planLabelTab === 'ALL' || plan.labels?.includes(planLabelTab))).sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : new Date(b.updated_at) - new Date(a.updated_at))
 
   useEffect(() => {
     if (newPlanRequest > 0) setShowDrawer(true)
   }, [newPlanRequest])
+
+  useEffect(() => {
+    dispatch(rememberLearningLocation({ planId: 'all', courseId: 'all', moduleId: null, videoId: null }))
+  }, [dispatch])
+
+  const renderPlanActions = className => (
+    <div className={`plan-action-panel ${className || ''}`}>
+      <input value={query} onChange={event => dispatch(updatePlansPage({ query: event.target.value }))} placeholder="Search learning plans..." aria-label="Search learning plans" />
+      <button className="btn btn-secondary btn-sm icon-button" title="Sort learning plans" aria-label="Sort learning plans" onClick={() => setShowSort(true)}><WorkspaceIcon name="sort" /></button>
+      <button className="btn btn-secondary btn-sm icon-button" title="Refresh learning plans" aria-label="Refresh learning plans" onClick={onRefresh} disabled={refreshing}>{refreshing ? <span className="spinner" /> : <RefreshIcon />}</button>
+      <div className="add-course-group"><button className="btn btn-secondary btn-sm" onClick={() => setShowDrawer(true)}><WorkspaceIcon name="manual" />New plan</button></div>
+    </div>
+  )
 
 
   function closeDrawer() {
@@ -77,7 +91,7 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
   }
 
   return (
-    <div>
+    <div className="plans-page">
       {error && <div className="alert alert-error">{error}</div>}
 
       {showDrawer && (
@@ -129,9 +143,8 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
       )}
 
       <div>
-          <div className="page-header plan-overview-header"><h1>YouTube Learning</h1><div className="plan-action-panel"><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search learning plans..." aria-label="Search learning plans" /><button className="btn btn-secondary btn-sm icon-button" title="Sort learning plans" aria-label="Sort learning plans" onClick={() => setShowSort(true)}><WorkspaceIcon name="sort" /></button><button className="btn btn-secondary btn-sm icon-button" title="Refresh learning plans" aria-label="Refresh learning plans" onClick={onRefresh} disabled={refreshing}>{refreshing ? <span className="spinner" /> : <RefreshIcon />}</button><div className="add-course-group"><button className="btn btn-secondary btn-sm" onClick={() => setShowDrawer(true)}><WorkspaceIcon name="manual" />New plan</button></div></div></div>
           <div className="page-header course-toolbar"><h4>Learning plans <span className="badge badge-green">{plans.length}</span></h4></div>
-          <div className="label-tabs" role="tablist"><button className={planLabelTab === 'ALL' ? 'active' : ''} onClick={() => setPlanLabelTab('ALL')}>All <span>{plans.length}</span></button>{planLabels.map(label => <button key={label} className={planLabelTab === label ? 'active' : ''} onClick={() => setPlanLabelTab(label)}>{label.replaceAll('_', ' ')} <span>{plans.filter(plan => plan.labels?.includes(label)).length}</span></button>)}</div>
+          <div className="label-tabs" role="tablist"><button className={planLabelTab === 'ALL' ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ labelTab: 'ALL' }))}>All <span>{plans.length}</span></button>{planLabels.map(label => <button key={label} className={planLabelTab === label ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ labelTab: label }))}>{label.replaceAll('_', ' ')} <span>{plans.filter(plan => plan.labels?.includes(label)).length}</span></button>)}</div>
           {plans.length === 0 && (
             <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>
               <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>No learning plans yet</p>
@@ -157,7 +170,8 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
             )
           })}</div>
       </div>
-      {showSort && <><div className="drawer-overlay" onClick={() => setShowSort(false)} /><aside className="drawer"><div className="drawer-header"><h2>Sort learning plans</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowSort(false)}>×</button></div><div className="drawer-body"><div className="material-select"><label>Sort learning plans</label><div className="sort-toggle" role="group" aria-label="Sort learning plans"><button className={sortBy === 'updated' ? 'active' : ''} onClick={() => setSortBy('updated')}>Recently updated</button><button className={sortBy === 'name' ? 'active' : ''} onClick={() => setSortBy('name')}>Name</button></div></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => setSortBy('updated')}>Reset</button><button className="btn btn-primary" onClick={() => setShowSort(false)}>Apply</button></div></aside></>}
+      {showMobileActions && <><div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} /><aside className="drawer mobile-page-actions-drawer"><div className="drawer-header"><h2>Learning plan actions</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button></div><div className="drawer-body">{renderPlanActions('mobile-drawer-actions')}</div></aside></>}
+      {showSort && <><div className="drawer-overlay" onClick={() => setShowSort(false)} /><aside className="drawer"><div className="drawer-header"><h2>Sort learning plans</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowSort(false)}>×</button></div><div className="drawer-body"><div className="material-select"><label>Sort learning plans</label><div className="sort-toggle" role="group" aria-label="Sort learning plans"><button className={sortBy === 'updated' ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ sortBy: 'updated' }))}>Recently updated</button><button className={sortBy === 'name' ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ sortBy: 'name' }))}>Name</button></div></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => dispatch(updatePlansPage({ sortBy: 'updated' }))}>Reset</button><button className="btn btn-primary" onClick={() => setShowSort(false)}>Apply</button></div></aside></>}
       {planToEdit && <EditMetadataDrawer item={planToEdit} type="plan" onClose={() => setPlanToEdit(null)} onSave={async form => { await updatePlanMetadata(planToEdit.id, { name: form.name, description: form.description, logo_url: form.logo_url }); const response = await updatePlanLabels(planToEdit.id, form.labels); dispatch(updatePlan(response.plan)); setPlanToEdit(null) }} onDelete={() => { setPlanToEdit(null); setPlanToDelete(planToEdit) }} />}
       {planToDelete && (
         <div className="confirm-overlay" onClick={() => setPlanToDelete(null)}>

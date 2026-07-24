@@ -6,12 +6,14 @@ import { WorkspaceIcon } from '../components/Icons'
 import LearningPathNav from '../components/LearningPathNav'
 import { submitCourseRefreshFeed } from '../api/client'
 import { updatePlan } from '../store/plansSlice'
+import { rememberLearningLocation, selectWorkspaceState } from '../store/learningUiSlice'
 
 export default function CourseWorkspace() {
   const { planId, courseId } = useParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const plan = useSelector(state => state.plans.items.find(item => item.id === planId))
+  const rememberedWorkspace = useSelector(state => selectWorkspaceState(state, planId, courseId))
   const syncMetadata = useSelector(state => state.sources.syncMetadata)
   const [showOverview, setShowOverview] = React.useState(false)
   const [isCourseEditing, setIsCourseEditing] = React.useState(false)
@@ -28,6 +30,15 @@ export default function CourseWorkspace() {
     setIsCourseEditing(false)
     setRefreshError('')
   }, [planId, courseId])
+
+  React.useEffect(() => {
+    dispatch(rememberLearningLocation({
+      planId,
+      courseId,
+      moduleId: rememberedWorkspace.activeModuleId,
+      videoId: rememberedWorkspace.activeVideoId,
+    }))
+  }, [courseId, dispatch, planId, rememberedWorkspace.activeModuleId, rememberedWorkspace.activeVideoId])
 
   if (!plan || !plan.courses?.some(course => course.id === courseId)) return <div className="alert alert-info">Course not found.</div>
 
@@ -61,9 +72,9 @@ export default function CourseWorkspace() {
     }
   }
 
-  return <div>
-    <LearningPathNav plan={plan} course={course} mode="learn" showHome={false} actions={<div id="workspace-actions" className="workspace-action-panel"><button className={`btn btn-secondary btn-sm icon-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button><button className={`btn btn-secondary btn-sm icon-button course-edit-mode-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-label={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-pressed={isCourseEditing} onClick={() => setIsCourseEditing(value => !value)}><WorkspaceIcon name="edit" /></button></div>} />
-    <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} isCourseEditing={isCourseEditing} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
+  return <div className="course-workspace-page">
+    <LearningPathNav className="workspace-detail-breadcrumb" plan={plan} course={course} mode="learn" showHome={false} actions={<div id="workspace-actions" className="workspace-action-panel"><button className={`btn btn-secondary btn-sm icon-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button></div>} />
+    <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} isCourseEditing={isCourseEditing} onToggleCourseEditing={() => setIsCourseEditing(value => !value)} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
     {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header course-overview-drawer-header"><div><h2>{course.title}</h2>{course.description && <p>{course.description}</p>}</div><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}>×</button></div><div className="drawer-body">
       {refreshError && <div className="alert alert-error">{refreshError}</div>}
       {stagedVideoCount > 0 && <section className="refresh-review refresh-review-notification"><div><h3>⚠️ New video feed ready</h3><p>{stagedVideoCount} new video{stagedVideoCount === 1 ? '' : 's'} staged across {stagedFeeds.length} source{stagedFeeds.length === 1 ? '' : 's'}.</p></div><button className="btn btn-secondary btn-sm" onClick={() => { setFeedReviewTab('visual'); setFeedReviewSearch(''); setFeedReviewSort('name'); setShowFeedReview(true) }}>Review new videos</button></section>}

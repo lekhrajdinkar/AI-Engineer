@@ -1,6 +1,7 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { LabelIcon, WorkspaceIcon } from './Icons'
 
 function ChevronIcon() {
   return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
@@ -8,6 +9,20 @@ function ChevronIcon() {
 
 function CheckIcon() {
   return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3 3 7-7" /></svg>
+}
+
+function ItemLogo({ item, fallback = 'A' }) {
+  const source = item?.logo_url || item?.logo
+  return source
+    ? <img className="learning-path-item-logo" src={source} alt="" />
+    : <span className="learning-path-item-logo learning-path-item-logo-fallback" aria-hidden="true">{fallback}</span>
+}
+
+function CourseViewIcon({ id }) {
+  if (['bookmarked', 'watched', 'mark_for_delete'].includes(id)) {
+    return <LabelIcon label={id} />
+  }
+  return <WorkspaceIcon name={id === 'refresh_needed' ? 'progress' : 'menu'} />
 }
 
 function sortItems(items, sort, nameField) {
@@ -62,18 +77,21 @@ export function LearningPlanDropdown({ plans, selectedPlan, onSelect, includeAll
   return (
     <div className="learning-path-picker" ref={pickerRef}>
       <button type="button" className="learning-path-trigger" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}>
+        <ItemLogo item={selectedPlan} fallback={selectedPlan?.name?.charAt(0)?.toUpperCase() || 'A'} />
         <span>{selectedPlan?.name || 'All learning plans'}</span>
         <ChevronIcon />
       </button>
       {open && <div className="learning-path-menu" role="menu" aria-label="Select learning plan">
         <strong>Select learning plan</strong>
         <MenuTools value={search} onChange={setSearch} sort={sort} onSortChange={setSort} label="plans" />
-        {includeAll && <button type="button" role="menuitem" className={!selectedPlan ? 'active' : ''} onClick={() => choose(null)}>
+        {includeAll && <button type="button" role="menuitem" className={`learning-path-menu-item-with-logo ${!selectedPlan ? 'active' : ''}`} onClick={() => choose(null)}>
           <span className="learning-path-menu-check">{!selectedPlan && <CheckIcon />}</span>
-          <span><b>All learning plans</b><small>{plans.length} plans combined</small></span>
+          <ItemLogo fallback="A" />
+          <span><b>ALL Plans</b><small>{plans.length} plans combined</small></span>
         </button>}
-        {visiblePlans.map(item => <button type="button" role="menuitem" className={item.id === selectedPlan?.id ? 'active' : ''} key={item.id} onClick={() => choose(item)}>
+        {visiblePlans.map(item => <button type="button" role="menuitem" className={`learning-path-menu-item-with-logo ${item.id === selectedPlan?.id ? 'active' : ''}`} key={item.id} onClick={() => choose(item)}>
           <span className="learning-path-menu-check">{item.id === selectedPlan?.id && <CheckIcon />}</span>
+          <ItemLogo item={item} fallback={item.name?.charAt(0)?.toUpperCase() || '?'} />
           <span><b>{item.name}</b><small>{item.courses?.length || 0} courses</small></span>
         </button>)}
         {visiblePlans.length === 0 && <p className="learning-path-menu-empty">No plans match your search.</p>}
@@ -82,7 +100,44 @@ export function LearningPlanDropdown({ plans, selectedPlan, onSelect, includeAll
   )
 }
 
-export default function LearningPathNav({ plan, course, mode = 'overview', actions = null, showHome = true }) {
+export function CourseViewDropdown({ options, value, onSelect }) {
+  const [open, setOpen] = React.useState(false)
+  const pickerRef = React.useRef(null)
+  const selected = options.find(option => option.id === value) || options[0]
+
+  React.useEffect(() => {
+    const close = event => {
+      if (!pickerRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [])
+
+  const choose = id => {
+    onSelect(id)
+    setOpen(false)
+  }
+
+  return (
+    <div className="learning-path-picker course-view-picker" ref={pickerRef}>
+      <button type="button" className="learning-path-trigger current-course" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(current => !current)}>
+        <span className="learning-path-view-icon"><CourseViewIcon id={selected.id} /></span>
+        <span>{selected.shortLabel || selected.label}</span>
+        <ChevronIcon />
+      </button>
+      {open && <div className="learning-path-menu course-view-menu" role="menu" aria-label="Filter courses">
+        <strong>Show courses</strong>
+        {options.map(option => <button type="button" role="menuitemradio" aria-checked={option.id === selected.id} className={`learning-path-menu-item-with-logo ${option.id === selected.id ? 'active' : ''}`} key={option.id} onClick={() => choose(option.id)}>
+          <span className="learning-path-menu-check">{option.id === selected.id && <CheckIcon />}</span>
+          <span className="learning-path-view-icon"><CourseViewIcon id={option.id} /></span>
+          <span><b>{option.label}</b><small>{option.count} {option.count === 1 ? 'course' : 'courses'}</small></span>
+        </button>)}
+      </div>}
+    </div>
+  )
+}
+
+export default function LearningPathNav({ plan, course, mode = 'overview', actions = null, showHome = true, className = '' }) {
   const navigate = useNavigate()
   const plans = useSelector(state => state.plans.items)
   const [openMenu, setOpenMenu] = React.useState(null)
@@ -123,7 +178,7 @@ export default function LearningPathNav({ plan, course, mode = 'overview', actio
   }
 
   return (
-    <nav className="learning-path-nav" aria-label="Learning navigation" ref={navRef}>
+    <nav className={`learning-path-nav ${className}`.trim()} aria-label="Learning navigation" ref={navRef}>
       {showHome && <><button type="button" className="learning-path-home" onClick={() => navigate('/')} title="Home" aria-label="Home">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" /></svg>
       </button>
@@ -137,6 +192,7 @@ export default function LearningPathNav({ plan, course, mode = 'overview', actio
           aria-expanded={openMenu === 'plans'}
           onClick={() => setOpenMenu(current => current === 'plans' ? null : 'plans')}
         >
+          <ItemLogo item={plan} fallback={plan.name?.charAt(0)?.toUpperCase() || '?'} />
           <span>{plan.name}</span>
           <ChevronIcon />
         </button>
@@ -145,8 +201,9 @@ export default function LearningPathNav({ plan, course, mode = 'overview', actio
             <strong>Switch learning plan</strong>
             <MenuTools value={planSearch} onChange={setPlanSearch} sort={planSort} onSortChange={setPlanSort} label="plans" />
             {sortedPlans.map(item => (
-              <button type="button" role="menuitem" className={item.id === plan.id ? 'active' : ''} key={item.id} onClick={() => choosePlan(item)}>
+              <button type="button" role="menuitem" className={`learning-path-menu-item-with-logo ${item.id === plan.id ? 'active' : ''}`} key={item.id} onClick={() => choosePlan(item)}>
                 <span className="learning-path-menu-check">{item.id === plan.id && <CheckIcon />}</span>
+                <ItemLogo item={item} fallback={item.name?.charAt(0)?.toUpperCase() || '?'} />
                 <span><b>{item.name}</b><small>{item.courses?.length || 0} courses</small></span>
               </button>
             ))}
@@ -165,6 +222,7 @@ export default function LearningPathNav({ plan, course, mode = 'overview', actio
           aria-expanded={openMenu === 'courses'}
           onClick={() => setOpenMenu(current => current === 'courses' ? null : 'courses')}
         >
+          <ItemLogo item={course} fallback={course.title?.charAt(0)?.toUpperCase() || '?'} />
           <span>{course.title}</span>
           <ChevronIcon />
         </button>
@@ -173,8 +231,9 @@ export default function LearningPathNav({ plan, course, mode = 'overview', actio
             <strong>Courses in {plan.name}</strong>
             <MenuTools value={courseSearch} onChange={setCourseSearch} sort={courseSort} onSortChange={setCourseSort} label="courses" />
             {sortedCourses.map(item => (
-              <button type="button" role="menuitem" className={item.id === course.id ? 'active' : ''} key={item.id} onClick={() => chooseCourse(item)}>
+              <button type="button" role="menuitem" className={`learning-path-menu-item-with-logo ${item.id === course.id ? 'active' : ''}`} key={item.id} onClick={() => chooseCourse(item)}>
                 <span className="learning-path-menu-check">{item.id === course.id && <CheckIcon />}</span>
+                <ItemLogo item={item} fallback={item.title?.charAt(0)?.toUpperCase() || '?'} />
                 <span><b>{item.title}</b><small>{item.modules?.length || 0} modules</small></span>
               </button>
             ))}
