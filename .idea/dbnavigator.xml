@@ -41,9 +41,7 @@ select * from "public"."ai_model_configs" ;]]></console>
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files>
-      <object connection-id="7e5dbb0f-5984-4ae7-a907-c52192605504" object-ref="consoles/neondb-youtube-agent" />
-    </open-files>
+    <open-files />
   </component>
   <component name="DBNavigator.Project.DatabasePrerequisiteManager">
     <prerequisites />

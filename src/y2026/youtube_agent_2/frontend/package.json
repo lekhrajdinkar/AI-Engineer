@@ -5,9 +5,24 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:mobile": "vite build --mode mobile",
     "preview": "vite preview"
   },
   "dependencies": {
-    "firebase": "^12.1.0"
+    "@capacitor-firebase/authentication": "^7.3.1",
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/browser": "^7.0.2",
+    "@capacitor/core": "^7.4.4",
+    "@reduxjs/toolkit": "^2.12.0",
+    "firebase": "^11.10.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-redux": "^9.3.0",
+    "react-router-dom": "^6.30.4",
+    "youtube-learning-ios": "file:../../../.."
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.14"
   }
 }
