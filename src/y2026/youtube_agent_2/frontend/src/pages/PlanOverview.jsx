@@ -9,9 +9,20 @@ import {
   replacePlan,
   updateCourseLabels,
   updateCourseMetadata,
+  updatePlanLabels,
 } from "../api/client";
 import EditMetadataDrawer from "../components/EditMetadataDrawer";
 import { EditIcon, LabelIcon, WorkspaceIcon } from "../components/Icons";
+import {
+  CourseViewDropdown,
+  LearningPlanDropdown,
+} from "../components/LearningPathNav";
+import {
+  rememberLearningLocation,
+  selectPlanPageState,
+  updatePlanPage,
+} from "../store/learningUiSlice";
+import { setDashboardPlan } from "../store/dashboardSlice";
 
 function JsonActionIcon({ name }) {
   const paths = {
@@ -40,6 +51,8 @@ function LearningPlanOverviewDrawer({
   const [jsonError, setJsonError] = React.useState("");
   const [jsonMessage, setJsonMessage] = React.useState("");
   const [uploadingJson, setUploadingJson] = React.useState(false);
+  const [updatingLabel, setUpdatingLabel] = React.useState("");
+  const [labelError, setLabelError] = React.useState("");
   const jsonFileInputRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -60,6 +73,21 @@ function LearningPlanOverviewDrawer({
   const progress = videos.length
     ? Math.round((watched / videos.length) * 100)
     : 0;
+  const togglePlanLabel = async (label) => {
+    const labels = plan.labels?.includes(label)
+      ? plan.labels.filter((item) => item !== label)
+      : [...(plan.labels || []), label];
+    setUpdatingLabel(label);
+    setLabelError("");
+    try {
+      const response = await updatePlanLabels(plan.id, labels);
+      onPlanUpdated(response.plan);
+    } catch (error) {
+      setLabelError(`Unable to update plan status: ${error.message}`);
+    } finally {
+      setUpdatingLabel("");
+    }
+  };
   const downloadJson = () => {
     const file = new Blob([JSON.stringify(plan, null, 2)], {
       type: "application/json",
@@ -158,7 +186,7 @@ function LearningPlanOverviewDrawer({
       <div className="drawer-overlay" onClick={onClose} />
       <aside className="drawer learning-plan-overview-drawer">
         <div className="drawer-header">
-          <h2>{plan.name}</h2>
+          <h2>Plan information</h2>
           <button className="btn btn-secondary btn-sm" onClick={onClose}>
             ×
           </button>
@@ -218,7 +246,17 @@ function LearningPlanOverviewDrawer({
           {tab === "visual" ? (
             <>
               <section className="overview-summary">
-                <h3>Learning plan overview</h3>
+                <div className="plan-info-identity">
+                  {plan.logo_url || plan.logo ? (
+                    <img src={plan.logo_url || plan.logo} alt="" />
+                  ) : (
+                    <span aria-hidden="true">{plan.name?.charAt(0)?.toUpperCase() || "?"}</span>
+                  )}
+                  <div>
+                    <small>Learning plan</small>
+                    <h3>{plan.name}</h3>
+                  </div>
+                </div>
                 <p>{plan.description || "No description provided."}</p>
                 <div className="overview-progress">
                   <div className="plan-progress-heading">
@@ -238,17 +276,41 @@ function LearningPlanOverviewDrawer({
                   <span>{bookmarked} bookmarked</span>
                   <span>{markedForDelete} marked</span>
                 </div>
-                <div className="plan-card-labels">
-                  {plan.labels?.length ? (
-                    plan.labels.map((label) => (
-                      <span className="badge badge-green" key={label}>
-                        {label.replaceAll("_", " ")}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="tile-date">No labels</span>
+                <section className="plan-info-status">
+                  <div>
+                    <h4>Plan status</h4>
+                    <p>Bookmark, complete, or mark this plan for later cleanup.</p>
+                  </div>
+                  {labelError && <div className="alert alert-error">{labelError}</div>}
+                  <div className="plan-info-status-actions" role="group" aria-label="Plan status">
+                    {[
+                      ["bookmarked", "Bookmark"],
+                      ["watched", "Watched"],
+                      ["mark_for_delete", "Mark for delete"],
+                    ].map(([label, text]) => (
+                      <button
+                        type="button"
+                        key={label}
+                        className={plan.labels?.includes(label) ? "active" : ""}
+                        aria-pressed={plan.labels?.includes(label)}
+                        disabled={Boolean(updatingLabel)}
+                        onClick={() => togglePlanLabel(label)}
+                      >
+                        <LabelIcon label={label} />
+                        <span>{updatingLabel === label ? "Updating…" : text}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {plan.labels?.some((label) => !["bookmarked", "watched", "mark_for_delete"].includes(label)) && (
+                    <div className="plan-card-labels">
+                      {plan.labels
+                        .filter((label) => !["bookmarked", "watched", "mark_for_delete"].includes(label))
+                        .map((label) => (
+                          <span className="badge badge-green" key={label}>{label.replaceAll("_", " ")}</span>
+                        ))}
+                    </div>
                   )}
-                </div>
+                </section>
                 <div className="plan-card-timestamps">
                   <span>
                     Created:{" "}
@@ -358,22 +420,28 @@ export default function PlanOverview() {
   const plan = useSelector((state) =>
     state.plans.items.find((item) => item.id === planId),
   );
+  const allPlans = useSelector((state) => state.plans.items);
   const [showManual, setShowManual] = React.useState(false);
   const [showAi, setShowAi] = React.useState(false);
   const [submittedAiRequest, setSubmittedAiRequest] = React.useState(null);
   const [courseToEdit, setCourseToEdit] = React.useState(null);
   const [showOverview, setShowOverview] = React.useState(false);
   const [showSortFilter, setShowSortFilter] = React.useState(false);
-  const [query, setQuery] = React.useState("");
-  const [sortBy, setSortBy] = React.useState("updated");
-  const [labelFilters, setLabelFilters] = React.useState([]);
-  const [courseLabelTab, setCourseLabelTab] = React.useState("ALL");
+  const [showMobileActions, setShowMobileActions] = React.useState(false);
+  const { query, sortBy, labelFilters, courseLabelTab } = useSelector((state) =>
+    selectPlanPageState(state, planId),
+  );
+  const updatePageState = (changes) =>
+    dispatch(updatePlanPage({ planId, changes }));
+  React.useEffect(() => {
+    dispatch(rememberLearningLocation({ planId, courseId: "all", moduleId: null, videoId: null }));
+  }, [dispatch, planId]);
   const standardCourseTabs = [
-    { id: "ALL", label: "All" },
-    { id: "bookmarked", label: "⭐ Bookmarked" },
-    { id: "mark_for_delete", label: "🗑️ Marked for delete" },
-    { id: "watched", label: "👁️ Watched" },
-    { id: "refresh_needed", label: "🔄️ Refresh needed" },
+    { id: "ALL", label: "All courses", shortLabel: "ALL" },
+    { id: "bookmarked", label: "Bookmarked" },
+    { id: "watched", label: "Watched" },
+    { id: "mark_for_delete", label: "Marked for delete" },
+    { id: "refresh_needed", label: "Refresh needed" },
   ];
   const standardCourseLabelIds = standardCourseTabs
     .map((tab) => tab.id)
@@ -396,6 +464,13 @@ export default function PlanOverview() {
         ? a.title.localeCompare(b.title)
         : new Date(b.updated_at) - new Date(a.updated_at),
     );
+  const courseViewOptions = standardCourseTabs.map((tab) => ({
+    ...tab,
+    count:
+      tab.id === "ALL"
+        ? plan?.courses?.length || 0
+        : plan?.courses?.filter((course) => course.labels?.includes(tab.id)).length || 0,
+  }));
   const sourceChannels = Object.values(
     (plan?.courses || []).reduce((sources, course) => {
       const courseVideos =
@@ -431,6 +506,50 @@ export default function PlanOverview() {
     videos_count: videoIds.size,
   }));
 
+  const renderCourseActions = (className = "") => (
+    <div className={`plan-action-panel ${className}`}>
+      <button
+        className="btn btn-secondary btn-sm icon-button"
+        title="Learning plan overview"
+        aria-label="Learning plan overview"
+        onClick={() => setShowOverview(true)}
+      >
+        <WorkspaceIcon name="info" />
+      </button>
+      <input
+        value={query}
+        onChange={(event) => updatePageState({ query: event.target.value })}
+        placeholder="Search courses..."
+        aria-label="Search courses"
+      />
+      <button
+        className={`btn btn-secondary btn-sm icon-button ${labelFilters.length ? "active" : ""}`}
+        title="Sort and filter courses"
+        aria-label="Sort and filter courses"
+        onClick={() => setShowSortFilter(true)}
+      >
+        <WorkspaceIcon name="sort" />
+      </button>
+      <button
+        className="btn btn-secondary btn-sm ai-request-status-button"
+        onClick={() => navigate(`/plans/${planId}/ai-requests`)}
+      >
+        <WorkspaceIcon name="progress" />
+        <span>AI Request Status</span>
+      </button>
+      <div className="add-course-group">
+        <button className="btn btn-secondary btn-sm" onClick={() => setShowManual(true)}>
+          <WorkspaceIcon name="manual" />
+          Manual
+        </button>
+        <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
+          <WorkspaceIcon name="ai" />
+          AI
+        </button>
+      </div>
+    </div>
+  );
+
   if (!plan)
     return (
       <div className="alert alert-info">
@@ -446,106 +565,52 @@ export default function PlanOverview() {
 
   return (
     <div className="plan-overview-page">
-      <div className="page-header plan-overview-header">
-        <h1 className="plan-overview-title">
-          {plan.logo_url || plan.logo ? (
-            <img src={plan.logo_url || plan.logo} alt="" />
-          ) : (
-            <span className="plan-overview-logo-fallback">
-              {plan.name?.charAt(0).toUpperCase() || "?"}
-            </span>
-          )}
-          <span>{plan.name}</span>
-        </h1>
-        <div className="plan-action-panel">
-          <button
-            className="btn btn-secondary btn-sm icon-button"
-            title="Learning plan overview"
-            aria-label="Learning plan overview"
-            onClick={() => setShowOverview(true)}
-          >
-            <WorkspaceIcon name="info" />
-          </button>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search courses..."
-            aria-label="Search courses"
+      <nav className="plan-detail-breadcrumb" aria-label="Plan and course filter">
+        <div className="plan-detail-breadcrumb-path">
+          <LearningPlanDropdown
+            plans={allPlans}
+            selectedPlan={plan}
+            includeAll
+            onSelect={(selectedPlan) => {
+              if (selectedPlan) {
+                navigate(`/plans/${selectedPlan.id}`);
+              } else {
+                dispatch(setDashboardPlan("all"));
+                dispatch(rememberLearningLocation({ planId: "all", courseId: "all", moduleId: null, videoId: null }));
+                navigate("/");
+              }
+            }}
           />
-          <button
-            className={`btn btn-secondary btn-sm icon-button ${labelFilters.length ? "active" : ""}`}
-            title="Sort and filter courses"
-            aria-label="Sort and filter courses"
-            onClick={() => setShowSortFilter(true)}
-          >
-            <WorkspaceIcon name="sort" />
-          </button>
-          <button
-            className="btn btn-secondary btn-sm ai-request-status-button"
-            onClick={() => navigate(`/plans/${planId}/ai-requests`)}
-          >
-            <WorkspaceIcon name="progress" />
-            <span>AI Request Status</span>
-          </button>
-          <div className="add-course-group">
+          <span className="learning-path-separator" aria-hidden="true">/</span>
+          <CourseViewDropdown
+            options={courseViewOptions}
+            value={courseLabelTab}
+            onSelect={(value) => updatePageState({ courseLabelTab: value })}
+          />
+        </div>
+        <button type="button" className="mobile-page-menu-button" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /></button>
+        {renderCourseActions("desktop-page-actions breadcrumb-actions")}
+      </nav>
+      <div className="plan-course-scroll-body">
+        {submittedAiRequest && (
+          <div className="alert alert-info">
+            AI request <strong>{submittedAiRequest.request_id}</strong> was
+            queued.{" "}
             <button
               className="btn btn-secondary btn-sm"
-              onClick={() => setShowManual(true)}
+              onClick={() => navigate(`/plans/${planId}/ai-requests`)}
             >
-              <WorkspaceIcon name="manual" />
-              Manual
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => setShowAi(true)}
-            >
-              <WorkspaceIcon name="ai" />
-              AI
+              View status
             </button>
           </div>
+        )}
+        <div className="page-header course-toolbar">
+          <h4>
+            Courses{" "}
+            <span className="badge badge-green">{plan.courses?.length || 0}</span>
+          </h4>
         </div>
-      </div>
-      {submittedAiRequest && (
-        <div className="alert alert-info">
-          AI request <strong>{submittedAiRequest.request_id}</strong> was
-          queued.{" "}
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => navigate(`/plans/${planId}/ai-requests`)}
-          >
-            View status
-          </button>
-        </div>
-      )}
-      <div className="page-header course-toolbar">
-        <h4>
-          Courses{" "}
-          <span className="badge badge-green">{plan.courses?.length || 0}</span>
-        </h4>
-      </div>
-      <div
-        className="label-tabs"
-        role="tablist"
-        aria-label="Filter courses by standard label"
-      >
-        {standardCourseTabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={courseLabelTab === tab.id ? "active" : ""}
-            onClick={() => setCourseLabelTab(tab.id)}
-          >
-            {tab.label}{" "}
-            <span>
-              {tab.id === "ALL"
-                ? plan.courses?.length || 0
-                : plan.courses.filter((course) =>
-                    course.labels?.includes(tab.id),
-                  ).length}
-            </span>
-          </button>
-        ))}
-      </div>
-      <div className="plan-course-list">
+        <div className="plan-course-list">
         {visibleCourses.length ? (
           visibleCourses.map((course) => {
             const courseVideos =
@@ -672,7 +737,20 @@ export default function PlanOverview() {
             <p>No courses yet. Add a course from this plan.</p>
           </div>
         )}
+        </div>
       </div>
+      {showMobileActions && (
+        <>
+          <div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} />
+          <aside className="drawer mobile-page-actions-drawer">
+            <div className="drawer-header">
+              <h2>Plan actions</h2>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button>
+            </div>
+            <div className="drawer-body">{renderCourseActions("mobile-drawer-actions")}</div>
+          </aside>
+        </>
+      )}
       {showManual && (
         <AddCourseModal
           plan={plan}
@@ -721,11 +799,11 @@ export default function PlanOverview() {
                         type="checkbox"
                         checked={labelFilters.includes(label)}
                         onChange={() =>
-                          setLabelFilters((current) =>
-                            current.includes(label)
-                              ? current.filter((item) => item !== label)
-                              : [...current, label],
-                          )
+                          updatePageState({
+                            labelFilters: labelFilters.includes(label)
+                              ? labelFilters.filter((item) => item !== label)
+                              : [...labelFilters, label],
+                          })
                         }
                       />
                       {label}
@@ -744,13 +822,13 @@ export default function PlanOverview() {
                 >
                   <button
                     className={sortBy === "updated" ? "active" : ""}
-                    onClick={() => setSortBy("updated")}
+                    onClick={() => updatePageState({ sortBy: "updated" })}
                   >
                     Recently updated
                   </button>
                   <button
                     className={sortBy === "name" ? "active" : ""}
-                    onClick={() => setSortBy("name")}
+                    onClick={() => updatePageState({ sortBy: "name" })}
                   >
                     Name
                   </button>
@@ -761,8 +839,7 @@ export default function PlanOverview() {
               <button
                 className="btn btn-secondary"
                 onClick={() => {
-                  setLabelFilters([]);
-                  setSortBy("updated");
+                  updatePageState({ labelFilters: [], sortBy: "updated" });
                 }}
               >
                 Reset

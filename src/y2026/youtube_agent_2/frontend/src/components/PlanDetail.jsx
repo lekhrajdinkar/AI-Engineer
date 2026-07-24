@@ -1,9 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import AddCourseModal from './AddCourseModal'
 import AiCourseModal from './AiCourseModal'
 import { deleteCourses, getPlan, reorderCourseVideos, updateCourseLabels, updateCourseMetadata, updateModuleLabels, updateVideoLabels, updateVideoPlayback } from '../api/client'
 import { LabelIcon, WorkspaceIcon } from './Icons'
+import {
+  DEFAULT_WORKSPACE_STATE,
+  rememberLearningLocation,
+  selectWorkspaceState,
+  updateWorkspace,
+} from '../store/learningUiSlice'
 
 function WorkspaceFilterDrawer({ modules, videoLabels, moduleIds, setVideoLabels, setModuleIds, deletedVideoVisibility, setDeletedVideoVisibility, onClose }) {
   const toggle = (values, value, setter) => setter(values.includes(value) ? values.filter(item => item !== value) : [...values, value])
@@ -50,21 +57,29 @@ function YouTubePlayer({ videoId, startSeconds = 0, onPause, onComplete }) {
   return <div ref={hostRef} className="youtube-player-host" />
 }
 
-export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId, isCourseEditing = false, onActiveModuleChange, onActiveVideoChange }) {
+export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId, isCourseEditing = false, onToggleCourseEditing, onActiveModuleChange, onActiveVideoChange }) {
+  const dispatch = useDispatch()
+  const rememberedWorkspace = useSelector(state => workspaceCourseId
+    ? selectWorkspaceState(state, plan.id, workspaceCourseId)
+    : DEFAULT_WORKSPACE_STATE)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [activeCourseId, setActiveCourseId] = useState(workspaceCourseId || null)
-  const [expandedModules, setExpandedModules] = useState({})
-  const [activeVideo, setActiveVideo] = useState(null)
-  const [courseSearch, setCourseSearch] = useState('')
+  const [expandedModules, setExpandedModules] = useState(() => Object.fromEntries(rememberedWorkspace.expandedModuleIds.map(id => [id, true])))
+  const [activeVideo, setActiveVideo] = useState(() => plan.courses
+    ?.flatMap(course => course.modules || [])
+    .flatMap(module => module.videos || [])
+    .find(video => video.video_id === rememberedWorkspace.activeVideoId) || null)
+  const [courseSearch, setCourseSearch] = useState(rememberedWorkspace.search)
   const [selectedVideoIds, setSelectedVideoIds] = useState([])
   const [labelError, setLabelError] = useState('')
-  const [videoLabelFilters, setVideoLabelFilters] = useState([])
-  const [deletedVideoVisibility, setDeletedVideoVisibility] = useState('hide')
+  const [videoLabelFilters, setVideoLabelFilters] = useState(rememberedWorkspace.videoLabelFilters)
+  const [deletedVideoVisibility, setDeletedVideoVisibility] = useState(rememberedWorkspace.deletedVideoVisibility)
   const [showVideoFilter, setShowVideoFilter] = useState(false)
-  const [moduleFilters, setModuleFilters] = useState([])
+  const [moduleFilters, setModuleFilters] = useState(rememberedWorkspace.moduleFilters)
   const [showDescriptionDrawer, setShowDescriptionDrawer] = useState(false)
+  const [showModuleTree, setShowModuleTree] = useState(false)
   const [draggedVideo, setDraggedVideo] = useState(null)
   const [pendingVideoMove, setPendingVideoMove] = useState(null)
 
@@ -126,20 +141,6 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
       const refreshedVideo = savedPlan.courses.flatMap(course => course.modules).flatMap(module => module.videos)
         .find(video => video.video_id === activeVideo.video_id)
       if (refreshedVideo) setActiveVideo(refreshedVideo)
-    }
-  }
-
-  async function toggleWatched(videoId) {
-    const location = plan.courses.flatMap(course => course.modules.map(module => ({ course, module })))
-      .find(({ module }) => module.videos.some(video => video.video_id === videoId))
-    const video = location?.module.videos.find(item => item.video_id === videoId)
-    if (!location || !video) return
-    try {
-      setLabelError('')
-      const response = await updateVideoLabels(plan.id, location.course.id, location.module.id, videoId, withToggledLabel(video.labels, 'watched'))
-      onUpdate(response.plan)
-    } catch (error) {
-      setLabelError(error.message || 'Unable to update video labels')
     }
   }
 
@@ -234,6 +235,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
 
   async function handleVideoSelect(video) {
     setActiveVideo(video)
+    setShowModuleTree(false)
     const course = plan.courses?.find(c =>
       c.modules?.some(m => m.videos?.some(v => v.video_id === video.video_id))
     )
@@ -334,9 +336,44 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   const activeModule = activeCourse?.modules?.find(module => module.videos?.some(video => video.video_id === activeVideo?.video_id))
   const activeModuleSequence = activeModule ? (activeModule.sequence || activeCourse.modules.indexOf(activeModule) + 1) : null
   const activeVideoSequence = activeVideo && activeModule ? (activeVideo.sequence || activeModule.videos.findIndex(video => video.video_id === activeVideo.video_id) + 1) : null
+  useEffect(() => {
+    if (!workspaceCourseId) return
+    const activeModuleId = activeModule?.id || rememberedWorkspace.activeModuleId || null
+    dispatch(updateWorkspace({
+      planId: plan.id,
+      courseId: workspaceCourseId,
+      changes: {
+        activeModuleId,
+        activeVideoId: activeVideo?.video_id || null,
+        expandedModuleIds: Object.keys(expandedModules).filter(id => expandedModules[id]),
+        search: courseSearch,
+        videoLabelFilters,
+        moduleFilters,
+        deletedVideoVisibility,
+      },
+    }))
+    dispatch(rememberLearningLocation({
+      planId: plan.id,
+      courseId: workspaceCourseId,
+      moduleId: activeModuleId,
+      videoId: activeVideo?.video_id || null,
+    }))
+  }, [
+    activeModule?.id,
+    activeVideo?.video_id,
+    courseSearch,
+    deletedVideoVisibility,
+    dispatch,
+    expandedModules,
+    moduleFilters,
+    plan.id,
+    rememberedWorkspace.activeModuleId,
+    videoLabelFilters,
+    workspaceCourseId,
+  ])
   const workspaceActionHost = typeof document !== 'undefined' ? document.getElementById('workspace-actions') : null
   const allModulesExpanded = Boolean(activeCourse?.modules?.length) && activeCourse.modules.every(module => expandedModules[module.id])
-  const workspaceActions = activeCourse && <><div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" /></div><button className="btn btn-secondary btn-sm workspace-action-button" title={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} onClick={allModulesExpanded ? collapseAllModules : expandAllModules}><WorkspaceIcon name={allModulesExpanded ? 'collapse' : 'expand'} /></button><button className="btn btn-secondary btn-sm icon-button" title="Filter videos" onClick={() => setShowVideoFilter(true)}><WorkspaceIcon name="filter" /></button></>
+  const workspaceActions = activeCourse && <><button className="btn btn-secondary btn-sm icon-button workspace-module-tree-button" title="Open modules and chapters" aria-label="Open modules and chapters" aria-expanded={showModuleTree} onClick={() => setShowModuleTree(true)}><WorkspaceIcon name="menu" /></button><button className="btn btn-secondary btn-sm icon-button" title="Filter videos" aria-label="Filter videos" onClick={() => setShowVideoFilter(true)}><WorkspaceIcon name="filter" /></button></>
 
   return (
     <div>{workspaceCourseId && workspaceActionHost && createPortal(workspaceActions, workspaceActionHost)}{showDescriptionDrawer && activeVideo && <><div className="drawer-overlay" onClick={() => setShowDescriptionDrawer(false)} /><aside className="drawer left-description-drawer"><div className="drawer-header"><h2>{activeVideo.title}</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowDescriptionDrawer(false)}>×</button></div><div className="drawer-body"><p className="full-video-description">{activeVideo.description || 'No description provided.'}</p></div></aside></>}{showVideoFilter && <><div className="drawer-overlay" onClick={() => setShowVideoFilter(false)} /><aside className="drawer"><div className="drawer-header"><h2>Filters</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowVideoFilter(false)}>×</button></div><div className="drawer-body"><section className="workspace-filter-section"><label>Deleted videos</label><div className="sort-toggle"><button className={deletedVideoVisibility === 'hide' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('hide')}>Hide</button><button className={deletedVideoVisibility === 'include' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('include')}>Include</button><button className={deletedVideoVisibility === 'only' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('only')}>Only marked</button></div></section><div className="material-select"><label>Filter by video label</label><select multiple value={videoLabelFilters} onChange={event => setVideoLabelFilters([...event.target.selectedOptions].map(option => option.value))}><option value="watched">Watched</option><option value="bookmarked">Bookmarked</option></select></div><div className="material-select"><label>Filter by modules</label><select multiple value={moduleFilters} onChange={event => setModuleFilters([...event.target.selectedOptions].map(option => option.value))}>{activeCourse?.modules?.map(module => <option key={module.id} value={module.id}>{module.title}</option>)}</select></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => { setVideoLabelFilters([]); setModuleFilters([]); setDeletedVideoVisibility('hide') }}>Clear</button><button className="btn btn-primary" onClick={() => setShowVideoFilter(false)}>Apply</button></div></aside></>}{pendingVideoMove && <><div className="drawer-overlay" onClick={() => setPendingVideoMove(null)} /><div className="confirm-dialog"><h2>Move video to another module?</h2><p>“{pendingVideoMove.video.title}” will be moved to a different module.</p><div className="confirm-actions"><button className="btn btn-secondary" onClick={() => setPendingVideoMove(null)}>Cancel</button><button className="btn btn-primary" onClick={() => persistVideoMove(pendingVideoMove)}>Move video</button></div></div></>}
@@ -505,23 +542,13 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
               <div className="video-player-container">
                 <YouTubePlayer videoId={youtubeVideoId} startSeconds={restorePosition} onPause={savePlaybackPosition} onComplete={markActiveVideoWatched} />
                 <div className="video-player-info">
-                  {activeModule && <div className="video-player-sequence">Module {activeModuleSequence}: {activeModule.title} <span>·</span> Video {activeVideoSequence}</div>}
+                  {activeModule && <div className="video-player-sequence">
+                    <span>Module {activeModuleSequence}: {activeModule.title} <i>·</i> Video {activeVideoSequence}</span>
+                    {activeVideo?.url && <a href={activeVideo.url} target="_blank" rel="noopener noreferrer">YouTube ↗</a>}
+                  </div>}
                   <h3>{activeVideo?.title}</h3>
                   <p>{activeVideo?.description || ''}</p>
                   {activeVideo?.description && <button className="video-description-more" onClick={() => setShowDescriptionDrawer(true)}>Show more</button>}
-                  <div className="video-player-actions">
-                    <button
-                      className={`btn btn-sm ${activeVideo?.watched ? 'btn-success' : 'btn-secondary'}`}
-                      onClick={() => activeVideo && toggleWatched(activeVideo.video_id)}
-                    >
-                      {activeVideo?.watched ? '✓ Watched' : 'Mark as Watched'}
-                    </button>
-                    {activeVideo?.url && (
-                      <a href={activeVideo.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary">
-                        Open in YouTube ↗
-                      </a>
-                    )}
-                  </div>
                 </div>
               </div>
             ) : (
@@ -537,7 +564,14 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
           </div>
 
           {/* Right panel: Course modules with expandable videos */}
-          <div className="course-right">
+          {workspaceCourseId && showModuleTree && <button type="button" className="workspace-module-tree-overlay" aria-label="Close modules and chapters" onClick={() => setShowModuleTree(false)} />}
+          <div className={`course-right ${workspaceCourseId ? 'workspace-module-tree' : ''} ${showModuleTree ? 'mobile-open' : ''} ${isCourseEditing ? 'editing' : ''}`}>
+            {workspaceCourseId && <div className="workspace-module-tree-header"><div><span>Course outline</span><strong>{activeCourse.title}</strong></div><button type="button" className="btn btn-secondary btn-sm icon-button" aria-label="Close modules and chapters" onClick={() => setShowModuleTree(false)}>×</button></div>}
+            {workspaceCourseId && <div className="workspace-tree-toolbar">
+              <div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" /></div>
+              <button type="button" className={`btn btn-secondary btn-sm icon-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-label={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-pressed={isCourseEditing} onClick={onToggleCourseEditing}><WorkspaceIcon name="edit" /></button>
+              <button type="button" className="btn btn-secondary btn-sm icon-button" title={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} aria-label={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} onClick={allModulesExpanded ? collapseAllModules : expandAllModules}><WorkspaceIcon name={allModulesExpanded ? 'collapse' : 'expand'} /></button>
+            </div>}
             {!workspaceCourseId && <div className="course-module-search">
               <input
                 type="search"
@@ -555,17 +589,17 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                 </button>
               ))}
             </div>}
-            {isCourseEditing && selectedVideoIds.length > 0 && (
+            {isCourseEditing && (
               <div className="bulk-video-actions">
                 <span>{selectedVideoIds.length} selected</span>
-                <button className="btn btn-secondary btn-sm" onClick={() => applyBulkVideoLabel('bookmarked')}>
-                  Bookmark
+                <button className="btn btn-secondary btn-sm" disabled={selectedVideoIds.length === 0} onClick={() => applyBulkVideoLabel('bookmarked')}>
+                  <LabelIcon label="bookmarked" /><span>Bookmark</span>
                 </button>
-                <button className="btn btn-success btn-sm" onClick={() => applyBulkVideoLabel('watched')}>
-                  Mark complete
+                <button className="btn btn-success btn-sm" disabled={selectedVideoIds.length === 0} onClick={() => applyBulkVideoLabel('watched')}>
+                  <LabelIcon label="watched" /><span>Mark complete</span>
                 </button>
-                <button className="btn btn-danger btn-sm" onClick={() => applyBulkVideoLabel('mark_for_delete')}>
-                  Mark for delete
+                <button className="btn btn-danger btn-sm" disabled={selectedVideoIds.length === 0} onClick={() => applyBulkVideoLabel('mark_for_delete')}>
+                  <LabelIcon label="mark_for_delete" /><span>Mark for delete</span>
                 </button>
               </div>
             )}

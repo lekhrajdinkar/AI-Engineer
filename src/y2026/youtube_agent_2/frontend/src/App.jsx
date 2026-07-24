@@ -18,6 +18,7 @@ import { setPlans } from './store/plansSlice'
 import { setSourceSyncMetadata } from './store/sourcesSlice'
 import { loadAiModels } from './store/aiModelsSlice'
 import { firebaseAuth } from './firebase'
+import appLogo from '../app-logo.png'
 
 function useTheme() {
   const [theme, setTheme] = React.useState(() => localStorage.getItem('yt_theme') || 'light')
@@ -71,6 +72,20 @@ function formatRelativeAge(value) {
     }
   }
   return 'just now'
+}
+
+function PlansRoute({ newPlanRequest, onRefresh, refreshing }) {
+  const plans = useSelector(state => state.plans.items)
+  const lastLocation = useSelector(state => state.learningUi.currentLocation)
+  const lastPlanId = lastLocation.planId
+  const targetPlan = plans.find(plan => plan.id === lastPlanId) || plans[0]
+  const targetCourse = targetPlan?.courses?.find(course => course.id === lastLocation.courseId)
+
+  if (targetPlan && targetCourse) {
+    return <Navigate to={`/plans/${targetPlan.id}/courses/${targetCourse.id}/learn`} replace />
+  }
+  if (targetPlan) return <Navigate to={`/plans/${targetPlan.id}`} replace />
+  return <Plans newPlanRequest={newPlanRequest} onRefresh={onRefresh} refreshing={refreshing} />
 }
 
 function AppLayout() {
@@ -454,7 +469,7 @@ function AppLayout() {
       <aside className="right-nav">
         <div className="right-nav-actions">
           <div className="right-nav-top">
-          <button type="button" className={`home-nav-button ${location.pathname === '/' ? 'active' : ''}`} title="Home" aria-label="Home" onClick={() => navigate('/')}><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" /></svg></button>
+          <button type="button" className="app-logo-nav-button" title="YouTube Learning home" aria-label="YouTube Learning home" onClick={() => navigate('/')}><img src={appLogo} alt="" /></button>
           <button type="button" className={`home-nav-button ${location.pathname.startsWith('/plans') ? 'active' : ''}`} title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4Zm2 0v14a2 2 0 0 0-2-2m4-7h5m-5 4h5" /></svg></button>
           <button type="button" className="refresh-plans" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
             <SourceInboxIcon />
@@ -497,7 +512,7 @@ function AppLayout() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Dashboard onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
-          <Route path="/plans" element={<Plans newPlanRequest={newPlanRequest} onRefresh={loadPlans} refreshing={plansLoading} />} />
+          <Route path="/plans" element={<PlansRoute newPlanRequest={newPlanRequest} onRefresh={loadPlans} refreshing={plansLoading} />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/ai-model-configs" element={<Navigate to="/" replace />} />
           <Route path="/plans/:planId" element={<PlanOverview />} />
