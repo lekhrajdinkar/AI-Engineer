@@ -1,5 +1,14 @@
 # Deploy the microservices to Render
 
+## Run
+- https://console.neon.tech/app/projects/red-snow-76080021/branches/br-red-bread-auwkl017/sql-editor?database=neondb
+- https://dashboard.render.com/static/srv-d9eo36laeets73bjmmug
+- https://youtube-learning-ui.onrender.com/profile
+- https://youtube-learning-gateway.onrender.com/docs
+  - https://youtube-learning-youtube.onrender.com/docs
+  - https://youtube-learning-plans.onrender.com/docs
+
+## Overview
 The [Render Blueprint](render-microservices.yaml) creates
 four independently deployed services:
 

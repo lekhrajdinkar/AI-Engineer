@@ -1,5 +1,5 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { browserSessionPersistence, getAuth, setPersistence } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -17,3 +17,6 @@ export const firebaseApp = firebaseEnabled
   : null
 
 export const firebaseAuth = firebaseApp ? getAuth(firebaseApp) : null
+export const firebaseAuthReady = firebaseAuth
+  ? setPersistence(firebaseAuth, browserSessionPersistence)
+  : Promise.resolve()

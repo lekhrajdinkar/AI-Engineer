@@ -9,6 +9,7 @@ from src.y2026.youtube_agent_2.backend.services.plans.app import config
 from src.y2026.youtube_agent_2.backend.services.plans.app.main import app
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import LearningPlan
 from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import store
+from src.y2026.youtube_agent_2.backend.shared.platform import settings
 
 
 class PlanReplaceRouteTests(unittest.TestCase):
@@ -16,6 +17,8 @@ class PlanReplaceRouteTests(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.original_db_path = config.DB_PATH
         self.original_firestore_store = store._firestore_store
+        self.original_internal_token = settings.INTERNAL_SERVICE_TOKEN
+        settings.INTERNAL_SERVICE_TOKEN = "test-service-secret"
         config.DB_PATH = Path(self.temp_dir.name) / "plan-replace-test.sqlite3"
         store._firestore_store = None
         store.init_store()
@@ -27,10 +30,15 @@ class PlanReplaceRouteTests(unittest.TestCase):
             ).model_dump()
         )
         self.client = TestClient(app)
+        self.client.headers.update({
+            "X-Internal-Service-Token": "test-service-secret",
+            "X-Internal-User-ID": "firebase-user-1",
+        })
 
     def tearDown(self):
         self.client.close()
         store._firestore_store = self.original_firestore_store
+        settings.INTERNAL_SERVICE_TOKEN = self.original_internal_token
         config.DB_PATH = self.original_db_path
         gc.collect()
         self.temp_dir.cleanup()

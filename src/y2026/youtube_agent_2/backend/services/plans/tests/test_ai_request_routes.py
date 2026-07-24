@@ -9,6 +9,7 @@ from src.y2026.youtube_agent_2.backend.services.plans.app import config
 from src.y2026.youtube_agent_2.backend.services.plans.app.main import app
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import LearningPlan
 from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import store
+from src.y2026.youtube_agent_2.backend.shared.platform import settings
 
 
 class AiRequestRouteTests(unittest.TestCase):
@@ -17,6 +18,8 @@ class AiRequestRouteTests(unittest.TestCase):
         self.original_db_path = config.DB_PATH
         self.original_groq_api_key = config.GROQ_API_KEY
         self.original_firestore_store = store._firestore_store
+        self.original_internal_token = settings.INTERNAL_SERVICE_TOKEN
+        settings.INTERNAL_SERVICE_TOKEN = "test-service-secret"
         config.DB_PATH = Path(self.temp_dir.name) / "plans-api-test.sqlite3"
         config.GROQ_API_KEY = "test-groq-key"
         store._firestore_store = None
@@ -32,11 +35,16 @@ class AiRequestRouteTests(unittest.TestCase):
             LearningPlan(id="plan-2", name="Another Plan").model_dump()
         )
         self.client = TestClient(app)
+        self.client.headers.update({
+            "X-Internal-Service-Token": "test-service-secret",
+            "X-Internal-User-ID": "firebase-user-1",
+        })
 
     def tearDown(self):
         self.client.close()
         store._firestore_store = self.original_firestore_store
         config.GROQ_API_KEY = self.original_groq_api_key
+        settings.INTERNAL_SERVICE_TOKEN = self.original_internal_token
         config.DB_PATH = self.original_db_path
         gc.collect()
         self.temp_dir.cleanup()

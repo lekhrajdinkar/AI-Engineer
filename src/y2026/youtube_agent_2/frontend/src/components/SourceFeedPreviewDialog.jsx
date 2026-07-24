@@ -199,7 +199,9 @@ export default function SourceFeedPreviewDialog({
             {preview.videos.map(video => {
               const videoId = video.video_id || video.id
               const checked = selectedVideoIds.includes(videoId)
-              return <article className={`source-feed-video-tile ${checked ? 'selected' : ''}`} key={videoId}>
+              const placement = aiProposal?.proposal?.placements?.find(item => item.video_id === videoId)
+              const suggestedDestination = placement ? destinationName(placement) : null
+              return <article className={`source-feed-video-tile ${checked ? 'selected' : ''} ${placement ? 'has-ai-suggestion' : ''}`} key={videoId}>
                 <label className="source-feed-video-select" aria-label={`Select ${video.title || 'video'}`}>
                   <input type="checkbox" checked={checked} onChange={() => toggleVideo(videoId)} />
                   <span />
@@ -209,6 +211,11 @@ export default function SourceFeedPreviewDialog({
                   <strong title={video.title || 'Untitled video'}>{video.title || 'Untitled video'}</strong>
                   <p>{video.description || 'No description available.'}</p>
                   <span>{video.published_at ? new Date(video.published_at).toLocaleDateString() : 'Date unavailable'} · {formatDuration(video.duration_secs)}{video.view_count ? ` · ${Number(video.view_count).toLocaleString()} views` : ''}</span>
+                  {placement && <div className="source-feed-video-suggestion">
+                    <span>AI suggestion</span>
+                    <strong>Move to {suggestedDestination.course}</strong>
+                    <small>Module: {suggestedDestination.module}{placement.reason ? ` · ${placement.reason}` : ''}</small>
+                  </div>}
                 </div>
                 {video.url && <a href={video.url} target="_blank" rel="noreferrer" aria-label={`Open ${video.title || 'video'} on YouTube`}>↗</a>}
               </article>
@@ -216,7 +223,7 @@ export default function SourceFeedPreviewDialog({
           </div>
         </div>
 
-        <aside className="source-feed-destination">
+        <aside className={`source-feed-destination ${aiProposal ? 'reviewing-ai' : ''}`}>
           <h3>Manual push</h3>
           <p>Choose where these videos should be added.</p>
           <label>
@@ -282,6 +289,7 @@ export default function SourceFeedPreviewDialog({
                 const video = preview.videos.find(item => (item.video_id || item.id) === placement.video_id)
                 return <article key={placement.video_id}>
                   <strong>{video?.title || placement.video_id}</strong>
+                  <em>Move to</em>
                   <span>{destination.course}</span>
                   <span>Module: {destination.module}</span>
                   {placement.reason && <small>{placement.reason}</small>}

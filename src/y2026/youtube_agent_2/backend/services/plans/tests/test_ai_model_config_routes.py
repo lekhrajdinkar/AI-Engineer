@@ -16,6 +16,7 @@ from src.y2026.youtube_agent_2.backend.services.plans.app.ai_providers import (
 from src.y2026.youtube_agent_2.backend.services.plans.app.main import app
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import LearningPlan
 from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import store
+from src.y2026.youtube_agent_2.backend.shared.platform import settings
 
 
 class AiModelConfigRouteTests(unittest.TestCase):
@@ -27,6 +28,8 @@ class AiModelConfigRouteTests(unittest.TestCase):
         self.original_google_key = config.GOOGLE_API_KEY
         self.original_openai_key = config.OPENAI_API_KEY
         self.original_provider_catalog = provider_registry.catalog_path
+        self.original_internal_token = settings.INTERNAL_SERVICE_TOKEN
+        settings.INTERNAL_SERVICE_TOKEN = "test-service-secret"
         config.DB_PATH = Path(self.temp_dir.name) / "model-config-test.sqlite3"
         config.GROQ_API_KEY = ""
         config.GOOGLE_API_KEY = "test-google-key"
@@ -35,6 +38,10 @@ class AiModelConfigRouteTests(unittest.TestCase):
         store.init_store()
         store.save_plan(LearningPlan(id="plan-1", name="Model Test Plan").model_dump())
         self.client = TestClient(app)
+        self.client.headers.update({
+            "X-Internal-Service-Token": "test-service-secret",
+            "X-Internal-User-ID": "firebase-user-1",
+        })
 
     def tearDown(self):
         self.client.close()
@@ -43,6 +50,7 @@ class AiModelConfigRouteTests(unittest.TestCase):
         config.GOOGLE_API_KEY = self.original_google_key
         config.OPENAI_API_KEY = self.original_openai_key
         provider_registry.reload(self.original_provider_catalog)
+        settings.INTERNAL_SERVICE_TOKEN = self.original_internal_token
         config.DB_PATH = self.original_db_path
         gc.collect()
         self.temp_dir.cleanup()

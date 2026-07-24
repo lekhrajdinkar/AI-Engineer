@@ -26,10 +26,10 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
-      - key: FIREBASE_ENABLED
-        value: "true"
-      - key: FIREBASE_AUTH_REQUIRED
-        value: "true"
+      - key: STORAGE_BACKEND
+        value: postgres
+      - key: DATABASE_URL
+        sync: false
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
@@ -59,10 +59,10 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
-      - key: FIREBASE_ENABLED
-        value: "true"
-      - key: FIREBASE_AUTH_REQUIRED
-        value: "true"
+      - key: STORAGE_BACKEND
+        value: postgres
+      - key: DATABASE_URL
+        sync: false
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON

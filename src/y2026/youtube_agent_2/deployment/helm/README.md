@@ -60,8 +60,7 @@ Create a private `deployment/helm/values.local.yaml` containing:
 
 ```yaml
 config:
-  firebaseEnabled: true
-  firebaseAuthRequired: true
+  storageBackend: firebase_firestore
 
 secrets:
   youtube:

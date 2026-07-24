@@ -1,6 +1,6 @@
 import React from 'react'
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
-import { firebaseAuth, firebaseEnabled } from '../firebase'
+import { firebaseAuth, firebaseAuthReady, firebaseEnabled } from '../firebase'
 import { getYouTubeConnectionStatus, startYouTubeConnection } from '../api/client'
 
 export default function Profile() {
@@ -23,6 +23,7 @@ export default function Profile() {
   const signIn = async () => {
     setError('')
     try {
+      await firebaseAuthReady
       await signInWithPopup(firebaseAuth, new GoogleAuthProvider())
     } catch (requestError) {
       setError(requestError.message || 'Google sign-in failed.')

@@ -18,3 +18,10 @@ def reset_current_user(token: Token) -> None:
 
 def current_user_id() -> str | None:
     return _current_user_id.get()
+
+
+def require_current_user() -> str:
+    user_id = current_user_id()
+    if not user_id:
+        raise RuntimeError("Authenticated Firebase user context required")
+    return user_id

@@ -1,16 +1,19 @@
 """Plan and source-sync persistence owned by the plans service."""
 
 import json
-import sqlite3
 from datetime import datetime, timedelta, timezone
 from typing import Iterable, Optional
 
 from src.y2026.youtube_agent_2.backend.shared.platform import identity
+from src.y2026.youtube_agent_2.backend.shared.platform.relational import (
+    Connection,
+    connect,
+)
 from src.y2026.youtube_agent_2.backend.services.plans.app import config
 
 
 _firestore_store = None
-if config.FIREBASE_ENABLED:
+if config.STORAGE_BACKEND == "firebase_firestore":
     from .firestore_store import FirestoreStore
 
     _firestore_store = FirestoreStore()
@@ -21,19 +24,37 @@ def _active_user_id() -> str | None:
 
 
 def _ai_user_id(user_id: str | None = None) -> str:
-    return user_id or _active_user_id() or config.FIREBASE_DEFAULT_USER_ID
+    return user_id or identity.require_current_user()
+
+
+def _storage_user_id() -> str:
+    return identity.require_current_user()
 
 
 def _json_text(value: dict) -> str:
     return json.dumps(value, default=str, separators=(",", ":"))
 
 
-def _ensure_sqlite_column(
-    connection: sqlite3.Connection,
+def _connect(*, timeout: int = 30):
+    return connect(
+        config.STORAGE_BACKEND,
+        sqlite_path=config.DB_PATH,
+        database_url=config.DATABASE_URL,
+        timeout=timeout,
+    )
+
+
+def _ensure_column(
+    connection: Connection,
     table: str,
     column: str,
     declaration: str,
 ) -> None:
+    if connection.backend == "postgres":
+        connection.execute(
+            f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {declaration}"
+        )
+        return
     columns = {
         row[1] for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
     }
@@ -80,26 +101,49 @@ def init_store() -> None:
             _default_ai_model_config()
         )
         return
-    with sqlite3.connect(config.DB_PATH) as connection:
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS plans (
-                id TEXT PRIMARY KEY,
-                data TEXT NOT NULL,
-                created_at TEXT,
-                updated_at TEXT
+    with _connect() as connection:
+        if connection.backend == "postgres":
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS plans (
+                    id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    data TEXT NOT NULL,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    PRIMARY KEY (user_id, id)
+                )
+                """
             )
-            """
-        )
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS source_sync_metadata (
-                id INTEGER PRIMARY KEY CHECK (id = 1),
-                data TEXT NOT NULL,
-                updated_at TEXT
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS source_sync_metadata (
+                    user_id TEXT PRIMARY KEY,
+                    data TEXT NOT NULL,
+                    updated_at TEXT
+                )
+                """
             )
-            """
-        )
+        else:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS plans (
+                    id TEXT PRIMARY KEY,
+                    data TEXT NOT NULL,
+                    created_at TEXT,
+                    updated_at TEXT
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS source_sync_metadata (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    data TEXT NOT NULL,
+                    updated_at TEXT
+                )
+                """
+            )
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(
             """
@@ -117,8 +161,8 @@ def init_store() -> None:
             )
             """
         )
-        _ensure_sqlite_column(connection, "ai_course_requests", "claimed_by", "TEXT")
-        _ensure_sqlite_column(
+        _ensure_column(connection, "ai_course_requests", "claimed_by", "TEXT")
+        _ensure_column(
             connection, "ai_course_requests", "lease_expires_at", "TEXT"
         )
         connection.execute(
@@ -209,12 +253,16 @@ def init_store() -> None:
             """
         )
         default_config = _default_ai_model_config()
-        connection.execute(
+        insert_default_sql = (
             """
-            INSERT OR IGNORE INTO ai_model_configs (
+            INSERT INTO ai_model_configs (
                 id, provider, enabled, is_default, deleted_at, data, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
+            ON CONFLICT(id) DO NOTHING
+            """
+        )
+        connection.execute(
+            insert_default_sql,
             (
                 default_config["id"],
                 default_config["provider"],
@@ -231,16 +279,37 @@ def init_store() -> None:
 def save_plan(plan_obj: dict) -> None:
     if _firestore_store:
         return _firestore_store.save_plan(plan_obj, _active_user_id())
-    with sqlite3.connect(config.DB_PATH) as connection:
-        connection.execute(
-            "INSERT OR REPLACE INTO plans (id, data, created_at, updated_at) VALUES (?, ?, ?, ?)",
-            (
-                plan_obj.get("id"),
-                json.dumps(plan_obj, default=str),
-                plan_obj.get("created_at"),
-                plan_obj.get("updated_at"),
-            ),
+    with _connect() as connection:
+        values = (
+            plan_obj.get("id"),
+            json.dumps(plan_obj, default=str),
+            plan_obj.get("created_at"),
+            plan_obj.get("updated_at"),
         )
+        if connection.backend == "postgres":
+            connection.execute(
+                """
+                INSERT INTO plans (id, user_id, data, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(user_id, id) DO UPDATE SET
+                    data = excluded.data,
+                    created_at = excluded.created_at,
+                    updated_at = excluded.updated_at
+                """,
+                (values[0], _storage_user_id(), *values[1:]),
+            )
+        else:
+            connection.execute(
+                """
+                INSERT INTO plans (id, data, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    data = excluded.data,
+                    created_at = excluded.created_at,
+                    updated_at = excluded.updated_at
+                """,
+                values,
+            )
 
 
 def supports_targeted_updates() -> bool:
@@ -299,28 +368,52 @@ def update_video_fields(
 def load_plan(plan_id: str) -> Optional[dict]:
     if _firestore_store:
         return _firestore_store.load_plan(plan_id, _active_user_id())
-    with sqlite3.connect(config.DB_PATH) as connection:
-        row = connection.execute(
-            "SELECT data FROM plans WHERE id = ?", (plan_id,)
-        ).fetchone()
+    with _connect() as connection:
+        if connection.backend == "postgres":
+            row = connection.execute(
+                "SELECT data FROM plans WHERE id = ? AND user_id = ?",
+                (plan_id, _storage_user_id()),
+            ).fetchone()
+        else:
+            row = connection.execute(
+                "SELECT data FROM plans WHERE id = ?", (plan_id,)
+            ).fetchone()
     return json.loads(row[0]) if row else None
 
 
 def delete_plan(plan_id: str) -> bool:
     if _firestore_store:
         return _firestore_store.delete_plan(plan_id, _active_user_id())
-    with sqlite3.connect(config.DB_PATH) as connection:
-        cursor = connection.execute("DELETE FROM plans WHERE id = ?", (plan_id,))
+    with _connect() as connection:
+        if connection.backend == "postgres":
+            cursor = connection.execute(
+                "DELETE FROM plans WHERE id = ? AND user_id = ?",
+                (plan_id, _storage_user_id()),
+            )
+        else:
+            cursor = connection.execute(
+                "DELETE FROM plans WHERE id = ?", (plan_id,)
+            )
         return cursor.rowcount > 0
 
 
 def list_plans() -> list[dict]:
     if _firestore_store:
         return _firestore_store.list_plans(_active_user_id())
-    with sqlite3.connect(config.DB_PATH) as connection:
-        rows = connection.execute(
-            "SELECT data FROM plans ORDER BY updated_at DESC"
-        ).fetchall()
+    with _connect() as connection:
+        if connection.backend == "postgres":
+            rows = connection.execute(
+                """
+                SELECT data FROM plans
+                WHERE user_id = ?
+                ORDER BY updated_at DESC
+                """,
+                (_storage_user_id(),),
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                "SELECT data FROM plans ORDER BY updated_at DESC"
+            ).fetchall()
     return [json.loads(row[0]) for row in rows]
 
 
@@ -329,20 +422,48 @@ def save_source_sync_metadata(metadata: dict) -> None:
         return _firestore_store.save_source_sync_metadata(
             metadata, _active_user_id()
         )
-    with sqlite3.connect(config.DB_PATH) as connection:
-        connection.execute(
-            "INSERT OR REPLACE INTO source_sync_metadata (id, data, updated_at) VALUES (1, ?, ?)",
-            (json.dumps(metadata, default=str), metadata.get("updated_at")),
+    with _connect() as connection:
+        values = (
+            json.dumps(metadata, default=str),
+            metadata.get("updated_at"),
         )
+        if connection.backend == "postgres":
+            connection.execute(
+                """
+                INSERT INTO source_sync_metadata (user_id, data, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    data = excluded.data,
+                    updated_at = excluded.updated_at
+                """,
+                (_storage_user_id(), *values),
+            )
+        else:
+            connection.execute(
+                """
+                INSERT INTO source_sync_metadata (id, data, updated_at)
+                VALUES (1, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    data = excluded.data,
+                    updated_at = excluded.updated_at
+                """,
+                values,
+            )
 
 
 def load_source_sync_metadata() -> dict:
     if _firestore_store:
         return _firestore_store.load_source_sync_metadata(_active_user_id())
-    with sqlite3.connect(config.DB_PATH) as connection:
-        row = connection.execute(
-            "SELECT data FROM source_sync_metadata WHERE id = 1"
-        ).fetchone()
+    with _connect() as connection:
+        if connection.backend == "postgres":
+            row = connection.execute(
+                "SELECT data FROM source_sync_metadata WHERE user_id = ?",
+                (_storage_user_id(),),
+            ).fetchone()
+        else:
+            row = connection.execute(
+                "SELECT data FROM source_sync_metadata WHERE id = 1"
+            ).fetchone()
     return json.loads(row[0]) if row else {"channels": [], "updated_at": None}
 
 
@@ -361,7 +482,7 @@ def _parent_values(request_obj: dict) -> tuple:
     )
 
 
-def _insert_ai_request(connection: sqlite3.Connection, request_obj: dict) -> None:
+def _insert_ai_request(connection: Connection, request_obj: dict) -> None:
     connection.execute(
         """
         INSERT INTO ai_course_requests (
@@ -373,7 +494,7 @@ def _insert_ai_request(connection: sqlite3.Connection, request_obj: dict) -> Non
     )
 
 
-def _upsert_ai_request(connection: sqlite3.Connection, request_obj: dict) -> None:
+def _upsert_ai_request(connection: Connection, request_obj: dict) -> None:
     connection.execute(
         """
         INSERT INTO ai_course_requests (
@@ -394,7 +515,7 @@ def _upsert_ai_request(connection: sqlite3.Connection, request_obj: dict) -> Non
     )
 
 
-def _upsert_ai_details(connection: sqlite3.Connection, details_obj: dict) -> None:
+def _upsert_ai_details(connection: Connection, details_obj: dict) -> None:
     connection.execute(
         """
         INSERT INTO ai_course_request_details (request_id, data, created_at, updated_at)
@@ -412,7 +533,7 @@ def _upsert_ai_details(connection: sqlite3.Connection, details_obj: dict) -> Non
     )
 
 
-def _upsert_ai_batch(connection: sqlite3.Connection, batch_obj: dict) -> None:
+def _upsert_ai_batch(connection: Connection, batch_obj: dict) -> None:
     connection.execute(
         """
         INSERT INTO ai_course_batches (
@@ -454,7 +575,7 @@ def create_ai_course_request(
         return _firestore_store.create_ai_course_request(
             request_obj, details_obj, batch_rows, request_obj["user_id"]
         )
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         _insert_ai_request(connection, request_obj)
         _upsert_ai_details(connection, details_obj)
@@ -469,7 +590,7 @@ def save_ai_course_request(request_obj: dict) -> None:
         return _firestore_store.save_ai_course_request(
             request_obj, request_obj["user_id"]
         )
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         _upsert_ai_request(connection, request_obj)
 
 
@@ -479,7 +600,7 @@ def load_ai_course_request(
     owner_id = _ai_user_id(user_id)
     if _firestore_store:
         return _firestore_store.load_ai_course_request(request_id, owner_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         row = connection.execute(
             "SELECT data FROM ai_course_requests WHERE id = ? AND user_id = ?",
             (request_id, owner_id),
@@ -493,7 +614,7 @@ def list_ai_course_requests(
     owner_id = _ai_user_id(user_id)
     if _firestore_store:
         return _firestore_store.list_ai_course_requests(plan_id, owner_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         rows = connection.execute(
             """
             SELECT data FROM ai_course_requests
@@ -509,7 +630,7 @@ def save_ai_course_request_details(details_obj: dict, user_id: str | None = None
     owner_id = _ai_user_id(user_id)
     if _firestore_store:
         return _firestore_store.save_ai_course_request_details(details_obj, owner_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         _upsert_ai_details(connection, details_obj)
 
@@ -520,7 +641,7 @@ def load_ai_course_request_details(
     owner_id = _ai_user_id(user_id)
     if _firestore_store:
         return _firestore_store.load_ai_course_request_details(request_id, owner_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         row = connection.execute(
             """
             SELECT details.data
@@ -537,7 +658,7 @@ def save_ai_course_batch(batch_obj: dict, user_id: str | None = None) -> None:
     owner_id = _ai_user_id(user_id)
     if _firestore_store:
         return _firestore_store.save_ai_course_batch(batch_obj, owner_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         _upsert_ai_batch(connection, batch_obj)
 
@@ -548,7 +669,7 @@ def list_ai_course_batches(
     owner_id = _ai_user_id(user_id)
     if _firestore_store:
         return _firestore_store.list_ai_course_batches(request_id, owner_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         rows = connection.execute(
             """
             SELECT batch.data
@@ -566,7 +687,7 @@ def save_ai_course_attempt(attempt_obj: dict, user_id: str | None = None) -> Non
     owner_id = _ai_user_id(user_id)
     if _firestore_store:
         return _firestore_store.save_ai_course_attempt(attempt_obj, owner_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(
             """
@@ -597,7 +718,7 @@ def list_ai_course_attempts(
     owner_id = _ai_user_id(user_id)
     if _firestore_store:
         return _firestore_store.list_ai_course_attempts(request_id, owner_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         rows = connection.execute(
             """
             SELECT attempt.data
@@ -635,15 +756,35 @@ def claim_next_ai_course_request(
         return _firestore_store.claim_next_ai_course_request(
             worker_id, now, lease_expires_at
         )
-    with sqlite3.connect(config.DB_PATH, timeout=30) as connection:
+    with _connect(timeout=30) as connection:
         connection.execute("BEGIN IMMEDIATE")
-        rows = connection.execute(
-            """
-            SELECT data FROM ai_course_requests
-            WHERE status IN ('queued', 'running', 'waiting_for_rate_limit')
-            ORDER BY created_at, id
-            """
-        ).fetchall()
+        if connection.backend == "postgres":
+            rows = connection.execute(
+                """
+                SELECT data FROM ai_course_requests
+                WHERE status = 'queued'
+                   OR (
+                       status = 'running'
+                       AND (lease_expires_at IS NULL OR lease_expires_at <= ?)
+                   )
+                   OR (
+                       status = 'waiting_for_rate_limit'
+                       AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
+                   )
+                ORDER BY created_at, id
+                LIMIT 1
+                FOR UPDATE SKIP LOCKED
+                """,
+                (now, now),
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                """
+                SELECT data FROM ai_course_requests
+                WHERE status IN ('queued', 'running', 'waiting_for_rate_limit')
+                ORDER BY created_at, id
+                """
+            ).fetchall()
         selected = None
         for row in rows:
             candidate = json.loads(row[0])
@@ -703,10 +844,11 @@ def renew_ai_course_request_lease(
             now,
             lease_expires_at,
         )
-    with sqlite3.connect(config.DB_PATH, timeout=30) as connection:
+    with _connect(timeout=30) as connection:
         connection.execute("BEGIN IMMEDIATE")
+        lock_clause = " FOR UPDATE" if connection.backend == "postgres" else ""
         row = connection.execute(
-            "SELECT data FROM ai_course_requests WHERE id = ?",
+            f"SELECT data FROM ai_course_requests WHERE id = ?{lock_clause}",
             (request_id,),
         ).fetchone()
         if not row:
@@ -742,7 +884,7 @@ def renew_ai_course_request_lease(
 def save_ai_model_config(config_obj: dict) -> None:
     if _firestore_store:
         return _firestore_store.save_ai_model_config(config_obj)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         connection.execute(
             """
             INSERT INTO ai_model_configs (
@@ -778,7 +920,7 @@ def load_ai_model_config(config_id: str, *, include_deleted: bool = False) -> Op
     parameters: tuple = (config_id,)
     if not include_deleted:
         query += " AND deleted_at IS NULL"
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         row = connection.execute(query, parameters).fetchone()
     return json.loads(row[0]) if row else None
 
@@ -792,7 +934,7 @@ def list_ai_model_configs(*, include_deleted: bool = False) -> list[dict]:
     if not include_deleted:
         query += " WHERE deleted_at IS NULL"
     query += " ORDER BY is_default DESC, provider, id"
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         rows = connection.execute(query).fetchall()
     return [json.loads(row[0]) for row in rows]
 
@@ -800,7 +942,7 @@ def list_ai_model_configs(*, include_deleted: bool = False) -> list[dict]:
 def delete_ai_model_config(config_id: str) -> bool:
     if _firestore_store:
         return _firestore_store.delete_ai_model_config(config_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         cursor = connection.execute(
             "DELETE FROM ai_model_configs WHERE id = ?", (config_id,)
         )
@@ -810,7 +952,7 @@ def delete_ai_model_config(config_id: str) -> bool:
 def is_ai_model_config_referenced(config_id: str) -> bool:
     if _firestore_store:
         return _firestore_store.is_ai_model_config_referenced(config_id)
-    with sqlite3.connect(config.DB_PATH) as connection:
+    with _connect() as connection:
         rows = connection.execute("SELECT data FROM ai_course_requests").fetchall()
     return any(
         json.loads(row[0]).get("model_config_id") == config_id for row in rows

@@ -36,17 +36,17 @@ def create_app(
                     status_code=401,
                     content={"detail": "Invalid internal service credential"},
                 )
-            context_token = identity.set_current_user(
-                request.headers.get("X-Internal-User-ID")
-                or settings.FIREBASE_DEFAULT_USER_ID
-            )
+            internal_user_id = request.headers.get("X-Internal-User-ID")
+            if not internal_user_id:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Internal Firebase user identity required"},
+                )
+            context_token = identity.set_current_user(internal_user_id)
             try:
                 return await call_next(request)
             finally:
                 identity.reset_current_user(context_token)
-
-        if not settings.FIREBASE_AUTH_REQUIRED:
-            return await call_next(request)
 
         authorization = request.headers.get("Authorization", "")
         scheme, _, id_token = authorization.partition(" ")
@@ -93,7 +93,8 @@ def create_app(
         return {
             "status": "ok",
             "service": service_name,
-            "firebase_enabled": settings.FIREBASE_ENABLED,
+            "storage_backend": settings.STORAGE_BACKEND,
+            "authentication": "firebase",
         }
 
     @app.get("/", tags=["meta"])

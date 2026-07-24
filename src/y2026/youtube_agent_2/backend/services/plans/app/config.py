@@ -17,17 +17,12 @@ from src.y2026.youtube_agent_2.backend.shared.platform import settings as platfo
 ALLOWED_PREBUILT_LABELS = {"watched", "mark_for_delete", "bookmarked"}
 TRIM_VIDEO_DESC = True
 
-# Persistence. PLANS_DATABASE_PATH takes precedence over the legacy shared path.
-_database_path = os.getenv("PLANS_DATABASE_PATH") or os.getenv("DATABASE_PATH")
-DB_PATH = (
-    Path(_database_path)
-    if _database_path
-    else platform.BACKEND_ROOT / "youtubeldb.sqlite3"
-)
+# Default local SQLite database. PostgreSQL and Firestore ignore this path.
+DB_PATH = platform.BACKEND_ROOT / "youtubeldb.sqlite3"
 
 # Shared platform and authentication settings.
-FIREBASE_ENABLED = platform.FIREBASE_ENABLED
-FIREBASE_DEFAULT_USER_ID = platform.FIREBASE_DEFAULT_USER_ID
+STORAGE_BACKEND = platform.STORAGE_BACKEND
+DATABASE_URL = platform.DATABASE_URL
 INTERNAL_SERVICE_TOKEN = platform.INTERNAL_SERVICE_TOKEN
 SERVICE_REQUEST_TIMEOUT_SECS = platform.SERVICE_REQUEST_TIMEOUT_SECS
 YOUTUBE_SERVICE_URL = os.getenv("YOUTUBE_SERVICE_URL", "http://127.0.0.1:8002")

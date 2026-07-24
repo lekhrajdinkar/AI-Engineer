@@ -45,6 +45,7 @@ class AiModelProviderRecord(BaseModel):
     id: str
     name: str
     adapter: str
+    credential_env: str
     credential_status: str
     structured_output_modes: list[str]
 

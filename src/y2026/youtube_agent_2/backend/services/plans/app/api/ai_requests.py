@@ -79,7 +79,7 @@ def _utcnow() -> datetime:
 
 
 def _owner_id() -> str:
-    return identity.current_user_id() or config.FIREBASE_DEFAULT_USER_ID
+    return identity.require_current_user()
 
 
 def _status_url(plan_id: str, request_id: str) -> str:
