@@ -79,6 +79,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=[
             settings.FRONTEND_URL,
+            "capacitor://localhost",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
         ],

@@ -169,3 +169,5 @@ cython_debug/
 /src/y2026/youtube_agent_2/backend/youtubeldb.sqlite3
 
 **/.env
+/src/y2026/youtube_agent_2/frontend/.env.local
+/ios/App/App/GoogleService-Info.plist
