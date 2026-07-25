@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { getChannels, getPlaylists, getVideos, addManualCourse, getPlan } from '../api/client'
 import { setChannelPlaylists, setSubscribedChannels } from '../store/sourcesSlice'
+import DismissibleError from './DismissibleError'
 
 function ChannelAvatar({ title, thumbnail }) {
   const letter = (title || '?').charAt(0).toUpperCase()
@@ -233,7 +234,7 @@ export default function AddCourseModal({ plan, onClose, onCourseCreated }) {
           <button className="btn btn-secondary btn-sm" onClick={closeDrawer}>✕</button>
         </div>
         <div className="drawer-body add-course-drawer-body">
-          {error && <div className="alert alert-error">{error}</div>}
+          <DismissibleError message={error} />
 
           {/* Step 1: Course details */}
           {step === 1 && (

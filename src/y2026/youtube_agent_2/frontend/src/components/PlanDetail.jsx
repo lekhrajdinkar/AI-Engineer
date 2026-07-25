@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import AddCourseModal from './AddCourseModal'
 import AiCourseModal from './AiCourseModal'
+import DismissibleError from './DismissibleError'
 import { deleteCourses, getPlan, reorderCourseVideos, updateCourseLabels, updateCourseMetadata, updateModuleLabels, updateVideoLabels, updateVideoPlayback } from '../api/client'
 import { LabelIcon, WorkspaceIcon } from './Icons'
 import {
@@ -398,7 +399,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
           </button>
         ))}
       </div>}
-      {labelError && <div className="alert alert-error">{labelError}</div>}
+      <DismissibleError message={labelError} />
 
       {/* OVERVIEW TAB */}
       {!workspaceCourseId && activeTab === 'overview' && (

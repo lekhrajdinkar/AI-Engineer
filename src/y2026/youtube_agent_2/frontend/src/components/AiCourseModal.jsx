@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import DismissibleError from './DismissibleError'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   AI_ORGANIZATION_CONTEXT_MODES,
@@ -422,7 +423,7 @@ export default function AiCourseModal({ plan, onClose, onRequestSubmitted }) {
           <button className="btn btn-secondary btn-sm" onClick={closeDrawer}>✕</button>
         </div>
         <div className="drawer-body add-course-drawer-body">
-          {error && <div className="alert alert-error">{error}</div>}
+          <DismissibleError message={error} />
 
           {!showPlaylists && !previewPayload && (
             <div className="add-course-source-step">

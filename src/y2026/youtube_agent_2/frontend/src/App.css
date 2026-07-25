@@ -351,6 +351,11 @@ tr:hover td { background: var(--border-light); }
 }
 
 .alert-error { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+.dismissible-error { display: flex; min-width: 0; align-items: flex-start; gap: 0.75rem; }
+.dismissible-error > span { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.dismissible-error > button { display: grid; width: 28px; min-width: 28px; height: 28px; flex: 0 0 28px; place-items: center; margin: -0.3rem -0.35rem -0.3rem 0; padding: 0; border: 0; border-radius: 50%; background: transparent; color: currentColor; cursor: pointer; font: inherit; font-size: 1.15rem; line-height: 1; }
+.dismissible-error > button:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+.dismissible-error > button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .alert-success { background: var(--success-bg); color: var(--success); border-color: var(--success); }
 .alert-info { background: var(--info-bg); color: var(--primary); border-color: var(--primary); }
 
@@ -1250,7 +1255,8 @@ body:has(.workspace-filter-drawer) .drawer-overlay:not(.workspace-filter-overlay
 .material-select:last-child { min-height: calc(100vh - 310px); margin-bottom: 0; }
 .material-select:last-child select { flex: 1; height: 100%; min-height: 0; }
 
-.quick-plan-button {
+.quick-plan-button,
+.add-plan-nav-button {
   width: 34px;
   height: 34px;
   padding: 0;
@@ -1262,7 +1268,8 @@ body:has(.workspace-filter-drawer) .drawer-overlay:not(.workspace-filter-overlay
   font-size: 1rem;
 }
 
-.quick-plan-button:hover { background: var(--primary-bg); color: var(--primary); }
+.quick-plan-button:hover,
+.add-plan-nav-button:hover { border-color: var(--primary); background: var(--primary-bg); color: var(--primary); }
 .profile-nav-button { display: grid; width: 34px; height: 34px; padding: 0; place-items: center; overflow: hidden; border: 1px solid var(--border-color); border-radius: 50%; background: transparent; color: var(--text-secondary); cursor: pointer; }
 .profile-nav-button:hover { border-color: var(--primary); background: var(--primary-bg); color: var(--primary); }
 .profile-nav-button img { width: 100%; height: 100%; object-fit: cover; }
@@ -1276,7 +1283,8 @@ body:has(.workspace-filter-drawer) .drawer-overlay:not(.workspace-filter-overlay
 .profile-youtube { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0; padding: 0.85rem 0; border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); }
 .profile-youtube div { display: grid; gap: 0.2rem; }
 .profile-youtube small { color: var(--text-secondary); font-size: 0.78rem; }
-.quick-plan-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.quick-plan-button svg,
+.add-plan-nav-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .settings-nav-button svg { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .settings-drawer { width: 520px; }
 .settings-drawer .drawer-header { align-items: flex-start; }
@@ -3901,6 +3909,14 @@ img.page-brand-logo {
   background: var(--module-bg);
 }
 
+.course-owner-plan {
+  display: block;
+  margin: 0.05rem 0 0.2rem;
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .plan-info-identity {
   display: flex;
   min-width: 0;
@@ -3994,9 +4010,39 @@ img.page-brand-logo {
 }
 
 @media (max-width: 599px) {
+  .plan-detail-breadcrumb {
+    align-items: flex-start;
+  }
+
+  .plan-detail-breadcrumb-path {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .plan-detail-breadcrumb-path > .learning-path-picker,
+  .plan-detail-breadcrumb .course-view-picker {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .plan-detail-breadcrumb-path > .learning-path-separator {
+    display: none;
+  }
+
   .plan-detail-breadcrumb .learning-path-trigger {
+    width: 100%;
+    max-width: none;
+    justify-content: flex-start;
     padding-inline: 0.35rem;
+    border-color: var(--border-color);
+    background: var(--card-bg);
     font-size: 0.76rem;
+  }
+
+  .plan-detail-breadcrumb .learning-path-trigger > span:not(.learning-path-item-logo):not(.learning-path-view-icon) {
+    flex: 1 1 auto;
+    text-align: left;
   }
 
   .plan-detail-breadcrumb .learning-path-trigger > .learning-path-item-logo,
@@ -4007,16 +4053,16 @@ img.page-brand-logo {
   }
 
   .plan-detail-breadcrumb .course-view-picker .learning-path-trigger {
-    max-width: 122px;
+    max-width: none;
   }
 
   .plan-detail-breadcrumb .learning-path-menu {
     position: fixed;
-    top: calc(var(--mobile-app-bar-height) + 57px);
+    top: calc(var(--mobile-app-bar-height) + 108px);
     right: 0.75rem;
     left: 0.75rem;
     width: auto;
-    max-height: calc(100dvh - var(--mobile-app-bar-height) - 70px);
+    max-height: calc(100dvh - var(--mobile-app-bar-height) - 120px);
   }
 }
 

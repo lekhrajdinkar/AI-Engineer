@@ -1,5 +1,6 @@
 import React from 'react'
 import { getAiModelConfigs } from '../api/client'
+import DismissibleError from './DismissibleError'
 
 function formatDuration(seconds) {
   if (!seconds) return 'Duration unavailable'
@@ -237,7 +238,7 @@ export default function SourceFeedPreviewDialog({
             </span>
           </label>
 
-          {destinations.length === 0 && <div className="alert alert-error">This feed has no available target courses.</div>}
+          {destinations.length === 0 && <DismissibleError>This feed has no available target courses.</DismissibleError>}
           {selected && <>
             <div className="source-feed-destination-tabs" role="group" aria-label="Module destination">
               <button type="button" className={destinationType === 'existing' ? 'active' : ''} disabled={!modules.length} onClick={() => setDestinationType('existing')}>Existing module</button>
@@ -306,8 +307,8 @@ export default function SourceFeedPreviewDialog({
             </div>
           </section>}
           {aiLoading && !aiProposal && <div className="source-feed-ai-thinking"><span className="spinner" /> Organising selected videos…</div>}
-          {aiError && <div className="alert alert-error">{aiError}</div>}
-          {error && <div className="alert alert-error">{error}</div>}
+          <DismissibleError message={aiError} />
+          <DismissibleError message={error} />
         </aside>
       </div>
 

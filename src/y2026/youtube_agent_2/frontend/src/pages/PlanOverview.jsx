@@ -22,7 +22,6 @@ import {
   selectPlanPageState,
   updatePlanPage,
 } from "../store/learningUiSlice";
-import { setDashboardPlan } from "../store/dashboardSlice";
 
 function JsonActionIcon({ name }) {
   const paths = {
@@ -417,10 +416,24 @@ export default function PlanOverview() {
   const { planId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const plan = useSelector((state) =>
-    state.plans.items.find((item) => item.id === planId),
-  );
   const allPlans = useSelector((state) => state.plans.items);
+  const isAllPlans = planId === "all";
+  const plan = React.useMemo(() => {
+    if (!isAllPlans) return allPlans.find((item) => item.id === planId);
+    return {
+      id: "all",
+      name: "ALL Plans",
+      description: "Courses combined from every learning plan.",
+      labels: [],
+      courses: allPlans.flatMap((ownerPlan) =>
+        (ownerPlan.courses || []).map((course) => ({
+          ...course,
+          _planId: ownerPlan.id,
+          _planName: ownerPlan.name,
+        })),
+      ),
+    };
+  }, [allPlans, isAllPlans, planId]);
   const [showManual, setShowManual] = React.useState(false);
   const [showAi, setShowAi] = React.useState(false);
   const [submittedAiRequest, setSubmittedAiRequest] = React.useState(null);
@@ -508,14 +521,14 @@ export default function PlanOverview() {
 
   const renderCourseActions = (className = "") => (
     <div className={`plan-action-panel ${className}`}>
-      <button
+      {!isAllPlans && <button
         className="btn btn-secondary btn-sm icon-button"
         title="Learning plan overview"
         aria-label="Learning plan overview"
         onClick={() => setShowOverview(true)}
       >
         <WorkspaceIcon name="info" />
-      </button>
+      </button>}
       <input
         value={query}
         onChange={(event) => updatePageState({ query: event.target.value })}
@@ -530,14 +543,14 @@ export default function PlanOverview() {
       >
         <WorkspaceIcon name="sort" />
       </button>
-      <button
+      {!isAllPlans && <button
         className="btn btn-secondary btn-sm ai-request-status-button"
         onClick={() => navigate(`/plans/${planId}/ai-requests`)}
       >
         <WorkspaceIcon name="progress" />
         <span>AI Request Status</span>
-      </button>
-      <div className="add-course-group">
+      </button>}
+      {!isAllPlans && <div className="add-course-group">
         <button className="btn btn-secondary btn-sm" onClick={() => setShowManual(true)}>
           <WorkspaceIcon name="manual" />
           Manual
@@ -546,7 +559,7 @@ export default function PlanOverview() {
           <WorkspaceIcon name="ai" />
           AI
         </button>
-      </div>
+      </div>}
     </div>
   );
 
@@ -569,15 +582,14 @@ export default function PlanOverview() {
         <div className="plan-detail-breadcrumb-path">
           <LearningPlanDropdown
             plans={allPlans}
-            selectedPlan={plan}
+            selectedPlan={isAllPlans ? null : plan}
             includeAll
             onSelect={(selectedPlan) => {
               if (selectedPlan) {
                 navigate(`/plans/${selectedPlan.id}`);
               } else {
-                dispatch(setDashboardPlan("all"));
                 dispatch(rememberLearningLocation({ planId: "all", courseId: "all", moduleId: null, videoId: null }));
-                navigate("/");
+                navigate("/plans/all");
               }
             }}
           />
@@ -630,9 +642,9 @@ export default function PlanOverview() {
             return (
               <article
                 className={`card catalog-tile ${course.labels?.includes("refresh_needed") ? "refresh-needed-course" : ""}`}
-                key={course.id}
+                key={`${course._planId || plan.id}:${course.id}`}
                 onClick={() =>
-                  navigate(`/plans/${planId}/courses/${course.id}/learn`)
+                  navigate(`/plans/${course._planId || plan.id}/courses/${course.id}/learn`)
                 }
               >
                 <header className="catalog-tile-header">
@@ -645,6 +657,7 @@ export default function PlanOverview() {
                   )}
                   <div>
                     <h3>{course.title}</h3>
+                    {course._planName && <small className="course-owner-plan">{course._planName}</small>}
                     <p>{course.description || "No description provided."}</p>
                   </div>
                 </header>
@@ -706,7 +719,7 @@ export default function PlanOverview() {
                               ? course.labels.filter((item) => item !== label)
                               : [...(course.labels || []), label];
                             const response = await updateCourseLabels(
-                              plan.id,
+                              course._planId || plan.id,
                               course.id,
                               labels,
                             );
@@ -751,21 +764,21 @@ export default function PlanOverview() {
           </aside>
         </>
       )}
-      {showManual && (
+      {!isAllPlans && showManual && (
         <AddCourseModal
           plan={plan}
           onClose={() => setShowManual(false)}
           onCourseCreated={(updated) => dispatch(updatePlan(updated))}
         />
       )}
-      {showAi && (
+      {!isAllPlans && showAi && (
         <AiCourseModal
           plan={plan}
           onClose={() => setShowAi(false)}
           onRequestSubmitted={setSubmittedAiRequest}
         />
       )}
-      {showOverview && (
+      {!isAllPlans && showOverview && (
         <LearningPlanOverviewDrawer
           plan={plan}
           sourceChannels={sourceChannels}
@@ -860,13 +873,14 @@ export default function PlanOverview() {
           type="course"
           onClose={() => setCourseToEdit(null)}
           onSave={async (form) => {
-            await updateCourseMetadata(plan.id, courseToEdit.id, {
+            const ownerPlanId = courseToEdit._planId || plan.id;
+            await updateCourseMetadata(ownerPlanId, courseToEdit.id, {
               title: form.name,
               description: form.description,
               logo_url: form.logo_url,
             });
             const response = await updateCourseLabels(
-              plan.id,
+              ownerPlanId,
               courseToEdit.id,
               form.labels,
             );
@@ -880,7 +894,7 @@ export default function PlanOverview() {
               )
             )
               return;
-            const response = await deleteCourses(plan.id, [courseToEdit.id]);
+            const response = await deleteCourses(courseToEdit._planId || plan.id, [courseToEdit.id]);
             dispatch(updatePlan(response.plan));
             setCourseToEdit(null);
           }}

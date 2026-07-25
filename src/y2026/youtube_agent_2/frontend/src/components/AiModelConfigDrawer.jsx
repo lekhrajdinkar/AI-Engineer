@@ -1,4 +1,5 @@
 import React from 'react'
+import DismissibleError from './DismissibleError'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   createAiModelConfig,
@@ -147,7 +148,7 @@ export default function AiModelConfigDrawer({ onClose }) {
 
         {mode === 'view' ? (
           <div className="drawer-body ai-model-library-body">
-            {status === 'loading' ? <div className="ai-model-loading"><span className="spinner" /> Loading configurations…</div> : error ? <div className="alert alert-error">{error}</div> : selectedModel ? (
+            {status === 'loading' ? <div className="ai-model-loading"><span className="spinner" /> Loading configurations…</div> : error ? <DismissibleError message={error} /> : selectedModel ? (
               <>
                 <section className="ai-model-carousel">
                   <div className="ai-model-carousel-heading"><div><span>Configured models</span><strong>{selectedIndex + 1} of {items.length}</strong></div></div>

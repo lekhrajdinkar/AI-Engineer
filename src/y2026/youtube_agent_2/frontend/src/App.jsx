@@ -13,8 +13,9 @@ import AiRequests from './pages/AiRequests'
 import { WorkspaceIcon } from './components/Icons'
 import SourceFeedPreviewDialog from './components/SourceFeedPreviewDialog'
 import AiModelConfigDrawer from './components/AiModelConfigDrawer'
-import { confirmSourceFeedOrganization, getPlans, getSourceSyncMetadata, organizeNewSourceFeeds, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
-import { setPlans } from './store/plansSlice'
+import DismissibleError from './components/DismissibleError'
+import { confirmSourceFeedOrganization, createPlan, getPlans, getSourceSyncMetadata, organizeNewSourceFeeds, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
+import { addPlan, setPlans } from './store/plansSlice'
 import { setSourceSyncMetadata } from './store/sourcesSlice'
 import { loadAiModels } from './store/aiModelsSlice'
 import { firebaseAuth } from './firebase'
@@ -81,6 +82,9 @@ function PlansRoute({ newPlanRequest, onRefresh, refreshing }) {
   const targetPlan = plans.find(plan => plan.id === lastPlanId) || plans[0]
   const targetCourse = targetPlan?.courses?.find(course => course.id === lastLocation.courseId)
 
+  if (lastPlanId === 'all' && plans.length) {
+    return <Navigate to="/plans/all" replace />
+  }
   if (targetPlan && targetCourse) {
     return <Navigate to={`/plans/${targetPlan.id}/courses/${targetCourse.id}/learn`} replace />
   }
@@ -95,7 +99,10 @@ function AppLayout() {
   const plans = useSelector(state => state.plans.items)
   const syncMetadata = useSelector(state => state.sources.syncMetadata)
   const [auth, setAuth] = React.useState(null)
-  const [newPlanRequest, setNewPlanRequest] = React.useState(0)
+  const [showCreatePlanDrawer, setShowCreatePlanDrawer] = React.useState(false)
+  const [createPlanForm, setCreatePlanForm] = React.useState({ name: '', description: '', logoUrl: 'https://skillicons.dev/icons?i=' })
+  const [createPlanError, setCreatePlanError] = React.useState('')
+  const [creatingPlan, setCreatingPlan] = React.useState(false)
   const [plansLoading, setPlansLoading] = React.useState(false)
   const [sourcePullingChannelIds, setSourcePullingChannelIds] = React.useState({})
   const [sourcePushLoading, setSourcePushLoading] = React.useState(false)
@@ -136,6 +143,36 @@ function AppLayout() {
       setPlansLoading(false)
     }
   }, [dispatch])
+
+  const closeCreatePlanDrawer = () => {
+    setShowCreatePlanDrawer(false)
+    setCreatePlanForm({ name: '', description: '', logoUrl: 'https://skillicons.dev/icons?i=' })
+    setCreatePlanError('')
+  }
+
+  const submitNewPlan = async () => {
+    if (!createPlanForm.name.trim()) {
+      setCreatePlanError('Plan name is required')
+      return
+    }
+    setCreatingPlan(true)
+    setCreatePlanError('')
+    try {
+      const response = await createPlan({
+        name: createPlanForm.name.trim(),
+        description: createPlanForm.description.trim() || null,
+        logo_url: createPlanForm.logoUrl.trim(),
+        courses: [],
+      })
+      dispatch(addPlan(response.plan))
+      closeCreatePlanDrawer()
+      navigate(`/plans/${response.plan.id}`)
+    } catch (error) {
+      setCreatePlanError(error.message || 'Unable to create learning plan')
+    } finally {
+      setCreatingPlan(false)
+    }
+  }
 
   React.useEffect(() => {
     if (!firebaseAuth) return undefined
@@ -471,6 +508,7 @@ function AppLayout() {
           <div className="right-nav-top">
           <button type="button" className="app-logo-nav-button" title="YouTube Learning home" aria-label="YouTube Learning home" onClick={() => navigate('/')}><img src={appLogo} alt="" /></button>
           <button type="button" className={`home-nav-button ${location.pathname.startsWith('/plans') ? 'active' : ''}`} title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4Zm2 0v14a2 2 0 0 0-2-2m4-7h5m-5 4h5" /></svg></button>
+          <button type="button" className="add-plan-nav-button" title="Create learning plan" aria-label="Create learning plan" onClick={() => { setCreatePlanError(''); setShowCreatePlanDrawer(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
           <button type="button" className="refresh-plans" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
             <SourceInboxIcon />
           </button>
@@ -483,10 +521,20 @@ function AppLayout() {
           </div>
         </div>
       </aside>
+      {showCreatePlanDrawer && <><div className="drawer-overlay" onClick={closeCreatePlanDrawer} /><aside className="drawer create-plan-drawer" role="dialog" aria-modal="true" aria-labelledby="create-plan-title">
+        <div className="drawer-header"><h2 id="create-plan-title">Create Learning Plan</h2><button className="btn btn-secondary btn-sm" onClick={closeCreatePlanDrawer} aria-label="Close">×</button></div>
+        <div className="drawer-body">
+          <DismissibleError message={createPlanError} />
+          <div className="form-group"><label>Plan Name *</label><input autoFocus value={createPlanForm.name} onChange={event => setCreatePlanForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Kubernetes Deep Dive" /></div>
+          <div className="form-group"><label>Description</label><textarea rows={3} value={createPlanForm.description} onChange={event => setCreatePlanForm(current => ({ ...current, description: event.target.value }))} placeholder="What will this plan cover?" /></div>
+          <div className="form-group"><label>Logo URL (optional)</label><div className="logo-upload"><input value={createPlanForm.logoUrl} onChange={event => setCreatePlanForm(current => ({ ...current, logoUrl: event.target.value }))} placeholder="https://skillicons.dev/icons?i=" />{createPlanForm.logoUrl && <img src={createPlanForm.logoUrl} alt="Logo preview" className="logo-preview" />}</div></div>
+        </div>
+        <div className="drawer-footer"><button className="btn btn-secondary" onClick={closeCreatePlanDrawer} disabled={creatingPlan}>Cancel</button><button className="btn btn-primary" onClick={submitNewPlan} disabled={creatingPlan}>{creatingPlan ? <><span className="spinner" /> Creating...</> : 'Create Plan'}</button></div>
+      </aside></>}
       {showAiModelDrawer && <AiModelConfigDrawer onClose={() => setShowAiModelDrawer(false)} />}
       {showSettingsDrawer && <><div className="drawer-overlay" onClick={() => setShowSettingsDrawer(false)} /><aside className="drawer settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title"><div className="drawer-header"><div><h2 id="settings-drawer-title">Settings</h2><p>Personalize your learning workspace.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSettingsDrawer(false)} aria-label="Close">×</button></div><div className="drawer-body settings-drawer-body"><section className="settings-section"><div><h3>Font size</h3><p>Adjust text sizing across the application.</p></div><div className="settings-option-grid" role="group" aria-label="Global font size">{[['small', 'Small', 'Aa'], ['medium', 'Medium', 'Aa'], ['large', 'Large', 'Aa']].map(([size, label, sample]) => <button type="button" key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} aria-pressed={fontSize === size}><span className={`settings-font-sample ${size}`}>{sample}</span><strong>{label}</strong></button>)}</div></section><section className="settings-section"><div><h3>Theme</h3><p>Choose the color theme used throughout the application.</p></div><div className="settings-option-grid" role="group" aria-label="Theme">{['light', 'pale', 'dark'].map(value => <button type="button" key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} aria-pressed={theme === value}><span className={`settings-theme-preview ${value}`}><ThemeIcon theme={value} /></span><strong>{value}</strong></button>)}</div></section></div><div className="drawer-footer"><button className="btn btn-primary" onClick={() => setShowSettingsDrawer(false)}>Done</button></div></aside></>}
       {showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close">×</button></div><div className="drawer-body source-sync-body">
-        {sourceSyncError && <div className="alert alert-error">{sourceSyncError}</div>}
+        <DismissibleError message={sourceSyncError} />
         <section className="source-sync-channel-section">
           <div className="source-sync-channel-controls"><input value={sourceSyncSearch} onChange={event => setSourceSyncSearch(event.target.value)} placeholder="Search channels or playlists..." aria-label="Search content sources" /><div className="picker-sort-toggle"><button className={sourceSyncFilter === 'all' ? 'active' : ''} onClick={() => setSourceSyncFilter('all')}>All ({syncMetadata?.channels?.length || 0})</button><button className={sourceSyncFilter === 'pending' ? 'active' : ''} onClick={() => setSourceSyncFilter('pending')}>Pending ({sourceSyncPendingCount})</button></div><label className="source-sync-target-switch"><input type="checkbox" checked={sourceSyncTargetsOnly} onChange={event => setSourceSyncTargetsOnly(event.target.checked)} /><span className="source-sync-target-switch-track" aria-hidden="true" /><span>Targets only</span></label><div className="picker-sort-toggle"><button className={sourceSyncSort === 'name' ? 'active' : ''} onClick={() => setSourceSyncSort('name')}>Name</button><button className={sourceSyncSort === 'date' ? 'active' : ''} onClick={() => setSourceSyncSort('date')}>Last sync</button></div></div>
           <div className="source-sync-channel-list">{sourceSyncBootstrapping ? <p className="source-sync-empty">Loading subscribed channels…</p> : sourceSyncChannels.length ? sourceSyncChannels.map(channel => {
@@ -499,7 +547,7 @@ function AppLayout() {
               <button className="source-sync-channel-heading" onClick={() => setExpandedSyncChannels(current => ({ ...current, [channel.channel_id]: !current[channel.channel_id] }))} aria-expanded={expanded}>{channel.thumbnail ? <img src={channel.thumbnail} alt="" /> : <span className="source-sync-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</span>}<span className="source-sync-channel-title"><strong>{channel.title || 'Untitled channel'}</strong><small>{channel.videos_count ?? 0} videos · {renderTargetCourses(channel.target_courses, 'direct target course')}</small><small className="source-sync-last-sync">Last sync: {channel.last_synced_at ? new Date(channel.last_synced_at).toLocaleString() : 'not yet'}{channel.last_synced_at && <span className="source-sync-age-badge">{formatRelativeAge(channel.last_synced_at)}</span>}</small></span>{pendingCount > 0 && <span className="source-sync-pending-badge" aria-label={`${pendingCount} new videos`}>{pendingCount} new</span>}<span className={`source-sync-expand ${expanded ? 'expanded' : ''}`} aria-hidden="true">›</span></button>
               {expanded && <div className="source-sync-channel-details">
                 <div className="source-sync-push-row"><span>{channelNewCount} new channel-feed videos</span><div className="source-sync-channel-quick-actions"><button className="btn btn-primary btn-sm" disabled={channelPulling} onClick={() => refreshSourceMetadata(channel.channel_id)}>{channelPulling ? 'Pulling…' : 'Pull new feeds'}</button>{channel.url && <a className="btn btn-secondary btn-sm" href={channel.url} target="_blank" rel="noreferrer">Open YouTube ↗</a>}<button className="btn btn-secondary btn-sm" disabled={!channelNewCount} onClick={() => previewSourceFeed(channel)}>Preview</button></div></div>
-                {sourceSyncChannelErrors[channel.channel_id] && <div className="alert alert-error">{sourceSyncChannelErrors[channel.channel_id]}</div>}
+                <DismissibleError message={sourceSyncChannelErrors[channel.channel_id]} />
                 {visiblePlaylists.length > 0 && <div className="source-sync-playlists"><strong>Playlists</strong>{visiblePlaylists.map(playlist => { const playlistId = playlist.playlist_id || playlist.id; const newCount = playlist.new_videos?.length || 0; return <div key={playlistId}><span>{playlist.title || 'Untitled playlist'}<small>{playlist.videos_count ?? 0} videos · {newCount} ready · {renderTargetCourses(playlist.target_courses)}</small></span><button className="btn btn-secondary btn-sm" disabled={!newCount} onClick={() => previewSourceFeed(channel, playlist)}>Preview</button></div> })}</div>}
                 <small className="source-sync-checkpoint">Last source check: {channel.last_feed_checked_at ? new Date(channel.last_feed_checked_at).toLocaleString() : 'not yet'}</small>
               </div>}
@@ -512,7 +560,7 @@ function AppLayout() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Dashboard onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
-          <Route path="/plans" element={<PlansRoute newPlanRequest={newPlanRequest} onRefresh={loadPlans} refreshing={plansLoading} />} />
+          <Route path="/plans" element={<PlansRoute newPlanRequest={0} onRefresh={loadPlans} refreshing={plansLoading} />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/ai-model-configs" element={<Navigate to="/" replace />} />
           <Route path="/plans/:planId" element={<PlanOverview />} />

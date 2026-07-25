@@ -78,7 +78,7 @@ export function LearningPlanDropdown({ plans, selectedPlan, onSelect, includeAll
     <div className="learning-path-picker" ref={pickerRef}>
       <button type="button" className="learning-path-trigger" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}>
         <ItemLogo item={selectedPlan} fallback={selectedPlan?.name?.charAt(0)?.toUpperCase() || 'A'} />
-        <span>{selectedPlan?.name || 'All learning plans'}</span>
+        <span>{selectedPlan?.name || (includeAll ? 'ALL Plans' : 'All learning plans')}</span>
         <ChevronIcon />
       </button>
       {open && <div className="learning-path-menu" role="menu" aria-label="Select learning plan">
