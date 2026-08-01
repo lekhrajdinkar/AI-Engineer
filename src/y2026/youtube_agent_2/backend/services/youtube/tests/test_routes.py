@@ -7,6 +7,7 @@ class YouTubeRouteTests(unittest.TestCase):
     def test_service_exposes_catalog_but_not_plan_routes(self):
         paths = set(app.openapi()["paths"])
         self.assertIn("/api/channels", paths)
+        self.assertIn("/api/channels/{channel_id}", paths)
         self.assertIn("/auth/google/callback", paths)
         self.assertNotIn("/auth/google/login", paths)
         self.assertNotIn("/api/plans", paths)

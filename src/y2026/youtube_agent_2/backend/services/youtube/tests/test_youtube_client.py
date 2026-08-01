@@ -17,6 +17,31 @@ class FakeResponse:
 
 
 class YouTubeClientTests(unittest.TestCase):
+    def test_get_channel_returns_current_video_count(self):
+        with (
+            patch.object(
+                youtube_client.token_store,
+                "load_latest_tokens",
+                return_value={"access_token": "token"},
+            ),
+            patch.object(
+                youtube_client,
+                "_get_channel_details",
+                return_value={
+                    "channel-a": {
+                        "title": "ByteMonk",
+                        "thumbnail": "https://example.com/logo.png",
+                        "source_created_at": "2021-11-14T05:26:13Z",
+                        "videos_count": 545,
+                    }
+                },
+            ),
+        ):
+            channel = youtube_client.get_channel("channel-a")
+
+        self.assertEqual(channel["videos_count"], 545)
+        self.assertEqual(channel["title"], "ByteMonk")
+
     def test_channel_incremental_load_uses_activities_published_after(self):
         calls = []
 

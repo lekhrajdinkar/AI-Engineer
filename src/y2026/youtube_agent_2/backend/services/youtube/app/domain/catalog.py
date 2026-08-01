@@ -14,6 +14,10 @@ def channels() -> dict:
     return {"channels": youtube_client.list_subscribed_channels()}
 
 
+def channel(channel_id: str) -> dict:
+    return {"channel": youtube_client.get_channel(channel_id)}
+
+
 def playlists(channel_id: str) -> dict:
     return {"channel_id": channel_id, "playlists": youtube_client.get_channel_playlists(channel_id)}
 

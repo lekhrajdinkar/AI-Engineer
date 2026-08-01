@@ -237,6 +237,40 @@ def list_subscribed_channels() -> List[dict]:
     return items if items else config.DEMO_CHANNELS
 
 
+def get_channel(channel_id: str) -> dict:
+    """Fetch current metadata and statistics for one channel."""
+    tokens = token_store.load_latest_tokens("google")
+    if not tokens or "access_token" not in tokens:
+        raise RuntimeError("YouTube authentication is required to fetch channel details")
+
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    details = _get_channel_details([channel_id], headers)
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+    if (
+        not details.get(channel_id)
+        and tokens.get("refresh_token")
+        and client_id
+        and client_secret
+    ):
+        refreshed = refresh_access_token(
+            tokens["refresh_token"],
+            client_id,
+            client_secret,
+        )
+        if refreshed:
+            headers["Authorization"] = f"Bearer {refreshed['access_token']}"
+            details = _get_channel_details([channel_id], headers)
+    detail = details.get(channel_id)
+    if not detail:
+        raise RuntimeError(f"YouTube channel details unavailable: {channel_id}")
+    return {
+        "channel_id": channel_id,
+        "url": f"https://youtube.com/channel/{channel_id}",
+        **detail,
+    }
+
+
 def get_channel_playlists(channel_id: str) -> List[dict]:
     """Fetch all playlists for a given channel."""
     tokens = token_store.load_latest_tokens("google")

@@ -3,9 +3,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import AddCourseModal from "../components/AddCourseModal";
 import AiCourseModal from "../components/AiCourseModal";
-import { updatePlan } from "../store/plansSlice";
+import { deletePlan as removePlan, updatePlan } from "../store/plansSlice";
 import {
   deleteCourses,
+  deletePlan as deletePlanRequest,
   replacePlan,
   updateCourseLabels,
   updateCourseMetadata,
@@ -36,6 +37,33 @@ function JsonActionIcon({ name }) {
       <path d={paths[name]} />
     </svg>
   );
+}
+
+function HighlightedJson({ value, text }) {
+  const json = text ?? JSON.stringify(value, null, 2);
+  const tokenPattern = /("(?:\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"\s*:)|("(?:\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*")|\b(true|false)\b|\b(null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
+  const parts = [];
+  let cursor = 0;
+  let match;
+
+  while ((match = tokenPattern.exec(json)) !== null) {
+    if (match.index > cursor) parts.push(json.slice(cursor, match.index));
+    const token = match[0];
+    const className = match[1]
+      ? "json-token-key"
+      : match[2]
+        ? "json-token-string"
+        : match[3]
+          ? "json-token-boolean"
+          : match[4]
+            ? "json-token-null"
+            : "json-token-number";
+    parts.push(<span className={className} key={`${match.index}-${token}`}>{token}</span>);
+    cursor = tokenPattern.lastIndex;
+  }
+  if (cursor < json.length) parts.push(json.slice(cursor));
+
+  return <pre className="refresh-feed-json plan-json-highlight" aria-label="Learning plan JSON"><code>{parts}</code></pre>;
 }
 
 function CourseThumbnail({ logoUrl, title }) {
@@ -354,8 +382,8 @@ function LearningPlanOverviewDrawer({
         <div className="drawer-header">
           <h2>Plan information</h2>
           <div className="plan-info-drawer-actions">
-            <button className="btn btn-secondary btn-sm" onClick={onEdit}><EditIcon /> Edit plan</button>
-            <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close plan information"><CloseIcon /></button>
+            <button className="btn btn-secondary btn-sm icon-button" onClick={onEdit} title="Edit learning plan" aria-label="Edit learning plan"><EditIcon /></button>
+            <button className="btn btn-secondary btn-sm icon-button" onClick={onClose} title="Close plan information" aria-label="Close plan information"><CloseIcon /></button>
           </div>
         </div>
         <div className="refresh-feed-tabs">
@@ -376,38 +404,6 @@ function LearningPlanOverviewDrawer({
           >
             Raw JSON
           </button>
-          {tab === "json" && (
-            <>
-              <button className="overview-json-action overview-download-json" onClick={downloadJson}>
-                <JsonActionIcon name="download" />
-                <span>Download JSON</span>
-              </button>
-              <button className="overview-json-action overview-load-json" onClick={() => jsonFileInputRef.current?.click()} disabled={uploadingJson}>
-                <JsonActionIcon name="load" />
-                <span>Load JSON File</span>
-              </button>
-              <input
-                ref={jsonFileInputRef}
-                type="file"
-                accept=".json,application/json"
-                onChange={loadJsonFile}
-                hidden
-              />
-              {!editingJson ? (
-                <button className="overview-json-action overview-edit-json" onClick={startJsonEdit}>
-                  <JsonActionIcon name="edit" />
-                  <span>Edit JSON</span>
-                </button>
-              ) : (
-                <>
-                  <button onClick={cancelJsonEdit} disabled={uploadingJson}>Cancel</button>
-                  <button className="overview-upload-json" onClick={uploadJson} disabled={uploadingJson}>
-                    {uploadingJson ? "Uploading…" : "Upload JSON"}
-                  </button>
-                </>
-              )}
-            </>
-          )}
         </div>
         <div className="drawer-body">
           {tab === "visual" ? (
@@ -536,11 +532,41 @@ function LearningPlanOverviewDrawer({
                   spellCheck="false"
                 />
               ) : (
-                <pre className="refresh-feed-json">{JSON.stringify(plan, null, 2)}</pre>
+                <HighlightedJson value={plan} />
               )}
             </div>
           )}
         </div>
+        {tab === "json" && <div className="drawer-footer learning-plan-json-footer">
+          <button className="overview-json-action overview-download-json" onClick={downloadJson}>
+            <JsonActionIcon name="download" />
+            <span>Download JSON</span>
+          </button>
+          <button className="overview-json-action overview-load-json" onClick={() => jsonFileInputRef.current?.click()} disabled={uploadingJson}>
+            <JsonActionIcon name="load" />
+            <span>Upload JSON</span>
+          </button>
+          <input
+            ref={jsonFileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={loadJsonFile}
+            hidden
+          />
+          {!editingJson ? (
+            <button className="overview-json-action overview-edit-json" onClick={startJsonEdit}>
+              <JsonActionIcon name="edit" />
+              <span>Edit JSON</span>
+            </button>
+          ) : (
+            <>
+              <button className="btn btn-secondary" onClick={cancelJsonEdit} disabled={uploadingJson}>Cancel</button>
+              <button className="btn btn-primary overview-upload-json" onClick={uploadJson} disabled={uploadingJson}>
+                {uploadingJson ? "Uploading…" : "Upload JSON"}
+              </button>
+            </>
+          )}
+        </div>}
       </aside>
     </>
   );
@@ -1190,6 +1216,22 @@ export default function PlanOverview({ loading = false }) {
             const response = await updatePlanLabels(plan.id, form.labels);
             dispatch(updatePlan(response.plan));
             setShowPlanEdit(false);
+          }}
+          onDelete={async () => {
+            const confirmed = window.confirm(
+              `Delete “${plan.name}”? This permanently removes the learning plan and all of its courses.`,
+            );
+            if (!confirmed) return;
+            setShowPlanEdit(false);
+            setBulkError("");
+            try {
+              await deletePlanRequest(plan.id);
+              dispatch(removePlan(plan.id));
+              dispatch(rememberLearningLocation({ planId: "all", courseId: "all", moduleId: null, videoId: null }));
+              navigate("/plans/all");
+            } catch (error) {
+              setBulkError(error.message || "Unable to delete the learning plan.");
+            }
           }}
         />
       )}

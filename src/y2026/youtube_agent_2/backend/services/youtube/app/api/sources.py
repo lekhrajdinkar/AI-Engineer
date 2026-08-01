@@ -12,6 +12,11 @@ def list_channels():
     return catalog.channels()
 
 
+@router.get("/api/channels/{channel_id}", tags=["channels"])
+def get_channel(channel_id: str):
+    return catalog.channel(channel_id)
+
+
 @router.get("/api/{channel_id}/playlists", tags=["playlists"])
 def get_channel_playlists(channel_id: str):
     return catalog.playlists(channel_id)

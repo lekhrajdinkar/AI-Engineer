@@ -19,6 +19,8 @@ from src.y2026.youtube_agent_2.backend.services.plans.app import config
 class SourceProvider(Protocol):
     def list_channels(self) -> list[ChannelRecord]: ...
 
+    def get_channel(self, channel_id: str) -> ChannelRecord: ...
+
     def get_channel_playlists(self, channel_id: str) -> list[PlaylistRecord]: ...
 
     def get_playlist_videos(self, playlist_id: str) -> list[VideoRecord]: ...
@@ -70,6 +72,9 @@ class HttpYouTubeProvider:
 
     def list_channels(self) -> list[dict]:
         return self._get("/api/channels").get("channels", [])
+
+    def get_channel(self, channel_id: str) -> dict:
+        return self._get(f"/api/channels/{channel_id}").get("channel", {})
 
     def get_channel_playlists(self, channel_id: str) -> list[dict]:
         return self._get(f"/api/{channel_id}/playlists").get("playlists", [])

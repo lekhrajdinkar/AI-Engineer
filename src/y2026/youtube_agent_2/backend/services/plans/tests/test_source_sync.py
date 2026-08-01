@@ -11,6 +11,13 @@ class FakeSourceProvider:
     def list_channels(self):
         raise AssertionError("A channel-scoped sync must not reload all subscriptions")
 
+    def get_channel(self, channel_id):
+        return {
+            "channel_id": channel_id,
+            "title": "Channel A",
+            "videos_count": 0,
+        }
+
     def get_channel_playlists(self, channel_id):
         self.requested_playlists_for = channel_id
         return [
@@ -119,7 +126,7 @@ class SourceSyncTests(unittest.TestCase):
         )
         self.assertEqual(saved, [result])
 
-    def test_channel_sync_merges_one_channel_and_uses_feed_checkpoint(self):
+    def test_channel_scoped_pull_merges_one_channel_and_fully_reconciles(self):
         provider = FakeSourceProvider()
         previous = {
             "updated_at": "2026-07-21T12:00:00+00:00",
@@ -199,10 +206,7 @@ class SourceSyncTests(unittest.TestCase):
 
         self.assertEqual(provider.requested_playlists_for, "channel-a")
         self.assertEqual(provider.channel_requests[0][0], "channel-a")
-        self.assertEqual(
-            provider.channel_requests[0][1],
-            "2026-07-20T10:00:00+00:00",
-        )
+        self.assertIsNone(provider.channel_requests[0][1])
         self.assertEqual(result["channels"][1], previous["channels"][1])
         channel = result["channels"][0]
         self.assertEqual(
@@ -264,6 +268,60 @@ class SourceSyncTests(unittest.TestCase):
             [video["video_id"] for video in videos],
             ["VtiZXaomOTg", "ji05dvR6A8Y"],
         )
+
+    def test_channel_count_change_forces_full_reconciliation(self):
+        provider = FakeSourceProvider()
+        provider.get_channel = lambda channel_id: {
+            "channel_id": channel_id,
+            "title": "ByteMonk",
+            "videos_count": 545,
+        }
+
+        def channel_videos(channel_id, published_after=None):
+            provider.channel_requests.append((channel_id, published_after))
+            return [
+                {
+                    "video_id": "video-new",
+                    "title": "New ByteMonk upload",
+                    "published_at": "2026-07-31T10:00:00+00:00",
+                }
+            ]
+
+        provider.get_channel_videos = channel_videos
+        previous = {
+            "channels": [{
+                "channel_id": "channel-a",
+                "title": "ByteMonk",
+                "videos_count": 543,
+                "last_reconciled_videos_count": 543,
+                "last_feed_checked_at": "2026-07-30T10:00:00+00:00",
+                "target_courses": [{"plan_id": "plan-a", "course_id": "course-a"}],
+                "new_videos": [],
+                "playlists": [],
+            }]
+        }
+        target_map = {
+            "channel-a": {
+                "target_courses": previous["channels"][0]["target_courses"],
+                "playlists": {},
+            }
+        }
+
+        with (
+            patch.object(source_sync, "get_source_provider", return_value=provider),
+            patch.object(source_sync.db, "load_source_sync_metadata", return_value=previous),
+            patch.object(source_sync.db, "save_source_sync_metadata"),
+            patch.object(source_sync, "_source_targets", return_value=target_map),
+            patch.object(source_sync, "_known_source_video_ids", return_value=set()),
+            patch.object(source_sync, "_apply_sync_to_courses"),
+        ):
+            result = source_sync.sync_metadata("channel-a")
+
+        channel = result["channels"][0]
+        self.assertEqual(provider.channel_requests, [("channel-a", None)])
+        self.assertEqual(channel["videos_count"], 545)
+        self.assertEqual(channel["last_reconciled_videos_count"], 545)
+        self.assertEqual(channel["new_videos"][0]["video_id"], "video-new")
 
     def test_manual_push_creates_module_and_clears_selected_inbox(self):
         metadata = {

@@ -203,7 +203,8 @@ def _pull_source_metadata(requested_channel_id: Optional[str] = None) -> dict:
         requested_channel = previous_channels.get(requested_channel_id)
         if not requested_channel:
             raise HTTPException(status_code=404, detail="Source channel not found")
-        channels = [requested_channel]
+        refreshed_channel = source.get_channel(requested_channel_id)
+        channels = [{**requested_channel, **refreshed_channel}]
     else:
         channels = source.list_channels()
     now = datetime.now(timezone.utc).isoformat()
@@ -228,7 +229,11 @@ def _pull_source_metadata(requested_channel_id: Optional[str] = None) -> dict:
             or previous_channel.get("videos_count")
             or 0
         )
-        reconcile_channel = (
+        # A user-triggered, channel-scoped pull is an explicit request for
+        # correctness. Reconcile the uploads playlist even when YouTube's
+        # activity feed or cached statistics report no change. Unscoped syncs
+        # retain the cheaper incremental path unless the video count changes.
+        reconcile_channel = bool(requested_channel_id) or (
             previous_channel.get("last_reconciled_videos_count")
             != channel_video_count
         )
