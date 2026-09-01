@@ -2,6 +2,8 @@ import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useSearchParams } from 'react-router-dom'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 
 import DismissibleError from '../components/DismissibleError'
 import CodeBlock from '../components/CodeBlock'
@@ -614,6 +616,113 @@ function markdownWithTrustedIframes(content = '') {
   })
 }
 
+function markdownWithMath(content = '') {
+  if (!content || typeof content !== 'string') return content || ''
+
+  // Split by code blocks (```...```) and inline code (`...`) to preserve verbatim code
+  const tokenRegex = /(```[\s\S]*?```|`[^`\n]+`)/g
+  const parts = content.split(tokenRegex)
+
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 1) continue // Skip code segments
+
+    let text = parts[i]
+
+    // 1. Transform block math: $$...$$ into ```notes-math-block
+    text = text.replace(/\$\$\s*\n?([\s\S]*?)\n?\s*\$\$/g, (match, mathContent) => {
+      const trimmed = mathContent.trim()
+      if (!trimmed) return match
+      return `\n\n\`\`\`notes-math-block\n${trimmed}\n\`\`\`\n\n`
+    })
+
+    // 2. Transform inline math: $...$
+    // Matches $math$ where math doesn't start or end with space and isn't preceded by backslash
+    text = text.replace(/(^|[^\\])\$([^\s\$](?:[^\$]*?[^\s\$])?)\$/g, (match, prefix, mathContent) => {
+      // Ignore if it's plain currency like $100 or $5.99
+      if (/^\d+(?:\.\d+)?$/.test(mathContent)) {
+        return match
+      }
+      return `${prefix}\`notes-math-inline:${encodeURIComponent(mathContent)}\``
+    })
+
+    parts[i] = text
+  }
+
+  return parts.join('')
+}
+
+function MathInline({ math }) {
+  const html = React.useMemo(() => {
+    try {
+      return katex.renderToString(math, {
+        displayMode: false,
+        throwOnError: false,
+        output: 'html',
+      })
+    } catch {
+      return math
+    }
+  }, [math])
+
+  return (
+    <span
+      className="notes-math-inline"
+      dangerouslySetInnerHTML={{ __html: html }}
+      title={`LaTeX: ${math}`}
+    />
+  )
+}
+
+function MathBlock({ math }) {
+  const [copied, setCopied] = React.useState(false)
+
+  const html = React.useMemo(() => {
+    try {
+      return katex.renderToString(math, {
+        displayMode: true,
+        throwOnError: false,
+        output: 'html',
+      })
+    } catch {
+      return math
+    }
+  }, [math])
+
+  const copyFormula = async () => {
+    try {
+      await navigator.clipboard.writeText(math)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {}
+  }
+
+  return (
+    <div className="notes-math-block-card">
+      <div className="notes-math-block-header">
+        <span className="notes-math-badge">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M4 19L10 5l4 14 6-10"/>
+          </svg>
+          <span>LaTeX Formula</span>
+        </span>
+        <button
+          type="button"
+          className="notes-math-copy-btn"
+          onClick={copyFormula}
+          title="Copy LaTeX formula"
+          aria-label="Copy formula"
+        >
+          {copied ? 'Copied ✓' : 'Copy LaTeX'}
+        </button>
+      </div>
+      <div
+        className="notes-math-block-content"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  )
+}
+
 function extractReferenceGroups(sectionText, note, index) {
   const groups = []
   let currentGroup = { name: 'General', items: [] }
@@ -1096,12 +1205,44 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
       const linkClassName = ['notes-rich-link', `link-type-${descriptor.type}`, className].filter(Boolean).join(' ')
       return <a href={resolved} className={linkClassName} onClick={event => { event.preventDefault(); onOpenLink?.(descriptor) }} {...props}><span className="notes-rich-link-icon"><LinkBrandIcon type={descriptor.type}/></span>{children}</a>
     },
-    img: ({ src, alt, ...props }) => <ClickableImage src={relativeUrl(src, note.raw_url)} alt={alt} {...props} />,
+    img: ({ src, alt, ...props }) => {
+      const resolved = relativeUrl(src, note.raw_url)
+      const isExcalidraw = (
+        (src && /\.excalidraw(\?.*)?(#.*)?$/i.test(src)) ||
+        (resolved && /\.excalidraw(\?.*)?(#.*)?$/i.test(resolved))
+      )
+      if (isExcalidraw) {
+        const descriptor = linkDescriptor(src, note, index, alt)
+        return (
+          <React.Suspense fallback={<div className="notes-excalidraw-fallback-link"><span className="spinner"/> Loading drawing…</div>}>
+            <ExcalidrawThumbnail
+              url={resolved}
+              descriptor={descriptor}
+              label={alt}
+              onOpen={onOpenLink}
+            />
+          </React.Suspense>
+        )
+      }
+      return <ClickableImage src={resolved} alt={alt} {...props} />
+    },
     table: ({ children, ...props }) => <ClickableTable {...props}>{children}</ClickableTable>,
     h1: heading(1), h2: heading(2), h3: heading(3), h4: heading(4), h5: heading(5), h6: heading(6),
+    code: ({ inline, className, children, ...props }) => {
+      const text = String(children || '')
+      if (text.startsWith('notes-math-inline:')) {
+        const mathContent = decodeURIComponent(text.slice('notes-math-inline:'.length))
+        return <MathInline math={mathContent} />
+      }
+      return <code className={className} {...props}>{children}</code>
+    },
     pre: ({ children, ...props }) => {
       const codeElement = React.Children.count(children) === 1 ? React.Children.only(children) : null
       const language = /language-([^\s]+)/.exec(codeElement?.props?.className || '')?.[1]?.toLowerCase()
+      if (language === 'notes-math-block') {
+        const codeContent = codeElement ? codeElement.props.children : children
+        return <MathBlock math={String(codeContent).trim()} />
+      }
       if (language === 'mermaid') return <MermaidDiagram source={String(codeElement.props.children).replace(/\n$/, '')} />
       if (language === 'notes-trusted-iframe') return <TrustedIframeEmbed source={String(codeElement.props.children).trim()} />
       if (language === 'notes-references-section') {
@@ -1124,7 +1265,7 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
       return <CodeBlock language={language} code={codeContent} />
     },
   }
-  const transformed = markdownWithReferences(markdownWithTrustedIframes(note.content), note, index)
+  const transformed = markdownWithMath(markdownWithReferences(markdownWithTrustedIframes(note.content), note, index))
   return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{transformed}</ReactMarkdown>
 })
 
@@ -1474,7 +1615,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       return
     }
 
-    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-code-block-card, :scope > .notes-table-container, :scope > table, :scope > .notes-mermaid-container, :scope > .mermaid-preview-card, :scope > .notes-image-container, :scope > img, :scope > .notes-trusted-iframe-wrapper, :scope > hr, :scope ul > li, :scope ol > li')]
+    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-code-block-card, :scope > .notes-math-block-card, :scope > .notes-table-container, :scope > table, :scope > .notes-mermaid-container, :scope > .mermaid-preview-card, :scope > .notes-image-container, :scope > img, :scope > .notes-trusted-iframe-wrapper, :scope > hr, :scope ul > li, :scope ol > li')]
     setFragmentCount(items.length)
 
     items.forEach((item, idx) => {

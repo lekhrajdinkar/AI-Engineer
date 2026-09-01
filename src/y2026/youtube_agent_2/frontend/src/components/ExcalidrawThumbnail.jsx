@@ -62,31 +62,57 @@ function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
     return () => { cancelled = true }
   }, [url])
 
+  const safeScrollToContent = React.useCallback((targetElements, options = { fitToViewport: true, animate: false }) => {
+    if (!excalidrawAPI) return
+    const elementsToFit = (targetElements && targetElements.length > 0)
+      ? targetElements
+      : (sceneData?.elements || []).filter(el => el && !el.isDeleted)
+
+    if (!elementsToFit || elementsToFit.length === 0) return
+
+    try {
+      const currentZoom = excalidrawAPI.getAppState()?.zoom?.value
+      if (typeof currentZoom !== 'number' || isNaN(currentZoom) || currentZoom <= 0) {
+        excalidrawAPI.updateScene({
+          appState: { zoom: { value: 1 }, scrollX: 0, scrollY: 0 },
+          commitToHistory: false,
+        })
+      }
+      excalidrawAPI.scrollToContent(elementsToFit, options)
+    } catch (err) {
+      console.warn('[ExcalidrawThumbnail] safeScrollToContent error:', err)
+    }
+  }, [excalidrawAPI, sceneData?.elements])
+
   // Automatically fit drawing to viewport on initial load
   React.useEffect(() => {
-    if (!excalidrawAPI || !sceneData) return
+    if (!excalidrawAPI || !sceneData?.elements?.length) return
     const timer = setTimeout(() => {
-      excalidrawAPI.scrollToContent(undefined, { fitToViewport: true, animate: false })
-      const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
-      setZoomPercent(Math.round(currentZoom * 100))
-    }, 50)
+      safeScrollToContent(undefined, { fitToViewport: true, animate: false })
+      const currentZoom = excalidrawAPI.getAppState()?.zoom?.value
+      const safeZ = (typeof currentZoom === 'number' && !isNaN(currentZoom) && currentZoom > 0) ? currentZoom : 1
+      setZoomPercent(Math.round(safeZ * 100))
+    }, 80)
     return () => clearTimeout(timer)
-  }, [excalidrawAPI, sceneData])
+  }, [excalidrawAPI, sceneData?.elements, safeScrollToContent])
 
   // Track zoom level changes from wheel/trackpad/drag
   const handlePointerUpdate = React.useCallback(() => {
     if (excalidrawAPI) {
-      const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
-      setZoomPercent(Math.round(currentZoom * 100))
+      const currentZoom = excalidrawAPI.getAppState()?.zoom?.value
+      const safeZ = (typeof currentZoom === 'number' && !isNaN(currentZoom) && currentZoom > 0) ? currentZoom : 1
+      setZoomPercent(Math.round(safeZ * 100))
     }
   }, [excalidrawAPI])
 
   const handleZoom = React.useCallback(delta => {
     if (!excalidrawAPI) return
-    const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
-    const nextZoom = Math.min(5, Math.max(0.1, Number((currentZoom + delta).toFixed(2))))
+    const currentZoom = excalidrawAPI.getAppState()?.zoom?.value
+    const safeZ = (typeof currentZoom === 'number' && !isNaN(currentZoom) && currentZoom > 0) ? currentZoom : 1
+    const nextZoom = Math.min(5, Math.max(0.1, Number((safeZ + delta).toFixed(2))))
     excalidrawAPI.updateScene({
       appState: { zoom: { value: nextZoom } },
+      commitToHistory: false,
     })
     setZoomPercent(Math.round(nextZoom * 100))
   }, [excalidrawAPI])
@@ -95,32 +121,42 @@ function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
     if (!excalidrawAPI) return
     excalidrawAPI.updateScene({
       appState: { zoom: { value: 1 } },
+      commitToHistory: false,
     })
     setZoomPercent(100)
   }, [excalidrawAPI])
 
   const handleFit = React.useCallback(() => {
     if (!excalidrawAPI) return
-    excalidrawAPI.scrollToContent(undefined, { fitToViewport: true, animate: true })
+    safeScrollToContent(undefined, { fitToViewport: true, animate: true })
     setTimeout(() => {
       if (excalidrawAPI) {
-        const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
-        setZoomPercent(Math.round(currentZoom * 100))
+        const currentZoom = excalidrawAPI.getAppState()?.zoom?.value
+        const safeZ = (typeof currentZoom === 'number' && !isNaN(currentZoom) && currentZoom > 0) ? currentZoom : 1
+        setZoomPercent(Math.round(safeZ * 100))
       }
     }, 150)
-  }, [excalidrawAPI])
+  }, [excalidrawAPI, safeScrollToContent])
 
   const initialData = React.useMemo(() => {
     if (!sceneData) return null
+    const validElements = Array.isArray(sceneData.elements)
+      ? sceneData.elements.filter(el => el && typeof el === 'object')
+      : []
+
     return {
-      elements: sceneData.elements,
+      elements: validElements,
       appState: {
-        ...sceneData.appState,
-        collaborators: [],
+        viewModeEnabled: true,
+        zenModeEnabled: false,
+        viewBackgroundColor: sceneData.appState?.viewBackgroundColor || '#ffffff',
+        zoom: { value: 1 },
+        scrollX: 0,
+        scrollY: 0,
         isLoading: false,
       },
-      files: sceneData.files,
-      scrollToContent: true,
+      files: sceneData.files || {},
+      scrollToContent: false,
     }
   }, [sceneData])
 
