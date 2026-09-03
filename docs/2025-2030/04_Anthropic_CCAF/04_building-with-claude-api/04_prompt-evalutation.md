@@ -1,6 +1,7 @@
 # prompt evaluation
 ## reference
 - https://anthropic-partners.skilljar.com/claude-with-the-anthropic-api/287739
+- [README.md](../README.md)
 
 ---
 ## Overview 
@@ -70,7 +71,7 @@ Step 4: **Feed Through a Grader**
 Step 5: Change Prompt and Repeat
 
 ---
-### Grader
+### Grader : overview
 **Code graders** - Programmatically evaluate outputs using custom logic
 ```
 Checking output length
@@ -91,12 +92,35 @@ Safety
 **Human graders** - Have people manually review and score outputs
 
 ---
-### Defining Evaluation Criteria
+### Grader : Defining Evaluation Criteria
 Example:
 
 Code grader
 - `Format` - Should return only Python, JSON, or Regex without explanation
 - `Valid Syntax `- Produced code should have valid syntax
+
+```python
+def validate_json(text):
+    try:
+        json.loads(text.strip())
+        return 10
+    except json.JSONDecodeError:
+        return 0
+
+def validate_python(text):
+    try:
+        ast.parse(text.strip())
+        return 10
+    except SyntaxError:
+        return 0
+
+def validate_regex(text):
+    try:
+        re.compile(text.strip())
+        return 10
+    except re.error:
+        return 0
+```
 
 Model graders
 - `Task Following` - Response should directly address the user's task with accurate code
@@ -126,25 +150,3 @@ def grade_by_model(test_case, output):
     return json.loads(eval_text)
 ```
 
-```python
-def validate_json(text):
-    try:
-        json.loads(text.strip())
-        return 10
-    except json.JSONDecodeError:
-        return 0
-
-def validate_python(text):
-    try:
-        ast.parse(text.strip())
-        return 10
-    except SyntaxError:
-        return 0
-
-def validate_regex(text):
-    try:
-        re.compile(text.strip())
-        return 10
-    except re.error:
-        return 0
-```

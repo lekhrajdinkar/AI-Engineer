@@ -79,7 +79,12 @@ async function getLocalNotes(repository) {
   const response = await fetch(`/local-notes/${encodeURIComponent(repository.id)}/index`, { cache: 'no-store' })
   if (!response.ok) throw new Error(await responseError(response, 'The local checkout could not be indexed.'))
   const payload = await response.json()
-  return { ...publicRepository(repository, payload.notes?.length || 0), source: 'local', notes: payload.notes || [] }
+  return {
+    ...publicRepository(repository, payload.notes?.length || 0),
+    source: 'local',
+    notes: payload.notes || [],
+    allNotes: payload.allNotes || payload.notes || [],
+  }
 }
 
 export async function getNotes(repositoryId, source = 'remote') {
@@ -95,11 +100,10 @@ export async function getNotes(repositoryId, source = 'remote') {
   if (payload.truncated) throw new Error(`${repository.name} is too large for GitHub to list completely.`)
 
   const prefix = repository.path.replace(/^\/+|\/+$/g, '')
-  const notes = (payload.tree || []).filter(item => {
+  const allNotes = (payload.tree || []).filter(item => {
     const path = item.path || ''
     const filename = path.split('/').at(-1).replace(/\.(md|markdown)$/i, '')
     return item.type === 'blob'
-      && path.startsWith(`${prefix}/`)
       && /\.(md|markdown)$/i.test(path)
       && !filename.toLowerCase().endsWith('__x')
   }).map(item => ({
@@ -111,7 +115,13 @@ export async function getNotes(repositoryId, source = 'remote') {
     github_url: `https://github.com/${repository.owner}/${repository.repo}/blob/${repository.branch}/${item.path}`,
   })).sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true }))
 
-  const result = { ...publicRepository(repository, notes.length), source: 'remote', notes }
+  const notes = allNotes.filter(item => item.path.startsWith(`${prefix}/`))
+  const result = {
+    ...publicRepository(repository, notes.length),
+    source: 'remote',
+    notes,
+    allNotes,
+  }
   writeCache(repository, result)
   return result
 }
@@ -140,36 +150,43 @@ export async function getNoteRepositories() {
 export async function getNoteContent(repositoryId, path, source = 'remote') {
   const repository = repositoryById(repositoryId)
   const index = await getNotes(repositoryId, source)
-  const selected = index.notes.find(note => note.path === path)
-  if (!selected) throw new Error('Markdown note was not found in the configured docs directory.')
+  const lastSegment = (path || '').split('/').at(-1) || ''
+  const isFileWithExt = lastSegment.includes('.')
+  const normalizedPath = isFileWithExt ? path : `${path.replace(/\/+$/, '')}/README.md`
+  const selected = index.notes.find(note => note.path === path || note.path === normalizedPath)
+  const noteMeta = selected || {
+    path: normalizedPath,
+    title: displayTitle(normalizedPath),
+    github_url: `https://github.com/${repository.owner}/${repository.repo}/blob/${repository.branch}/${normalizedPath}`,
+  }
 
   if (source === 'local') {
     const url = `/local-notes/${encodeURIComponent(repositoryId)}/content?path=${encodeURIComponent(path)}`
-    const encodedPath = path.split('/').map(encodeURIComponent).join('/')
+    const encodedPath = normalizedPath.split('/').map(encodeURIComponent).join('/')
     const rawUrl = `${window.location.origin}/local-notes/${encodeURIComponent(repositoryId)}/raw/${encodedPath}`
     const response = await fetch(url, { cache: 'no-store' })
     if (!response.ok) throw new Error(await responseError(response, 'The local Markdown note could not be read.'))
     return {
       repository_id: repositoryId,
-      path,
-      title: selected.title,
+      path: normalizedPath,
+      title: noteMeta.title,
       content: await response.text(),
       raw_url: rawUrl,
-      github_url: selected.github_url,
+      github_url: noteMeta.github_url,
       source: 'local',
     }
   }
 
-  const url = rawUrl(repository, path)
+  const url = rawUrl(repository, normalizedPath)
   const response = await fetch(url)
   if (!response.ok) throw new Error(`GitHub could not load this note (HTTP ${response.status}).`)
   return {
     repository_id: repositoryId,
-    path,
-    title: selected.title,
+    path: normalizedPath,
+    title: noteMeta.title,
     content: await response.text(),
     raw_url: url,
-    github_url: selected.github_url,
+    github_url: noteMeta.github_url,
     source: 'remote',
   }
 }

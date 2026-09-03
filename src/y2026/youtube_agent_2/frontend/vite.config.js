@@ -32,13 +32,16 @@ function localNotesPlugin(configuredCheckoutRoot) {
     }
   }
 
-  const walkMarkdown = async (directory, docsRoot, files = []) => {
+  const walkMarkdown = async (directory, rootDir, files = []) => {
+    const ignoredDirs = new Set(['.git', 'node_modules', 'target', 'build', '.idea', '.vscode', '.gradle', 'dist', '.bin'])
     for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
-      const entryPath = path.join(directory, entry.name)
-      if (entry.isDirectory()) await walkMarkdown(entryPath, docsRoot, files)
-      else if (/\.(md|markdown)$/i.test(entry.name) && !entry.name.replace(/\.(md|markdown)$/i, '').toLowerCase().endsWith('__x')) {
-        const relativePath = path.relative(docsRoot, entryPath).split(path.sep).join('/')
-        const stats = await fs.stat(entryPath)
+      if (entry.isDirectory()) {
+        if (!ignoredDirs.has(entry.name)) {
+          await walkMarkdown(path.join(directory, entry.name), rootDir, files)
+        }
+      } else if (/\.(md|markdown)$/i.test(entry.name) && !entry.name.replace(/\.(md|markdown)$/i, '').toLowerCase().endsWith('__x')) {
+        const relativePath = path.relative(rootDir, path.join(directory, entry.name)).split(path.sep).join('/')
+        const stats = await fs.stat(path.join(directory, entry.name))
         files.push({ relativePath, size: stats.size })
       }
     }
@@ -77,15 +80,59 @@ function localNotesPlugin(configuredCheckoutRoot) {
             const requestedPath = decodeURIComponent(rawMatch[2]).replaceAll('\\', '/')
             const repositoryPrefix = checkout.repository.path.replace(/^\/+|\/+$/g, '')
             const relativePath = requestedPath.startsWith(`${repositoryPrefix}/`) ? requestedPath.slice(repositoryPrefix.length + 1) : requestedPath
-            const resolvedPath = path.resolve(checkout.docsRoot, relativePath)
-            const docsRootPrefix = `${checkout.docsRoot}${path.sep}`
-            if (resolvedPath !== checkout.docsRoot && !resolvedPath.startsWith(docsRootPrefix)) return json(response, 403, { error: 'Local asset path is outside the configured docs directory.' })
-            const contentTypes = { '.md': 'text/markdown; charset=utf-8', '.markdown': 'text/markdown; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp' }
-            const content = await fs.readFile(resolvedPath)
-            response.statusCode = 200
-            response.setHeader('Content-Type', contentTypes[path.extname(resolvedPath).toLowerCase()] || 'application/octet-stream')
-            response.setHeader('Cache-Control', 'no-store')
-            return response.end(content)
+
+            // Try resolving from repository root (supports src/**, draw/**, etc.) first, then fallback to docsRoot
+            let resolvedPath = path.resolve(checkout.root, requestedPath)
+            const rootPrefix = `${checkout.root}${path.sep}`
+            let isValid = resolvedPath === checkout.root || resolvedPath.startsWith(rootPrefix)
+
+            try {
+              const stat = await fs.stat(resolvedPath)
+              if (!stat.isFile()) isValid = false
+            } catch {
+              isValid = false
+            }
+
+            if (!isValid) {
+              resolvedPath = path.resolve(checkout.docsRoot, relativePath)
+              const docsRootPrefix = `${checkout.docsRoot}${path.sep}`
+              isValid = resolvedPath === checkout.docsRoot || resolvedPath.startsWith(docsRootPrefix)
+            }
+
+            if (!isValid) return json(response, 403, { error: 'Local asset path is outside the configured repository directory.' })
+
+            const contentTypes = {
+              '.md': 'text/markdown; charset=utf-8',
+              '.markdown': 'text/markdown; charset=utf-8',
+              '.png': 'image/png',
+              '.jpg': 'image/jpeg',
+              '.jpeg': 'image/jpeg',
+              '.gif': 'image/gif',
+              '.svg': 'image/svg+xml',
+              '.webp': 'image/webp',
+              '.py': 'text/plain; charset=utf-8',
+              '.js': 'text/plain; charset=utf-8',
+              '.jsx': 'text/plain; charset=utf-8',
+              '.ts': 'text/plain; charset=utf-8',
+              '.tsx': 'text/plain; charset=utf-8',
+              '.json': 'application/json; charset=utf-8',
+              '.yaml': 'text/plain; charset=utf-8',
+              '.yml': 'text/plain; charset=utf-8',
+              '.sh': 'text/plain; charset=utf-8',
+              '.sql': 'text/plain; charset=utf-8',
+              '.ipynb': 'application/json; charset=utf-8',
+              '.excalidraw': 'application/json; charset=utf-8',
+            }
+
+            try {
+              const content = await fs.readFile(resolvedPath)
+              response.statusCode = 200
+              response.setHeader('Content-Type', contentTypes[path.extname(resolvedPath).toLowerCase()] || 'text/plain; charset=utf-8')
+              response.setHeader('Cache-Control', 'no-store')
+              return response.end(content)
+            } catch (err) {
+              return json(response, 404, { error: `File not found: ${requestedPath}` })
+            }
           }
           if (!match) return json(response, 404, { error: 'Local notes endpoint not found.' })
           const repositoryId = decodeURIComponent(match[1])
@@ -93,27 +140,71 @@ function localNotesPlugin(configuredCheckoutRoot) {
           if (!checkout) return json(response, 404, { error: 'This repository is not checked out under the configured local root.' })
 
           if (match[2] === 'index') {
-            const files = await walkMarkdown(checkout.docsRoot, checkout.docsRoot)
-            const notes = files.map(file => {
-              const repositoryPath = [checkout.repository.path.replace(/^\/+|\/+$/g, ''), file.relativePath].filter(Boolean).join('/')
+            const files = await walkMarkdown(checkout.root, checkout.root)
+            const repositoryPrefix = checkout.repository.path.replace(/^\/+|\/+$/g, '')
+            const allNotes = files.map(file => {
               return {
-                path: repositoryPath,
+                path: file.relativePath,
                 title: displayTitle(file.relativePath),
-                folder: repositoryPath.split('/').slice(0, -1).join('/'),
+                folder: file.relativePath.split('/').slice(0, -1).join('/'),
                 size: file.size,
                 sha: '',
-                github_url: `https://github.com/${checkout.repository.owner}/${checkout.repository.repo}/blob/${checkout.repository.branch}/${repositoryPath}`,
+                github_url: `https://github.com/${checkout.repository.owner}/${checkout.repository.repo}/blob/${checkout.repository.branch}/${file.relativePath}`,
               }
             }).sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true }))
-            return json(response, 200, { notes })
+
+            const notes = allNotes.filter(item => item.path.startsWith(`${repositoryPrefix}/`))
+            return json(response, 200, { notes, allNotes })
           }
 
           const requestedPath = (requestUrl.searchParams.get('path') || '').replaceAll('\\', '/')
           const repositoryPrefix = checkout.repository.path.replace(/^\/+|\/+$/g, '')
           const relativePath = requestedPath.startsWith(`${repositoryPrefix}/`) ? requestedPath.slice(repositoryPrefix.length + 1) : requestedPath
-          const resolvedPath = path.resolve(checkout.docsRoot, relativePath)
-          const docsRootPrefix = `${checkout.docsRoot}${path.sep}`
-          if (resolvedPath !== checkout.docsRoot && !resolvedPath.startsWith(docsRootPrefix)) return json(response, 403, { error: 'Local note path is outside the configured docs directory.' })
+
+          let resolvedPath = path.resolve(checkout.root, requestedPath)
+          const rootPrefix = `${checkout.root}${path.sep}`
+          let isValid = resolvedPath === checkout.root || resolvedPath.startsWith(rootPrefix)
+          let exists = false
+
+          const checkFileOrDirectory = async (filePath) => {
+            try {
+              const stat = await fs.stat(filePath)
+              if (stat.isDirectory()) {
+                for (const candidate of ['README.md', 'readme.md', 'index.md', 'README.markdown']) {
+                  const candidatePath = path.join(filePath, candidate)
+                  try {
+                    const cStat = await fs.stat(candidatePath)
+                    if (cStat.isFile()) return candidatePath
+                  } catch {}
+                }
+              } else if (stat.isFile()) {
+                return filePath
+              }
+            } catch {}
+            return null
+          }
+
+          const matchedRootPath = await checkFileOrDirectory(resolvedPath)
+          if (matchedRootPath) {
+            resolvedPath = matchedRootPath
+            exists = true
+          }
+
+          if (!exists) {
+            const resolvedDocsPath = path.resolve(checkout.docsRoot, relativePath)
+            const docsRootPrefix = `${checkout.docsRoot}${path.sep}`
+            if (resolvedDocsPath === checkout.docsRoot || resolvedDocsPath.startsWith(docsRootPrefix)) {
+              const matchedDocsPath = await checkFileOrDirectory(resolvedDocsPath)
+              if (matchedDocsPath) {
+                resolvedPath = matchedDocsPath
+                isValid = true
+                exists = true
+              }
+            }
+          }
+
+          if (!isValid) return json(response, 403, { error: 'Local note path is outside the configured repository directory.' })
+          if (!exists) return json(response, 404, { error: `Local note not found: ${requestedPath}` })
           if (!/\.(md|markdown)$/i.test(resolvedPath)) return json(response, 400, { error: 'Only Markdown notes can be read.' })
           const content = await fs.readFile(resolvedPath, 'utf8')
           response.statusCode = 200

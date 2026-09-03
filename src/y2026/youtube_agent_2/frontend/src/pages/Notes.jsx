@@ -7,8 +7,11 @@ import 'katex/dist/katex.min.css'
 
 import DismissibleError from '../components/DismissibleError'
 import CodeBlock from '../components/CodeBlock'
+import CodeEmbedCard from '../components/CodeEmbedCard'
+import CodeViewerDialog from '../components/CodeViewerDialog'
 import ReferencesSection from '../components/ReferencesSection'
 import { getNoteContent, getNoteRepositories, getNotes } from '../api/githubNotes'
+import { NOTE_REPOSITORIES } from '../config/noteRepositories'
 
 const ExcalidrawViewer = React.lazy(() => import('../components/ExcalidrawViewer'))
 const ExcalidrawThumbnail = React.lazy(() => import('../components/ExcalidrawThumbnail'))
@@ -27,7 +30,7 @@ function displayName(value = '') {
 }
 
 function internalNotesTarget(href, note, index) {
-  if (!href || !note?.path || !index?.notes?.length || href.startsWith('#')) return null
+  if (!href || !note?.path || (!index?.notes?.length && !index?.allNotes?.length) || href.startsWith('#')) return null
   try {
     const resolved = new URL(href, `https://learning-notes.local/${note.path}`)
     let candidate = null
@@ -43,11 +46,45 @@ function internalNotesTarget(href, note, index) {
     }
     if (candidate === null) return null
     candidate = candidate.replace(/\/+$/, '')
-    const exactNote = index.notes.find(item => item.path.toLowerCase() === candidate.toLowerCase())
+
+    // Non-markdown file extensions (e.g. .excalidraw, .png, .pdf, etc.) are assets/drawings, not notes or folders
+    const lastSegment = candidate.split('/').at(-1) || ''
+    if (lastSegment.includes('.') && !/\.(md|markdown)$/i.test(lastSegment)) {
+      return null
+    }
+
+    const pool = index.allNotes || index.notes || []
+    const exactNote = pool.find(item => item.path.toLowerCase() === candidate.toLowerCase())
     if (exactNote) return { type: 'note', note: exactNote, hash }
+    if (/\.(md|markdown)$/i.test(candidate)) {
+      const fileName = candidate.split('/').at(-1).replace(/\.(md|markdown)$/i, '')
+      return {
+        type: 'note',
+        note: {
+          path: candidate,
+          title: displayName(fileName),
+          github_url: index.repository_url ? `${index.repository_url.replace(/\/$/, '')}/blob/${encodeURIComponent(index.branch)}/${candidate}` : '',
+        },
+        hash,
+      }
+    }
     const prefix = candidate ? `${candidate.toLowerCase()}/` : ''
-    const folderNotes = index.notes.filter(item => item.path.toLowerCase().startsWith(prefix))
-    if (!folderNotes.length) return null
+    const folderNotes = pool.filter(item => item.path.toLowerCase().startsWith(prefix))
+    if (!folderNotes.length) {
+      const folderName = candidate.split('/').filter(Boolean).at(-1) || candidate
+      const landingNotePath = `${candidate}/README.md`
+      return {
+        type: 'folder',
+        folderPath: candidate,
+        note: {
+          path: landingNotePath,
+          title: displayName(folderName),
+          github_url: index.repository_url ? `${index.repository_url.replace(/\/$/, '')}/tree/${encodeURIComponent(index.branch)}/${candidate}` : '',
+        },
+        noteCount: 0,
+        hash,
+      }
+    }
     const rankedNotes = [...folderNotes].sort((left, right) => {
       const leftRelative = left.path.slice(candidate.length + (candidate ? 1 : 0))
       const rightRelative = right.path.slice(candidate.length + (candidate ? 1 : 0))
@@ -201,8 +238,39 @@ function taxonomy(note, rootPath) {
   return { year: parts.length > 1 ? parts[0] : 'Notes', topic: parts.length > 2 ? parts[1] : 'General' }
 }
 
-function buildTree(notes, prefixPath) {
-  const root = { path: '', directories: new Map(), notes: [] }
+function formatDirectoryName(name) {
+  if (!name) return ''
+  return name.split(' / ').map(displayName).join(' / ')
+}
+
+function compactNode(node) {
+  const compactedDirectories = new Map()
+  for (const [key, dir] of node.directories.entries()) {
+    let current = compactNode(dir)
+    let combinedName = current.name || key
+    let combinedPath = current.path
+    while (current.notes.length === 0 && current.directories.size === 1) {
+      const child = current.directories.values().next().value
+      const compactedChild = compactNode(child)
+      combinedName = `${combinedName} / ${compactedChild.name}`
+      combinedPath = compactedChild.path
+      current = compactedChild
+    }
+    compactedDirectories.set(combinedPath, {
+      ...current,
+      name: combinedName,
+      path: combinedPath,
+      directories: current.directories,
+    })
+  }
+  return {
+    ...node,
+    directories: compactedDirectories,
+  }
+}
+
+function buildTree(notes, prefixPath, { compact = true } = {}) {
+  const root = { path: '', name: '', directories: new Map(), notes: [] }
   const prefix = prefixPath ? `${prefixPath.replace(/\/$/, '')}/` : ''
   for (const note of notes) {
     const relative = note.path.startsWith(prefix) ? note.path.slice(prefix.length) : note.path
@@ -215,7 +283,7 @@ function buildTree(notes, prefixPath) {
     }
     cursor.notes.push(note)
   }
-  return root
+  return compact ? compactNode(root) : root
 }
 
 function noteCount(node) {
@@ -508,12 +576,115 @@ function ClickableImage({ src, alt, ...props }) {
   )
 }
 
-function Breadcrumbs({ index, selectedPath, onDirectory }) {
+function Breadcrumbs({ index, selectedPath, onDirectory, repositories, selectedRepository, onSelectRepository }) {
+  const [open, setOpen] = React.useState(false)
+  const [query, setQuery] = React.useState('')
+  const pickerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    const close = event => { if (!pickerRef.current?.contains(event.target)) setOpen(false) }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [])
+
   if (!index || !selectedPath) return null
+  const currentRepo = selectedRepository || repositories?.find(r => r.id === index?.id) || index
+  const repoName = currentRepo?.name || index.name || index.repo || 'Notes'
+  const owner = currentRepo?.owner || index.owner || ''
+  const avatarUrl = owner ? `https://github.com/${encodeURIComponent(owner)}.png?size=96` : ''
   const parts = relativeParts(selectedPath, index.root_path)
   const directories = parts.slice(0, -1)
+
+  const visible = (repositories || []).filter(repository =>
+    `${repository.name} ${repository.description}`.toLowerCase().includes(query.trim().toLowerCase())
+  )
+  const choose = repository => {
+    onSelectRepository?.(repository.id)
+    setOpen(false)
+    setQuery('')
+  }
+
   return (
     <nav className="notes-breadcrumbs" aria-label="Note breadcrumb">
+      <div className="notes-breadcrumb-repo-picker" ref={pickerRef}>
+        <button
+          type="button"
+          className="notes-breadcrumb-repo"
+          onClick={() => setOpen(value => !value)}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          title={`Switch repository (Current: ${repoName})`}
+        >
+          {avatarUrl && (
+            <img className="notes-breadcrumb-avatar-img" src={avatarUrl} alt={owner} loading="lazy" />
+          )}
+          <span className="notes-breadcrumb-repo-name">{repoName}</span>
+          <svg className={`notes-breadcrumb-chevron ${open ? 'expanded' : ''}`} viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m4 6 4 4 4-4" />
+          </svg>
+        </button>
+        {open && (
+          <>
+            <div className="notes-breadcrumb-repo-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />
+            <div className="notes-repository-menu notes-breadcrumb-repo-menu" role="menu" aria-label="Switch notes repository">
+              <strong>Switch learning notes</strong>
+            <label>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="m15.5 15.5 5 5" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={event => setQuery(event.target.value)}
+                placeholder="Search repositories…"
+                autoFocus
+              />
+            </label>
+            <div className="notes-repository-menu-list">
+              {visible.map(repository => {
+                const isActive = repository.id === currentRepo?.id
+                return (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`notes-repository-item ${isActive ? 'active' : ''}`}
+                    key={repository.id}
+                    onClick={() => choose(repository)}
+                  >
+                    <span className="notes-repository-option-visual">
+                      <img
+                        className="notes-author-avatar-img"
+                        src={`https://github.com/${encodeURIComponent(repository.owner)}.png?size=96`}
+                        alt={repository.owner}
+                        loading="lazy"
+                      />
+                    </span>
+                    <span className="notes-repository-option-copy">
+                      <span className="notes-repository-name-row">
+                        <b>{repository.name}</b>
+                        <span className="notes-repository-option-author">@{repository.owner}</span>
+                      </span>
+                      <small>{repository.description}</small>
+                    </span>
+                    {isActive && (
+                      <span className="notes-repository-option-check" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L8 12.586l7.293-7.293a1 1 0 0 1 1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+              {!visible.length && <p>No repositories match your search.</p>}
+            </div>
+          </div>
+        </>
+        )}
+      </div>
+
+      <span aria-hidden="true">›</span>
       {directories.map((part, position) => (
         <React.Fragment key={`${position}-${part}`}>
           {position > 0 && <span aria-hidden="true">›</span>}
@@ -545,7 +716,7 @@ function NoteTree({ node, selectedPath, activeDirectories, expanded, onToggle, o
         <button type="button" className={`notes-tree-folder ${isActiveDirectory ? 'active-ancestor' : ''}`} data-tree-path={directory.path} onClick={() => onToggle(directory.path)} aria-expanded={isExpanded}>
           <svg className={`notes-tree-chevron ${isExpanded ? 'expanded' : ''}`} viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 5 5-5 5"/></svg>
           <TreeFolderIcon />
-          <span className="notes-tree-folder-name">{displayName(directory.name)}</span>
+          <span className="notes-tree-folder-name" title={directory.name}>{formatDirectoryName(directory.name)}</span>
           <small className="notes-count-badge">{noteCount(directory)}</small>
         </button>
         <div className={`notes-tree-children ${isExpanded ? 'expanded' : ''}`}><div><NoteTree node={directory} selectedPath={selectedPath} activeDirectories={activeDirectories} expanded={expanded} onToggle={onToggle} onSelect={onSelect} depth={depth + 1} /></div></div>
@@ -614,6 +785,46 @@ function markdownWithTrustedIframes(content = '') {
     if (trustedSource) return `\n\n\`\`\`notes-trusted-iframe\n${trustedSource}\n\`\`\`\n\n`
     return `\n\n> Embedded content is not available in the reader. [Open embedded content](<${source}>)\n\n`
   })
+}
+
+function markdownWithCodeEmbeds(content = '') {
+  if (!content || typeof content !== 'string') return content || ''
+
+  // Split by code blocks (```...```) and inline code (`...`) to preserve verbatim code
+  const tokenRegex = /(```[\s\S]*?```|`[^`\n]+`)/g
+  const parts = content.split(tokenRegex)
+
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 1) continue // Skip code segments
+
+    let text = parts[i]
+
+    // Match @[code:274-], @[code:274-end], @[code:1-35], @[code:274], @[code](path)
+    text = text.replace(/@\[code(?::(?:(\d+|start))?(?:-(?:(\d+|end))?)?)?\]\(([^)]+)\)/gi, (match, start, end, srcPath) => {
+      let startLine = null
+      if (start && start.toLowerCase() !== 'start') {
+        startLine = parseInt(start, 10)
+      } else if (start && start.toLowerCase() === 'start') {
+        startLine = 1
+      }
+
+      let endLine = null
+      if (end && end.toLowerCase() !== 'end') {
+        endLine = parseInt(end, 10)
+      }
+
+      const data = {
+        src: srcPath.trim(),
+        startLine,
+        endLine,
+      }
+      return `\n\n\`\`\`notes-code-embed\n${JSON.stringify(data)}\n\`\`\`\n\n`
+    })
+
+    parts[i] = text
+  }
+
+  return parts.join('')
 }
 
 function markdownWithMath(content = '') {
@@ -936,13 +1147,68 @@ function ExternalReaderPreview({ preview }) {
   return <iframe className="notes-external-frame" srcDoc={documentHtml} title={`Reader preview: ${preview.title || preview.hostname}`} sandbox="allow-popups allow-popups-to-escape-sandbox" />
 }
 
-function FolderPreviewTree({ node, landingPath, selectedPath, onSelect, depth = 0 }) {
+function FolderPreviewTree({ node, landingPath, selectedPath, onSelect, expanded, onToggle, depth = 0 }) {
   const directories = [...node.directories.values()].sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }))
   const notes = [...node.notes].sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true }))
-  return <div className="notes-folder-preview-level" style={{ '--folder-preview-depth': depth }}>
-    {directories.map(directory => <section className="notes-folder-preview-directory" key={directory.path}><div className="notes-folder-preview-folder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3V6Z"/></svg><span><b>{displayName(directory.name)}</b><small>{noteCount(directory)} notes</small></span></div><FolderPreviewTree node={directory} landingPath={landingPath} selectedPath={selectedPath} onSelect={onSelect} depth={depth + 1}/></section>)}
-    {notes.map(folderNote => <button type="button" className={`${folderNote.path === landingPath ? 'is-landing' : ''} ${folderNote.path === selectedPath ? 'is-selected' : ''}`} key={folderNote.path} onClick={() => onSelect(folderNote.path)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6V3Z"/><path d="M14 3v5h5M9 12h7M9 16h7"/></svg><span><b>{folderNote.title}</b><small>{folderNote.path.split('/').at(-1)}{folderNote.path === landingPath ? ' · Landing note' : ''}</small></span><span aria-hidden="true">›</span></button>)}
-  </div>
+
+  return (
+    <div className="notes-tree-level" style={{ '--tree-depth': depth }}>
+      {directories.map(directory => {
+        const isExpanded = expanded ? expanded[directory.path] !== false : true
+        return (
+          <div className="notes-tree-directory" key={directory.path}>
+            <button
+              type="button"
+              className="notes-tree-folder"
+              data-tree-path={directory.path}
+              onClick={() => onToggle?.(directory.path)}
+              aria-expanded={isExpanded}
+            >
+              <svg className={`notes-tree-chevron ${isExpanded ? 'expanded' : ''}`} viewBox="0 0 16 16" aria-hidden="true">
+                <path d="m5 3 5 5-5 5" />
+              </svg>
+              <TreeFolderIcon />
+              <span className="notes-tree-folder-name" title={directory.name}>
+                {formatDirectoryName(directory.name)}
+              </span>
+              <small className="notes-count-badge">{noteCount(directory)}</small>
+            </button>
+            <div className={`notes-tree-children ${isExpanded ? 'expanded' : ''}`}>
+              <div>
+                <FolderPreviewTree
+                  node={directory}
+                  landingPath={landingPath}
+                  selectedPath={selectedPath}
+                  onSelect={onSelect}
+                  expanded={expanded}
+                  onToggle={onToggle}
+                  depth={depth + 1}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })}
+      {notes.map(folderNote => {
+        const isSelected = folderNote.path === selectedPath
+        const isLanding = folderNote.path === landingPath
+        return (
+          <button
+            type="button"
+            key={folderNote.path}
+            className={`notes-tree-note ${isSelected ? 'active' : ''}`}
+            onClick={() => onSelect(folderNote.path)}
+            title={folderNote.path}
+          >
+            <TreeNoteIcon />
+            <strong className="notes-tree-note-title">{folderNote.title}</strong>
+            {isLanding && !isSelected && <span className="notes-landing-pill">Landing</span>}
+            {isSelected && <span className="notes-current-label">Current</span>}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 function PreviewOnThisPage({ note, headings, headingIdPrefix, scrollContainerRef }) {
@@ -959,7 +1225,7 @@ function PreviewOnThisPage({ note, headings, headingIdPrefix, scrollContainerRef
   </aside>
 }
 
-function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink }) {
+function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink, onOpenCodeModal }) {
   const headingIdPrefix = 'notes-link-preview-heading-'
   const contentContainerRef = React.useRef(null)
 
@@ -995,7 +1261,7 @@ function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink }
   return <div className="notes-preview-markdown-layout">
     <div className="notes-preview-markdown-content" ref={contentContainerRef}>
       <article className="markdown-body notes-link-note-preview">
-        <MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink}/>
+        <MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink} onOpenCodeModal={onOpenCodeModal}/>
       </article>
     </div>
     <PreviewOnThisPage note={note} headings={headings} headingIdPrefix={headingIdPrefix} scrollContainerRef={contentContainerRef}/>
@@ -1005,8 +1271,11 @@ function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink }
 function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNavigate, onPreviewLink, canGoBack, onBack }) {
   const [previewNote, setPreviewNote] = React.useState(null)
   const [folderSelectedPath, setFolderSelectedPath] = React.useState('')
+  const [folderExpanded, setFolderExpanded] = React.useState({})
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+
+  const toggleFolder = path => setFolderExpanded(current => ({ ...current, [path]: current[path] === false ? true : false }))
 
   React.useEffect(() => {
     if (!preview) return undefined
@@ -1019,7 +1288,7 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
 
   React.useEffect(() => {
     setPreviewNote(null); setError('')
-    const contentPath = preview?.type === 'note' ? preview.path : preview?.type === 'folder' ? folderSelectedPath : ''
+    const contentPath = preview?.type === 'note' ? preview.path : preview?.type === 'folder' ? (folderSelectedPath || preview.path) : ''
     if (!contentPath) { setLoading(false); return undefined }
     let active = true
     setLoading(true)
@@ -1033,9 +1302,10 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
     ? (preview.folderPath || preview.path)
     : (() => { try { const value = new URL(preview.url); return `${value.hostname}${decodeURIComponent(value.pathname)}` } catch { return preview.url } })()
   const previewHeadings = previewNote ? extractHeadings(previewNote.content) : []
+  const pool = index?.allNotes || index?.notes || []
   const folderPrefix = preview.type === 'folder' && preview.folderPath ? `${preview.folderPath.toLowerCase().replace(/\/$/, '')}/` : ''
-  const folderNotes = preview.type === 'folder' ? (index?.notes || []).filter(item => item.path.toLowerCase().startsWith(folderPrefix)) : []
-  const folderTree = preview.type === 'folder' ? buildTree(folderNotes, preview.folderPath) : null
+  const folderNotes = preview.type === 'folder' ? pool.filter(item => item.path.toLowerCase().startsWith(folderPrefix)) : []
+  const folderTree = preview.type === 'folder' && folderNotes.length > 0 ? buildTree(folderNotes, preview.folderPath) : null
 
   return <div className="notes-link-drawer-layer" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <aside className={`notes-link-drawer link-type-${preview.type}`} role="dialog" aria-modal="true" aria-labelledby="notes-link-preview-title">
@@ -1043,12 +1313,33 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
         <button type="button" className="notes-link-back" onClick={onBack} disabled={!canGoBack} aria-label="Back to previous preview" title="Back to previous preview">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7M8 12h10"/></svg>
         </button>
-        <div className="notes-link-brand"><span><LinkBrandIcon type={preview.type}/></span><div><small>{labels[preview.type] || labels.external}</small><strong id="notes-link-preview-title">{preview.title || preview.hostname || 'Link preview'}</strong><p title={description}>{description}</p></div></div>
+        <div className="notes-link-drawer-title">
+          <span className="notes-link-title-icon"><LinkBrandIcon type={preview.type}/></span>
+          <strong id="notes-link-preview-title">{preview.title || preview.hostname || 'Link preview'}</strong>
+          <small title={description}>{description}</small>
+        </div>
         <button type="button" className="notes-link-close" onClick={onClose} aria-label="Close link preview">×</button>
       </header>
       <div className="notes-link-drawer-body">
         {preview.type === 'note' && (loading ? <div className="note-reader-status"><span className="spinner" /> Loading linked note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={preview.hash} index={index} onOpenLink={onPreviewLink}/> : null)}
-        {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={folderSelectedPath === preview.path ? preview.hash : ''} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
+        {preview.type === 'folder' && (
+          folderNotes.length > 0 ? (
+            <div className="notes-folder-master-detail">
+              <aside className="notes-folder-master">
+                <div className="notes-folder-master-tree">
+                  {folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath} expanded={folderExpanded} onToggle={toggleFolder}/>}
+                </div>
+              </aside>
+              <section className="notes-folder-detail">
+                <div className="notes-folder-detail-content">
+                  {loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={folderSelectedPath === preview.path ? preview.hash : ''} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}
+                </div>
+              </section>
+            </div>
+          ) : (
+            loading ? <div className="note-reader-status"><span className="spinner" /> Loading folder preview…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={preview.hash} index={index} onOpenLink={onPreviewLink}/> : null
+          )
+        )}
         {preview.type === 'youtube-post' && <div className="notes-youtube-post-preview"><span><LinkBrandIcon type="youtube-post"/></span><h2>Community post</h2><p>YouTube does not provide a video-player embed for Community posts. Open the post on YouTube to view its text, images, poll, and discussion.</p></div>}
         {preview.type === 'youtube' && <div className="notes-external-preview"><iframe key={preview.url} className="notes-external-frame" src={youtubeEmbedUrl(preview.videoId)} title={`${labels.youtube}: ${preview.title || preview.hostname}`} loading="eager" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></div>}
         {preview.type === 'excalidraw' && <div className="notes-excalidraw-preview"><React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Preparing canvas…</strong></div>}><ExcalidrawViewer url={preview.url} onFallback={() => { window.open(preview.url, '_blank', 'noopener,noreferrer'); onClose() }}/></React.Suspense></div>}
@@ -1057,7 +1348,7 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
       <footer className="notes-link-drawer-actions">
         <button type="button" className="btn btn-secondary" onClick={onClose}>Close preview</button>
         {preview.type === 'note' && <button type="button" className="btn btn-primary" onClick={() => onNavigate(preview.path, preview.hash)}>Jump to note</button>}
-        {preview.type === 'folder' && <button type="button" className="btn btn-primary" disabled={!folderSelectedPath} onClick={() => onNavigate(folderSelectedPath, folderSelectedPath === preview.path ? preview.hash : '')}>Jump to selected note</button>}
+        {preview.type === 'folder' && <button type="button" className="btn btn-primary" onClick={() => onNavigate(folderSelectedPath || preview.path, (folderSelectedPath === preview.path || !folderSelectedPath) ? preview.hash : '')}>Jump to note</button>}
         {preview.url && <a className="btn btn-secondary notes-link-open" href={preview.url} target="_blank" rel="noreferrer">Open in new tab ↗</a>}
       </footer>
     </aside>
@@ -1109,14 +1400,49 @@ function uncollapseTargetIfNeeded(el) {
   }
 }
 
-const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [], headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
-  let headingIndex = 0
+function getNodeText(node) {
+  if (!node) return ''
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (Array.isArray(node)) return node.map(getNodeText).join('')
+  if (node?.props?.children) return getNodeText(node.props.children)
+  return ''
+}
+
+const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [], headingIdPrefix = '', index, onOpenLink, onOpenCodeModal, titleNavigation }) {
   let titleNavigationRendered = false
+  const headingCounts = React.useRef({})
+  headingCounts.current = {}
+
+  const headingsByBase = React.useMemo(() => {
+    const map = new Map()
+    for (const h of headings) {
+      const base = slug(h.title)
+      if (!map.has(base)) map.set(base, [])
+      map.get(base).push(h)
+    }
+    return map
+  }, [headings])
+
+  const resolveHeadingId = (children) => {
+    const text = getNodeText(children)
+    const title = cleanHeading(text)
+    const base = slug(title)
+
+    headingCounts.current[base] = (headingCounts.current[base] || 0) + 1
+    const occurrence = headingCounts.current[base]
+
+    const matches = headingsByBase.get(base)
+    if (matches && matches[occurrence - 1]) {
+      return `${headingIdPrefix}${matches[occurrence - 1].id}`
+    }
+
+    const fallbackId = occurrence === 1 ? base : `${base}-${occurrence}`
+    return `${headingIdPrefix}${fallbackId}`
+  }
+
   const heading = level => ({ children, ...props }) => {
     const Tag = `h${level}`
-    const headingId = headings?.[headingIndex]?.id
-    const id = headingId ? `${headingIdPrefix}${headingId}` : undefined
-    headingIndex += 1
+    const id = resolveHeadingId(children)
     if (level === 1 && titleNavigation && !titleNavigationRendered) {
       titleNavigationRendered = true
       const { previousNote, nextNote, onNavigate } = titleNavigation
@@ -1239,6 +1565,22 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
     pre: ({ children, ...props }) => {
       const codeElement = React.Children.count(children) === 1 ? React.Children.only(children) : null
       const language = /language-([^\s]+)/.exec(codeElement?.props?.className || '')?.[1]?.toLowerCase()
+      if (language === 'notes-code-embed') {
+        try {
+          const embedData = JSON.parse(String(codeElement.props.children).trim())
+          return (
+            <CodeEmbedCard
+              src={embedData.src}
+              startLine={embedData.startLine}
+              endLine={embedData.endLine}
+              note={note}
+              onOpenCodeModal={onOpenCodeModal}
+            />
+          )
+        } catch {
+          return null
+        }
+      }
       if (language === 'notes-math-block') {
         const codeContent = codeElement ? codeElement.props.children : children
         return <MathBlock math={String(codeContent).trim()} />
@@ -1265,7 +1607,7 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
       return <CodeBlock language={language} code={codeContent} />
     },
   }
-  const transformed = markdownWithMath(markdownWithReferences(markdownWithTrustedIframes(note.content), note, index))
+  const transformed = markdownWithMath(markdownWithCodeEmbeds(markdownWithReferences(markdownWithTrustedIframes(note.content), note, index)))
   return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{transformed}</ReactMarkdown>
 })
 
@@ -1494,6 +1836,67 @@ function calculateReadingStats(content = '') {
   }
 }
 
+function extractTabsFromSlideContent(slideLines) {
+  const tabs = []
+  let inCode = false
+  let currentTab = null
+  let introLines = []
+  let inTabIntro = true
+
+  for (let i = 0; i < slideLines.length; i++) {
+    const line = slideLines[i]
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inCode = !inCode
+    }
+
+    const h3Match = !inCode && line.match(/^###\s+(.+?)\s*#*\s*$/)
+
+    if (h3Match) {
+      if (inTabIntro) {
+        inTabIntro = false
+        const introText = introLines.join('\n').trim()
+        if (introText) {
+          tabs.push({
+            id: 'tab-0-overview',
+            label: 'Overview',
+            content: introText,
+          })
+        }
+      } else if (currentTab) {
+        currentTab.content = currentTab.lines.join('\n').trim()
+        delete currentTab.lines
+        tabs.push(currentTab)
+      }
+
+      const rawTitle = cleanHeading(h3Match[1])
+      currentTab = {
+        id: `tab-${tabs.length + 1}-${slug(rawTitle)}`,
+        label: rawTitle,
+        lines: [line],
+      }
+    } else {
+      if (inTabIntro) {
+        introLines.push(line)
+      } else if (currentTab) {
+        currentTab.lines.push(line)
+      }
+    }
+  }
+
+  if (inTabIntro) {
+    // No H3 found in this slide
+    return []
+  } else if (currentTab) {
+    currentTab.content = currentTab.lines.join('\n').trim()
+    delete currentTab.lines
+    tabs.push(currentTab)
+  }
+
+  return tabs.length > 1 ? tabs : []
+}
+
 function extractSlidesFromMarkdown(content, note) {
   if (!content) return []
 
@@ -1505,6 +1908,20 @@ function extractSlidesFromMarkdown(content, note) {
   let inIntro = true
   let inCodeBlock = false
   let slideIndex = 0
+
+  const finishSlide = (slide) => {
+    if (!slide) return
+    const rawContent = slide.lines.join('\n').trim()
+    const tabs = extractTabsFromSlideContent(slide.lines)
+    slides.push({
+      id: slide.id,
+      slideNumber: slide.slideNumber,
+      type: slide.type,
+      title: slide.title,
+      content: rawContent,
+      tabs: tabs.length > 0 ? tabs : null,
+    })
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -1520,17 +1937,17 @@ function extractSlidesFromMarkdown(content, note) {
       if (inIntro) {
         inIntro = false
         const introMarkdown = introLines.join('\n').trim()
+        const introTabs = extractTabsFromSlideContent(introLines)
         slides.push({
           id: 'slide-0-intro',
           slideNumber: slideIndex++,
           type: 'intro',
           title: note?.title || 'Overview',
           content: introMarkdown,
+          tabs: introTabs.length > 0 ? introTabs : null,
         })
       } else if (currentSlide) {
-        currentSlide.content = currentSlide.lines.join('\n').trim()
-        delete currentSlide.lines
-        slides.push(currentSlide)
+        finishSlide(currentSlide)
       }
 
       const rawTitle = cleanHeading(h2Match[1])
@@ -1557,17 +1974,18 @@ function extractSlidesFromMarkdown(content, note) {
   }
 
   if (inIntro) {
+    const introMarkdown = introLines.join('\n').trim()
+    const introTabs = extractTabsFromSlideContent(introLines)
     slides.push({
       id: 'slide-0-intro',
       slideNumber: 0,
       type: 'intro',
       title: note?.title || 'Overview',
-      content: introLines.join('\n').trim(),
+      content: introMarkdown,
+      tabs: introTabs.length > 0 ? introTabs : null,
     })
   } else if (currentSlide) {
-    currentSlide.content = currentSlide.lines.join('\n').trim()
-    delete currentSlide.lines
-    slides.push(currentSlide)
+    finishSlide(currentSlide)
   }
 
   return slides
@@ -1576,6 +1994,7 @@ function extractSlidesFromMarkdown(content, note) {
 function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) {
   const slides = React.useMemo(() => extractSlidesFromMarkdown(note?.content, note), [note?.content, note?.title])
   const [currentIndex, setCurrentIndex] = React.useState(0)
+  const [currentTabIdx, setCurrentTabIdx] = React.useState(0)
   const [direction, setDirection] = React.useState('next')
   const [showOverview, setShowOverview] = React.useState(false)
   const [isFullscreen, setIsFullscreen] = React.useState(Boolean(document.fullscreenElement))
@@ -1589,13 +2008,16 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
 
   const totalSlides = slides.length
   const currentSlide = slides[currentIndex] || slides[0]
-  const slideHeadings = React.useMemo(() => extractHeadings(currentSlide?.content), [currentSlide?.content])
-  const slideNote = React.useMemo(() => (note && currentSlide ? { ...note, content: currentSlide.content } : note), [note, currentSlide?.content])
+  const hasTabs = Boolean(currentSlide?.tabs && currentSlide.tabs.length > 1)
+  const activeContent = hasTabs ? (currentSlide.tabs[currentTabIdx]?.content || currentSlide.content) : currentSlide?.content
+  const slideHeadings = React.useMemo(() => extractHeadings(activeContent), [activeContent])
+  const slideNote = React.useMemo(() => (note && currentSlide ? { ...note, content: activeContent } : note), [note, activeContent])
 
-  const goToSlide = React.useCallback((targetIndex, dir) => {
+  const goToSlide = React.useCallback((targetIndex, dir, targetTab = 0) => {
     if (targetIndex < 0 || targetIndex >= totalSlides) return
     setDirection(dir || (targetIndex >= currentIndex ? 'next' : 'prev'))
     setCurrentIndex(targetIndex)
+    setCurrentTabIdx(targetTab)
     setCurrentStep(0)
     setShowOverview(false)
   }, [currentIndex, totalSlides])
@@ -1604,7 +2026,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
     if (slideCardRef.current) {
       slideCardRef.current.scrollTo({ top: 0 })
     }
-  }, [currentIndex])
+  }, [currentIndex, currentTabIdx])
 
   // Track and update fragment elements for step-by-step reveal
   React.useLayoutEffect(() => {
@@ -1615,7 +2037,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       return
     }
 
-    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-code-block-card, :scope > .notes-math-block-card, :scope > .notes-table-container, :scope > table, :scope > .notes-mermaid-container, :scope > .mermaid-preview-card, :scope > .notes-image-container, :scope > img, :scope > .notes-trusted-iframe-wrapper, :scope > hr, :scope ul > li, :scope ol > li')]
+    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-code-block-card, :scope > .notes-code-embed-card, :scope > .notes-math-block-card, :scope > .notes-table-container, :scope > table, :scope > .notes-mermaid-container, :scope > .mermaid-preview-card, :scope > .notes-image-container, :scope > img, :scope > .notes-trusted-iframe-wrapper, :scope > hr, :scope ul > li, :scope ol > li')]
     setFragmentCount(items.length)
 
     items.forEach((item, idx) => {
@@ -1638,27 +2060,42 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
     } else if (stepMode && currentStep === 0) {
       slideCardRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
-  }, [currentIndex, currentSlide, stepMode, currentStep])
+  }, [currentIndex, currentSlide, activeContent, stepMode, currentStep])
 
   const nextSlide = React.useCallback(() => {
     if (stepMode && fragmentCount > 0 && currentStep < fragmentCount - 1) {
       setCurrentStep(step => step + 1)
       return
     }
-    if (currentIndex < totalSlides - 1) {
-      goToSlide(currentIndex + 1, 'next')
+    if (hasTabs && currentTabIdx < currentSlide.tabs.length - 1) {
+      setCurrentTabIdx(t => t + 1)
+      setCurrentStep(0)
+      if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      return
     }
-  }, [stepMode, fragmentCount, currentStep, currentIndex, totalSlides, goToSlide])
+    if (currentIndex < totalSlides - 1) {
+      goToSlide(currentIndex + 1, 'next', 0)
+    }
+  }, [stepMode, fragmentCount, currentStep, hasTabs, currentTabIdx, currentSlide, currentIndex, totalSlides, goToSlide])
 
   const prevSlide = React.useCallback(() => {
     if (stepMode && currentStep > 0) {
       setCurrentStep(step => step - 1)
       return
     }
-    if (currentIndex > 0) {
-      goToSlide(currentIndex - 1, 'prev')
+    if (hasTabs && currentTabIdx > 0) {
+      setCurrentTabIdx(t => t - 1)
+      setCurrentStep(0)
+      if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      return
     }
-  }, [stepMode, currentStep, currentIndex, goToSlide])
+    if (currentIndex > 0) {
+      const prevSlideItem = slides[currentIndex - 1]
+      const prevTabCount = prevSlideItem?.tabs?.length || 0
+      const lastTab = prevTabCount > 1 ? prevTabCount - 1 : 0
+      goToSlide(currentIndex - 1, 'prev', lastTab)
+    }
+  }, [stepMode, currentStep, hasTabs, currentTabIdx, currentIndex, slides, goToSlide])
 
   const toggleFullscreen = React.useCallback(() => {
     if (!document.fullscreenElement) {
@@ -1690,12 +2127,29 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       } else if (event.key === 'ArrowLeft' || event.key === 'PageUp' || event.key === 'h' || event.key === 'H' || event.key === 'Backspace') {
         event.preventDefault()
         prevSlide()
+      } else if (event.key === 'Tab' && hasTabs) {
+        event.preventDefault()
+        if (event.shiftKey) {
+          setCurrentTabIdx(prev => (prev > 0 ? prev - 1 : currentSlide.tabs.length - 1))
+        } else {
+          setCurrentTabIdx(prev => (prev < currentSlide.tabs.length - 1 ? prev + 1 : 0))
+        }
+        setCurrentStep(0)
+        if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      } else if (event.key >= '1' && event.key <= '9' && hasTabs) {
+        const targetTab = parseInt(event.key, 10) - 1
+        if (targetTab < currentSlide.tabs.length) {
+          event.preventDefault()
+          setCurrentTabIdx(targetTab)
+          setCurrentStep(0)
+          if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+        }
       } else if (event.key === 'Home') {
         event.preventDefault()
-        goToSlide(0)
+        goToSlide(0, 'prev', 0)
       } else if (event.key === 'End') {
         event.preventDefault()
-        goToSlide(totalSlides - 1)
+        goToSlide(totalSlides - 1, 'next', 0)
       } else if (event.key === 'f' || event.key === 'F') {
         event.preventDefault()
         toggleFullscreen()
@@ -1721,7 +2175,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [nextSlide, prevSlide, goToSlide, showOverview, onClose, totalSlides, toggleFullscreen])
+  }, [nextSlide, prevSlide, goToSlide, showOverview, onClose, totalSlides, toggleFullscreen, hasTabs, currentSlide])
 
   const isLaserActive = laserPointer || altPressed
 
@@ -1844,7 +2298,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         {currentSlide && (
           <div
             ref={slideCardRef}
-            key={`${currentSlide.id}-${currentIndex}`}
+            key={`${currentSlide.id}-${currentIndex}-${currentTabIdx}`}
             className={`notes-slide-card is-${direction} ${currentSlide.type === 'intro' ? 'is-intro-slide' : ''} ${stepMode ? 'is-step-mode' : ''}`}
           >
             {currentSlide.type === 'intro' && (
@@ -1856,13 +2310,38 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
                 <h1 className="notes-slide-hero-title">{note?.title}</h1>
               </div>
             )}
+
+            {/* In-Slide Sub-Topic Tabs (Option 3) */}
+            {hasTabs && (
+              <div className="notes-slide-tabs-bar" role="tablist" aria-label="Slide sub-topics">
+                {currentSlide.tabs.map((tab, idx) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={currentTabIdx === idx}
+                    className={`notes-slide-tab-pill ${currentTabIdx === idx ? 'is-active' : ''}`}
+                    onClick={() => {
+                      setCurrentTabIdx(idx)
+                      setCurrentStep(0)
+                      if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+                    }}
+                    title={`Sub-topic ${idx + 1}: ${tab.label} (Press ${idx + 1})`}
+                  >
+                    <span className="notes-slide-tab-num">{idx + 1}</span>
+                    <span className="notes-slide-tab-label">{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="notes-slide-body markdown-body">
               <MarkdownContent
                 note={slideNote}
                 headings={slideHeadings}
                 index={index}
                 onOpenLink={onOpenLink}
-                headingIdPrefix={`slide-${currentIndex}-`}
+                headingIdPrefix={`slide-${currentIndex}-${currentTabIdx}-`}
               />
             </div>
           </div>
@@ -1886,7 +2365,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         <button
           type="button"
           className="notes-dock-nav-btn is-prev"
-          disabled={currentIndex === 0 && (!stepMode || currentStep === 0)}
+          disabled={currentIndex === 0 && currentTabIdx === 0 && (!stepMode || currentStep === 0)}
           onClick={prevSlide}
           title="Previous (← / ArrowLeft / Backspace)"
           aria-label="Previous step or slide"
@@ -1900,6 +2379,11 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
           <span className="current-num">{currentIndex + 1}</span>
           <span className="divider">/</span>
           <span className="total-num">{totalSlides}</span>
+          {hasTabs && (
+            <span className="notes-dock-tab-badge" title="Active sub-topic tab">
+              Tab {currentTabIdx + 1}/{currentSlide.tabs.length}
+            </span>
+          )}
           {stepMode && fragmentCount > 0 && (
             <span className="notes-dock-step-badge">
               Step {Math.min(currentStep + 1, fragmentCount)}/{fragmentCount}
@@ -1910,7 +2394,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         <button
           type="button"
           className="notes-dock-nav-btn is-next"
-          disabled={currentIndex === totalSlides - 1 && (!stepMode || currentStep === fragmentCount - 1)}
+          disabled={currentIndex === totalSlides - 1 && (!hasTabs || currentTabIdx === currentSlide.tabs.length - 1) && (!stepMode || currentStep === fragmentCount - 1)}
           onClick={nextSlide}
           title="Next (→ / Space / ArrowRight)"
           aria-label="Next step or slide"
@@ -1921,7 +2405,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         </button>
 
         <div className="notes-dock-shortcuts-hint" aria-hidden="true">
-          <kbd>Space</kbd> Next · <kbd>R</kbd> Reveal · <kbd>P</kbd> Laser · <kbd>G</kbd> Grid · <kbd>F</kbd> Fullscreen · <kbd>Esc</kbd> Exit
+          <kbd>Space</kbd> Next {hasTabs && <>· <kbd>1-{currentSlide.tabs.length}</kbd> / <kbd>Tab</kbd> Sub-topic </>}· <kbd>R</kbd> Reveal · <kbd>P</kbd> Laser · <kbd>G</kbd> Grid · <kbd>F</kbd> Fullscreen · <kbd>Esc</kbd> Exit
         </div>
       </div>
 
@@ -1954,6 +2438,9 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
                   <div className="notes-slide-grid-card-header">
                     <span className="notes-slide-grid-num">#{idx + 1}</span>
                     <span className="notes-slide-grid-type">{s.type === 'intro' ? 'Overview' : 'Section'}</span>
+                    {s.tabs && s.tabs.length > 1 && (
+                      <span className="notes-slide-grid-tabs-badge">{s.tabs.length} Tabs</span>
+                    )}
                   </div>
                   <strong className="notes-slide-grid-title">{s.title}</strong>
                   <p className="notes-slide-grid-snippet">
@@ -2002,7 +2489,6 @@ function OnThisPage({ note, headings, readingStats, scrollContainerRef, mobileOp
   return <aside className={`notes-outline ${mobileOpen ? 'mobile-open' : ''}`} aria-label="On this page" aria-hidden={isMobile && !mobileOpen}>
     {splitter}
     <div className="notes-outline-sticky">
-      <button type="button" className="notes-mobile-drawer-close" onClick={onMobileClose} aria-label="Close page outline">×</button>
       <div className="notes-outline-header-row">
         <div className="notes-outline-header-title">
           <span>On this page</span>
@@ -2044,6 +2530,17 @@ function OnThisPage({ note, headings, readingStats, scrollContainerRef, mobileOp
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg>
             </a>
           )}
+          {isMobile && (
+            <button
+              type="button"
+              className="notes-outline-action-btn notes-outline-close-mobile"
+              onClick={onMobileClose}
+              aria-label="Close page outline"
+              title="Close outline"
+            >
+              ×
+            </button>
+          )}
         </div>
       </div>
       <strong>{note?.title || 'Note outline'}</strong>
@@ -2061,8 +2558,19 @@ const REPOSITORY_COLORS = {
   'cloud-engineering': ['#2563eb', '#06b6d4'],
 }
 
-function repositoryStyle(repositoryId) {
-  const [accent, secondary] = REPOSITORY_COLORS[repositoryId] || ['#73553f', '#d97706']
+function repositoryStyle(repositoryOrId) {
+  let colors = null
+  if (repositoryOrId && typeof repositoryOrId === 'object') {
+    colors = repositoryOrId.repositoryStyle || repositoryOrId.colors
+  }
+  const repositoryId = typeof repositoryOrId === 'string' ? repositoryOrId : repositoryOrId?.id
+
+  if (!colors && repositoryId) {
+    const configured = NOTE_REPOSITORIES.find(r => r.id === repositoryId)
+    colors = configured?.repositoryStyle || configured?.colors
+  }
+
+  const [accent, secondary] = colors || REPOSITORY_COLORS[repositoryId] || ['#73553f', '#d97706']
   return { '--notes-accent': accent, '--notes-accent-2': secondary, '--notes-glow': `${accent}2e` }
 }
 
@@ -2083,7 +2591,7 @@ function RepositoryAuthor({ repository, compact = false }) {
   const owner = repository?.owner || 'GitHub'
   const avatarUrl = repository?.owner ? `https://github.com/${encodeURIComponent(repository.owner)}.png?size=96` : ''
   return <span className={`notes-repository-author ${compact ? 'compact' : ''}`}>
-    <span className="notes-author-avatar" aria-hidden="true"><b>{owner.slice(0, 1).toUpperCase()}</b>{avatarUrl && <img src={avatarUrl} alt="" loading="lazy"/>}</span>
+    {avatarUrl && <img className="notes-author-avatar-img" src={avatarUrl} alt={owner} loading="lazy"/>}
     <span><small>Repository author</small><strong>@{owner}</strong></span>
   </span>
 }
@@ -2106,7 +2614,7 @@ function RepositoryDropdown({ repositories, selected, onSelect }) {
     {open && <div className="notes-repository-menu" role="menu" aria-label="Switch notes repository">
       <strong>Switch learning notes</strong>
       <label><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search repositories…"/></label>
-      <div className="notes-repository-menu-list">{visible.map(repository => <button type="button" role="menuitem" style={repositoryStyle(repository.id)} className={repository.id === selected?.id ? 'active' : ''} key={repository.id} onClick={() => choose(repository)}><span className="notes-repository-option-visual"><span className="notes-author-avatar" aria-hidden="true"><b>{repository.owner.slice(0, 1).toUpperCase()}</b><img src={`https://github.com/${encodeURIComponent(repository.owner)}.png?size=96`} alt="" loading="lazy"/></span></span><span className="notes-repository-option-copy"><b>{repository.name}</b><small>{repository.description}</small><span className="notes-repository-option-author">@{repository.owner}</span></span></button>)}{!visible.length && <p>No repositories match your search.</p>}</div>
+      <div className="notes-repository-menu-list">{visible.map(repository => <button type="button" role="menuitem" className={`notes-repository-item ${repository.id === selected?.id ? 'active' : ''}`} key={repository.id} onClick={() => choose(repository)}><span className="notes-repository-option-visual"><img className="notes-author-avatar-img" src={`https://github.com/${encodeURIComponent(repository.owner)}.png?size=96`} alt={repository.owner} loading="lazy"/></span><span className="notes-repository-option-copy"><span className="notes-repository-name-row"><b>{repository.name}</b><span className="notes-repository-option-author">@{repository.owner}</span></span><small>{repository.description}</small></span>{repository.id === selected?.id && <span className="notes-repository-option-check" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L8 12.586l7.293-7.293a1 1 0 0 1 1.414 0z" clipRule="evenodd" /></svg></span>}</button>)}{!visible.length && <p>No repositories match your search.</p>}</div>
     </div>}
   </div>
 }
@@ -2150,14 +2658,35 @@ function TopicDropdown({ options, selectedTopic, onSelect }) {
 }
 
 function NoteSourceToggle({ source, onChange }) {
-  return <div className="notes-source-toggle" role="group" aria-label="Notes source">
-    <button type="button" className={source === 'remote' ? 'active' : ''} aria-pressed={source === 'remote'} onClick={() => onChange('remote')} title="Read from GitHub">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9Z"/></svg><span>Remote</span>
-    </button>
-    <button type="button" className={source === 'local' ? 'active' : ''} aria-pressed={source === 'local'} onClick={() => onChange('local')} title="Read from local checkout">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg><span>Local</span>
-    </button>
-  </div>
+  return (
+    <div className="notes-source-toggle" role="group" aria-label="Notes source (Remote vs Local)">
+      <button
+        type="button"
+        className={`notes-source-icon-btn ${source === 'remote' ? 'active' : ''}`}
+        aria-pressed={source === 'remote'}
+        onClick={() => onChange('remote')}
+        title="Remote (GitHub live)"
+        aria-label="Read published notes from GitHub"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9Z"/>
+        </svg>
+      </button>
+      <button
+        type="button"
+        className={`notes-source-icon-btn ${source === 'local' ? 'active' : ''}`}
+        aria-pressed={source === 'local'}
+        onClick={() => onChange('local')}
+        title="Local (Local checkout)"
+        aria-label="Read notes from local checkout"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="14" rx="2"/>
+          <path d="M8 21h8M12 18v3"/>
+        </svg>
+      </button>
+    </div>
+  )
 }
 
 function NoteSourceStatus({ source, onRefresh }) {
@@ -2173,6 +2702,36 @@ function NoteSourceStatus({ source, onRefresh }) {
 
 function RepositoryCards({ repositories, loading, onOpen }) {
   return <div className="notes-catalog"><header className="notes-page-header"><div><span className="notes-eyebrow">Your knowledge library</span><h1>Learning notes</h1><p>Choose a configured GitHub repository to explore its topics and notes.</p></div></header>{loading ? <div className="note-reader-status"><span className="spinner" /> Loading repositories…</div> : <div className="notes-repository-grid">{repositories.map(repository => <button type="button" style={repositoryStyle(repository.id)} className="notes-repository-card" key={repository.id} onClick={() => !repository.error && onOpen(repository.id)} disabled={Boolean(repository.error)}><RepositoryMark repositoryId={repository.id}/><span className="notes-repository-copy"><strong>{repository.name}</strong><RepositoryAuthor repository={repository}/><span>{repository.description}</span><small>{repository.error || `${repository.note_count} notes · ${repository.branch} / ${repository.root_path}`}</small></span><span className="notes-card-arrow">›</span></button>)}</div>}</div>
+}
+
+function getLastOpenPath(repoId, topic = '') {
+  if (!repoId) return ''
+  try {
+    if (topic) {
+      return localStorage.getItem(`learning-notes-last-path:${repoId}:${topic}`) || ''
+    }
+    return localStorage.getItem(`learning-notes-last-path:${repoId}`) || ''
+  } catch {
+    return ''
+  }
+}
+
+function setLastOpenPath(repoId, path, rootPath = '') {
+  if (!repoId || !path) return
+  try {
+    localStorage.setItem(`learning-notes-last-path:${repoId}`, path)
+    if (rootPath) {
+      const tax = taxonomy({ path }, rootPath)
+      if (tax?.topic) {
+        localStorage.setItem(`learning-notes-last-path:${repoId}:${tax.topic}`, path)
+      }
+      if (tax?.year) {
+        localStorage.setItem(`learning-notes-last-path:${repoId}:year:${tax.year}`, path)
+      }
+    }
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 export default function Notes() {
@@ -2195,6 +2754,7 @@ export default function Notes() {
   const [linkPreviewHistory, setLinkPreviewHistory] = React.useState([])
   const [targetHash, setTargetHash] = React.useState('')
   const [excalidrawModal, setExcalidrawModal] = React.useState(null)
+  const [codeModal, setCodeModal] = React.useState(null)
   const [loadingCatalog, setLoadingCatalog] = React.useState(true)
   const [loadingIndex, setLoadingIndex] = React.useState(false)
   const [loadingNote, setLoadingNote] = React.useState(false)
@@ -2261,7 +2821,24 @@ export default function Notes() {
     if (!repositoryId) { setIndex(null); setNote(null); return undefined }
     let active = true
     setLoadingIndex(true); setError(''); setQuery('')
-    getNotes(repositoryId, noteSource).then(data => { if (!active) return; setIndex(data); if ((!selectedPath || !data.notes.some(item => item.path === selectedPath)) && data.notes?.length) setSearchParams({ repo: repositoryId, path: data.notes[0].path }, { replace: true }) }).catch(fetchError => active && setError(fetchError.message || 'Unable to load this repository.')).finally(() => active && setLoadingIndex(false))
+    getNotes(repositoryId, noteSource).then(data => {
+      if (!active) return
+      setIndex(data)
+      const validPaths = new Set((data.notes || []).map(item => item.path))
+      const savedPath = getLastOpenPath(repositoryId)
+      const resolvedPath = (selectedPath && validPaths.has(selectedPath))
+        ? selectedPath
+        : (savedPath && validPaths.has(savedPath))
+          ? savedPath
+          : data.notes?.[0]?.path
+
+      if (resolvedPath && resolvedPath !== selectedPath) {
+        setSearchParams({ repo: repositoryId, path: resolvedPath }, { replace: true })
+      }
+      if (resolvedPath) {
+        setLastOpenPath(repositoryId, resolvedPath, data.root_path || '')
+      }
+    }).catch(fetchError => active && setError(fetchError.message || 'Unable to load this repository.')).finally(() => active && setLoadingIndex(false))
     return () => { active = false }
   }, [repositoryId, noteSource, sourceRevision])
 
@@ -2269,9 +2846,14 @@ export default function Notes() {
     if (!repositoryId || !selectedPath) { setNote(null); return undefined }
     let active = true
     setLoadingNote(true); setError('')
-    getNoteContent(repositoryId, selectedPath, noteSource).then(data => active && setNote(data)).catch(fetchError => { if (active) { setNote(null); setError(fetchError.message || 'Unable to load this note.') } }).finally(() => active && setLoadingNote(false))
+    getNoteContent(repositoryId, selectedPath, noteSource).then(data => {
+      if (active) {
+        setNote(data)
+        setLastOpenPath(repositoryId, selectedPath, index?.root_path || '')
+      }
+    }).catch(fetchError => { if (active) { setNote(null); setError(fetchError.message || 'Unable to load this note.') } }).finally(() => active && setLoadingNote(false))
     return () => { active = false }
-  }, [repositoryId, selectedPath, noteSource, sourceRevision])
+  }, [repositoryId, selectedPath, noteSource, sourceRevision, index?.root_path])
 
   const allNotes = index?.notes || []
   const currentTaxonomy = selectedPath ? taxonomy({ path: selectedPath }, index?.root_path || '') : { year: '', topic: '' }
@@ -2372,10 +2954,23 @@ export default function Notes() {
   }, [selectedPath, targetHash, headings])
 
   const selectNote = React.useCallback((path, { keepMobilePanel = false, hash = '' } = {}) => {
+    setLastOpenPath(repositoryId, path, index?.root_path || '')
     setSearchParams({ repo: repositoryId, path })
     setTargetHash(hash || '')
     if (!keepMobilePanel) setMobilePanel(null)
-  }, [repositoryId, setSearchParams])
+  }, [repositoryId, index?.root_path, setSearchParams])
+
+  const handleOpenRepo = React.useCallback((targetRepoOrId) => {
+    const targetRepoId = typeof targetRepoOrId === 'object' ? targetRepoOrId?.id : targetRepoOrId
+    if (!targetRepoId || typeof targetRepoId !== 'string') return
+    const lastPath = getLastOpenPath(targetRepoId)
+    if (lastPath) {
+      setSearchParams({ repo: targetRepoId, path: lastPath })
+    } else {
+      setSearchParams({ repo: targetRepoId })
+    }
+    setMobilePanel(null)
+  }, [setSearchParams])
 
   const openPreviewLink = React.useCallback(descriptor => {
     if (!descriptor?.url) return
@@ -2407,9 +3002,31 @@ export default function Notes() {
   const jumpToPreviewedNote = (path, hash) => { closeLinkPreview(); selectNote(path, { hash }) }
   const chooseFirst = (candidates, options) => { if (candidates.length) selectNote([...candidates].sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))[0].path, options) }
   const keepMobileLibraryOpen = isMobile && mobilePanel === 'library'
-  const selectYear = year => chooseFirst(allNotes.filter(item => taxonomy(item, index.root_path).year === year), { keepMobilePanel: keepMobileLibraryOpen })
-  const selectTopic = topic => chooseFirst(yearNotes.filter(item => taxonomy(item, index.root_path).topic === topic), { keepMobilePanel: keepMobileLibraryOpen })
+  const selectYear = year => {
+    const candidateNotes = allNotes.filter(item => taxonomy(item, index.root_path || '').year === year)
+    const candidatePaths = new Set(candidateNotes.map(n => n.path))
+    const savedPath = getLastOpenPath(repositoryId, `year:${year}`)
+    if (savedPath && candidatePaths.has(savedPath)) {
+      selectNote(savedPath, { keepMobilePanel: keepMobileLibraryOpen })
+    } else {
+      chooseFirst(candidateNotes, { keepMobilePanel: keepMobileLibraryOpen })
+    }
+  }
+  const selectTopic = topic => {
+    const candidateNotes = yearNotes.filter(item => taxonomy(item, index.root_path || '').topic === topic)
+    const candidatePaths = new Set(candidateNotes.map(n => n.path))
+    const savedPath = getLastOpenPath(repositoryId, topic)
+    if (savedPath && candidatePaths.has(savedPath)) {
+      selectNote(savedPath, { keepMobilePanel: keepMobileLibraryOpen })
+    } else {
+      chooseFirst(candidateNotes, { keepMobilePanel: keepMobileLibraryOpen })
+    }
+  }
   const navigateBreadcrumb = parts => {
+    if (parts.length === 0) {
+      if (years.length > 0) selectYear(years[0])
+      return
+    }
     if (parts.length === 1) return selectYear(parts[0])
     if (parts.length === 2) return selectTopic(parts[1])
     const directoryPath = parts.slice(2).join('/')
@@ -2418,7 +3035,7 @@ export default function Notes() {
     window.requestAnimationFrame(() => { const target = [...document.querySelectorAll('[data-tree-path]')].find(element => element.dataset.treePath === directoryPath); target?.scrollIntoView({ behavior: 'smooth', block: 'center' }); target?.focus({ preventScroll: true }) })
   }
 
-  if (!repositoryId) return <RepositoryCards repositories={repositories} loading={loadingCatalog} onOpen={repo => setSearchParams({ repo })} />
+  if (!repositoryId) return <RepositoryCards repositories={repositories} loading={loadingCatalog} onOpen={handleOpenRepo} />
 
   const currentRepository = repositories.find(item => item.id === repositoryId)
   const allExpanded = allTreePaths.length > 0 && allTreePaths.every(path => expanded[path] === true)
@@ -2449,7 +3066,7 @@ export default function Notes() {
   return <div className={`notes-page ${showNavigation ? '' : 'navigation-hidden'}`} style={repositoryStyle(repositoryId)}>
     <header className="notes-reader-header">
       <button type="button" className="notes-nav-reveal notes-desktop-nav-toggle" onClick={() => setShowNavigation(value => !value)} aria-controls="notes-topic-navigation" aria-expanded={showNavigation} title={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'} aria-label={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d={showNavigation ? 'm7 9-3 3 3 3' : 'm5 9 3 3-3 3'}/></svg></button>
-      <Breadcrumbs index={index} selectedPath={selectedPath} onDirectory={navigateBreadcrumb} />
+      <Breadcrumbs index={index} selectedPath={selectedPath} onDirectory={navigateBreadcrumb} repositories={repositories} selectedRepository={currentRepository} onSelectRepository={handleOpenRepo} />
       {note && (
         <div
           className="notes-reader-reading-badge"
@@ -2491,9 +3108,17 @@ export default function Notes() {
       }}
     >
       <aside ref={navigationRef} id="notes-topic-navigation" className={`notes-browser ${mobilePanel === 'library' ? 'mobile-open' : ''}`} aria-label="Repository topics" aria-hidden={!showNavigation || (isMobile && mobilePanel !== 'library')}>
-        <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={repo => { setSearchParams({ repo }); setMobilePanel(null) }}/>{currentRepository?.local_available && <NoteSourceToggle source={noteSource} onChange={selectNoteSource}/>}<button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button></div>
+        {isMobile && (
+          <div className="notes-browser-header">
+            <span className="notes-browser-mobile-title">Topics</span>
+            <button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button>
+          </div>
+        )}
         <div className="notes-tree-toolbar">
-          <div className="notes-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search topics and notes…" aria-label="Search this repository" />{normalizedQuery && <><small className="notes-search-count">{yearFilteredNotes.length}</small><button type="button" className="notes-search-clear" onClick={() => setQuery('')} aria-label="Clear notes search">×</button></>}</div>
+          <div className="notes-search-wrapper">
+            <div className="notes-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search topics and notes…" aria-label="Search this repository" />{normalizedQuery && <><small className="notes-search-count">{yearFilteredNotes.length}</small><button type="button" className="notes-search-clear" onClick={() => setQuery('')} aria-label="Clear notes search">×</button></>}</div>
+            {currentRepository?.local_available && <NoteSourceToggle source={noteSource} onChange={selectNoteSource}/>}
+          </div>
           <YearDropdown selectedYear={selectedYear} onSelect={selectYear} options={years.map(year => ({ value: year, label: displayName(year) }))}/>
           <TopicDropdown selectedTopic={selectedTopic} onSelect={selectTopic} options={topics.map(topic => ({ value: topic, label: displayName(topic) }))}/>
         </div>
@@ -2516,7 +3141,7 @@ export default function Notes() {
         ) : note ? (
           <>
             <article className="markdown-body">
-              <MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={titleNavigation} />
+              <MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} onOpenCodeModal={setCodeModal} titleNavigation={titleNavigation} />
             </article>
             <NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/>
             {showScrollTop && (
@@ -2571,6 +3196,7 @@ export default function Notes() {
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
     <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} source={noteSource} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
     <ExcalidrawDialog modal={excalidrawModal} onClose={() => setExcalidrawModal(null)} />
+    <CodeViewerDialog modal={codeModal} onClose={() => setCodeModal(null)} />
     {presentationMode && note && (
       <NotePresentationMode
         note={note}

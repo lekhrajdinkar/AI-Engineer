@@ -1,6 +1,7 @@
 # Accessing Claude with the API
 ## reference
 - https://anthropic-partners.skilljar.com/claude-with-the-anthropic-api/287726
+- [README.md](../README.md)
 
 ## API Request
 ```body
