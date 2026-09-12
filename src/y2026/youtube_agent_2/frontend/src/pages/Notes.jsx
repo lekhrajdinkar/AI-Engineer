@@ -989,85 +989,104 @@ function markdownWithCodeEmbeds(content = '') {
 function markdownWithTabGroups(content = '') {
   if (!content || typeof content !== 'string') return content || ''
 
-  // Split content by code blocks (```...```) to preserve verbatim code
-  const tokenRegex = /(```[\s\S]*?```)/g
-  const parts = content.split(tokenRegex)
+  const lines = content.split(/\r?\n/)
+  const outputLines = []
+  let inCode = false
+  let i = 0
 
-  for (let p = 0; p < parts.length; p++) {
-    if (p % 2 === 1) continue // Skip code blocks
+  while (i < lines.length) {
+    const line = lines[i]
+    const trimmed = line.trim()
 
-    const text = parts[p]
-    const lines = text.split(/\r?\n/)
-    const outputLines = []
-    let i = 0
-
-    while (i < lines.length) {
-      const line = lines[i]
-      const parsedTab = parseTabHeading(line)
-
-      if (parsedTab) {
-        // Start of a tab group under current H2 section
-        const tabs = []
-        let currentTab = {
-          tabNum: parsedTab.tabNum,
-          title: parsedTab.title,
-          id: slug(parsedTab.title),
-          contentLines: []
-        }
-        i++
-
-        while (i < lines.length) {
-          const currLine = lines[i]
-
-          // Check if this is another H3 tab heading
-          const nextTab = parseTabHeading(currLine)
-          if (nextTab) {
-            tabs.push({
-              tabNum: currentTab.tabNum,
-              title: currentTab.title,
-              id: currentTab.id,
-              content: currentTab.contentLines.join('\n').trim()
-            })
-            currentTab = {
-              tabNum: nextTab.tabNum,
-              title: nextTab.title,
-              id: slug(nextTab.title),
-              contentLines: []
-            }
-            i++
-            continue
-          }
-
-          // Check if we hit a boundary: H1, H2, or non-tab H3/H4/H5/H6
-          const isHigherOrEqualHeading = /^(?:#{1,2}\s+|#{3,6}\s+(?!-?\s*tab(?:::|:)))/i.test(currLine)
-          if (isHigherOrEqualHeading) {
-            break
-          }
-
-          currentTab.contentLines.push(currLine)
-          i++
-        }
-
-        // Push final tab
-        tabs.push({
-          tabNum: currentTab.tabNum,
-          title: currentTab.title,
-          id: currentTab.id,
-          content: currentTab.contentLines.join('\n').trim()
-        })
-
-        // Output as notes-tab-group code block
-        outputLines.push(`\n\n\`\`\`notes-tab-group\n${JSON.stringify({ tabs })}\n\`\`\`\n\n`)
-      } else {
-        outputLines.push(line)
-        i++
-      }
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inCode = !inCode
+      outputLines.push(line)
+      i++
+      continue
     }
 
-    parts[p] = outputLines.join('\n')
+    if (inCode) {
+      outputLines.push(line)
+      i++
+      continue
+    }
+
+    const parsedTab = parseTabHeading(line)
+
+    if (parsedTab) {
+      // Start of a tab group
+      const tabs = []
+      let currentTab = {
+        tabNum: parsedTab.tabNum,
+        title: parsedTab.title,
+        id: slug(parsedTab.title),
+        contentLines: []
+      }
+      i++
+
+      while (i < lines.length) {
+        const currLine = lines[i]
+        const currTrimmed = currLine.trim()
+
+        if (currTrimmed.startsWith('```') || currTrimmed.startsWith('~~~')) {
+          inCode = !inCode
+          currentTab.contentLines.push(currLine)
+          i++
+          continue
+        }
+
+        if (inCode) {
+          currentTab.contentLines.push(currLine)
+          i++
+          continue
+        }
+
+        // Check if this is another H3 tab heading
+        const nextTab = parseTabHeading(currLine)
+        if (nextTab) {
+          tabs.push({
+            tabNum: currentTab.tabNum,
+            title: currentTab.title,
+            id: currentTab.id,
+            content: currentTab.contentLines.join('\n').trim()
+          })
+          currentTab = {
+            tabNum: nextTab.tabNum,
+            title: nextTab.title,
+            id: slug(nextTab.title),
+            contentLines: []
+          }
+          i++
+          continue
+        }
+
+        // Check if we hit a boundary: H1, H2, or non-tab H3/H4/H5/H6
+        const isHigherOrEqualHeading = /^(?:#{1,2}\s+|#{3,6}\s+(?!-?\s*tab(?:::|:|\s*\d+)))/i.test(currLine)
+        if (isHigherOrEqualHeading) {
+          break
+        }
+
+        currentTab.contentLines.push(currLine)
+        i++
+      }
+
+      // Push final tab
+      tabs.push({
+        tabNum: currentTab.tabNum,
+        title: currentTab.title,
+        id: currentTab.id,
+        content: currentTab.contentLines.join('\n').trim()
+      })
+
+      // Output as notes-tab-group code block
+      outputLines.push(`\n\n\`\`\`notes-tab-group\n${JSON.stringify({ tabs })}\n\`\`\`\n\n`)
+    } else {
+      outputLines.push(line)
+      i++
+    }
   }
 
-  return parts.join('')
+  return outputLines.join('\n')
 }
 
 function markdownWithMath(content = '') {
