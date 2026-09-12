@@ -14036,20 +14036,40 @@ img.notes-reveal-item.is-revealed {
   line-height: 1.25;
 }
 
-.notes-tab-body {
-  padding: 0.85rem 0 0 0;
-  background: transparent;
-  animation: notesTabFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+.notes-tab-slider-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  transition: height 0.38s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-@keyframes notesTabFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.notes-tab-slider-track {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  transition: transform 0.48s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
 }
+
+.notes-tab-slide-panel {
+  flex: 0 0 100%;
+  width: 100%;
+  max-width: 100%;
+  padding: 0.85rem 0 0 0;
+  box-sizing: border-box;
+  opacity: 0.25;
+  transition: opacity 0.4s ease;
+}
+
+.notes-tab-slide-panel.is-active {
+  opacity: 1;
+}
+
+.notes-tab-slide-panel:not(.is-active) {
+  pointer-events: none;
+  user-select: none;
+}
+
+
+
 

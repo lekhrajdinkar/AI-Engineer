@@ -1882,6 +1882,52 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
 function NotesTabGroup({ tabs = [], note, headings, headingIdPrefix = '', index, onOpenLink, onOpenCodeModal }) {
   const [activeIdx, setActiveIdx] = React.useState(0)
   const containerRef = React.useRef(null)
+  const slideRefs = React.useRef([])
+  const [containerHeight, setContainerHeight] = React.useState(undefined)
+  const touchStartX = React.useRef(0)
+  const touchStartY = React.useRef(0)
+
+  // Measure active slide height to smoothly transition wrapper height
+  React.useLayoutEffect(() => {
+    const activeEl = slideRefs.current[activeIdx]
+    if (activeEl) {
+      setContainerHeight(activeEl.offsetHeight)
+    }
+  }, [activeIdx, tabs])
+
+  React.useEffect(() => {
+    const activeEl = slideRefs.current[activeIdx]
+    if (!activeEl || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      if (slideRefs.current[activeIdx]) {
+        setContainerHeight(slideRefs.current[activeIdx].offsetHeight)
+      }
+    })
+    ro.observe(activeEl)
+    return () => ro.disconnect()
+  }, [activeIdx])
+
+  const handleSelectTab = React.useCallback((newIdx) => {
+    if (newIdx < 0 || newIdx >= tabs.length) return
+    setActiveIdx(newIdx)
+  }, [tabs.length])
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  const handleTouchEnd = (e) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current
+    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+      if (deltaX < 0 && activeIdx < tabs.length - 1) {
+        handleSelectTab(activeIdx + 1)
+      } else if (deltaX > 0 && activeIdx > 0) {
+        handleSelectTab(activeIdx - 1)
+      }
+    }
+  }
 
   React.useEffect(() => {
     const handleTabNav = (event) => {
@@ -1893,7 +1939,7 @@ function NotesTabGroup({ tabs = [], note, headings, headingIdPrefix = '', index,
         const tabHeadings = extractHeadings(tab.content)
         return tabHeadings.some(h => slug(h.id) === cleanTarget || slug(h.title) === cleanTarget)
       })
-      if (foundIdx !== -1) {
+      if (foundIdx !== -1 && foundIdx !== activeIdx) {
         setActiveIdx(foundIdx)
         setTimeout(() => {
           containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -1902,13 +1948,17 @@ function NotesTabGroup({ tabs = [], note, headings, headingIdPrefix = '', index,
     }
     window.addEventListener('notes-navigate-tab', handleTabNav)
     return () => window.removeEventListener('notes-navigate-tab', handleTabNav)
-  }, [tabs])
+  }, [tabs, activeIdx])
 
   if (!tabs.length) return null
-  const activeTab = tabs[Math.max(0, Math.min(activeIdx, tabs.length - 1))]
 
   return (
-    <div className="notes-tab-group-container" ref={containerRef}>
+    <div
+      className="notes-tab-group-container"
+      ref={containerRef}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className="notes-tab-group-header" role="tablist" aria-label="Tabbed Content">
         {tabs.map((tab, idx) => {
           const isActive = idx === activeIdx
@@ -1921,7 +1971,7 @@ function NotesTabGroup({ tabs = [], note, headings, headingIdPrefix = '', index,
               className={`notes-tab-btn ${isActive ? 'is-active' : ''}`}
               aria-selected={isActive}
               aria-controls={`tabpanel-${tab.id}-${idx}`}
-              onClick={() => setActiveIdx(idx)}
+              onClick={() => handleSelectTab(idx)}
             >
               <span className="notes-tab-title">{tab.title}</span>
             </button>
@@ -1929,19 +1979,41 @@ function NotesTabGroup({ tabs = [], note, headings, headingIdPrefix = '', index,
         })}
       </div>
       <div
-        id={`tabpanel-${activeTab.id}-${activeIdx}`}
-        role="tabpanel"
-        aria-labelledby={`${headingIdPrefix}${activeTab.id}`}
-        className="notes-tab-body"
+        className="notes-tab-slider-wrapper"
+        style={{
+          height: containerHeight ? `${containerHeight}px` : 'auto',
+        }}
       >
-        <MarkdownContent
-          note={{ ...note, content: activeTab.content }}
-          headings={headings}
-          headingIdPrefix={headingIdPrefix}
-          index={index}
-          onOpenLink={onOpenLink}
-          onOpenCodeModal={onOpenCodeModal}
-        />
+        <div
+          className="notes-tab-slider-track"
+          style={{
+            transform: `translateX(-${activeIdx * 100}%)`,
+          }}
+        >
+          {tabs.map((tab, idx) => {
+            const isActive = idx === activeIdx
+            return (
+              <div
+                key={idx}
+                ref={el => { slideRefs.current[idx] = el }}
+                id={`tabpanel-${tab.id}-${idx}`}
+                role="tabpanel"
+                aria-labelledby={`${headingIdPrefix}${tab.id}`}
+                aria-hidden={!isActive}
+                className={`notes-tab-slide-panel ${isActive ? 'is-active' : ''}`}
+              >
+                <MarkdownContent
+                  note={{ ...note, content: tab.content }}
+                  headings={headings}
+                  headingIdPrefix={headingIdPrefix}
+                  index={index}
+                  onOpenLink={onOpenLink}
+                  onOpenCodeModal={onOpenCodeModal}
+                />
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
