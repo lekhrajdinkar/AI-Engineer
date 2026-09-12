@@ -295,7 +295,20 @@ function directoryPaths(node) {
 }
 
 function cleanHeading(value) {
-  return value.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~<>]/g, '').trim()
+  let cleaned = value.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~<>]/g, '').trim()
+  cleaned = cleaned.replace(/^(?:#{1,6}\s+)?(?:[-*+]\s*)?tab(?:::|:|\s*\d+)\s*(\d+)?(?:::|:|-|\.|\s+)*\s*/i, '').replace(/^[:\-.–—]\s*/, '').trim()
+  return cleaned
+}
+
+function parseTabHeading(line = '') {
+  const match = line.match(/^#{3}\s*(?:[-*+]\s*)?tab(?:::|:|\s*\d+)\s*(\d+)?(?:::|:|-|\.|\s+)*\s*(.*)$/i)
+  if (!match) return null
+  const numMatch = line.match(/tab(?:::|:|\s*)(\d+)/i)
+  const tabNum = numMatch ? parseInt(numMatch[1], 10) : (match[1] ? parseInt(match[1], 10) : null)
+  let rawTitle = (match[2] || '').replace(/^#+\s*$/, '').trim()
+  rawTitle = rawTitle.replace(/^[:\-.–—]\s*/, '').trim()
+  const title = rawTitle || (tabNum != null ? `Tab ${tabNum}` : 'Tab')
+  return { tabNum, title }
 }
 
 function slug(value) {
@@ -306,7 +319,15 @@ function extractHeadings(markdown = '') {
   const withoutCode = markdown.replace(/^```[\s\S]*?^```/gm, '')
   const counts = {}
   return [...withoutCode.matchAll(/^(#{1,6})\s+(.+?)\s*#*\s*$/gm)].map(match => {
-    const title = cleanHeading(match[2])
+    let rawText = match[2]
+    if (match[1].length === 3) {
+      const parsedTab = parseTabHeading(match[0])
+      if (parsedTab) {
+        rawText = parsedTab.title
+      }
+    }
+    const cleaned = cleanHeading(rawText)
+    const title = cleaned || 'Tab'
     const base = slug(title)
     counts[base] = (counts[base] || 0) + 1
     return { level: match[1].length, title, id: counts[base] === 1 ? base : `${base}-${counts[base]}` }
@@ -965,6 +986,90 @@ function markdownWithCodeEmbeds(content = '') {
   return parts.join('')
 }
 
+function markdownWithTabGroups(content = '') {
+  if (!content || typeof content !== 'string') return content || ''
+
+  // Split content by code blocks (```...```) to preserve verbatim code
+  const tokenRegex = /(```[\s\S]*?```)/g
+  const parts = content.split(tokenRegex)
+
+  for (let p = 0; p < parts.length; p++) {
+    if (p % 2 === 1) continue // Skip code blocks
+
+    const text = parts[p]
+    const lines = text.split(/\r?\n/)
+    const outputLines = []
+    let i = 0
+
+    while (i < lines.length) {
+      const line = lines[i]
+      const parsedTab = parseTabHeading(line)
+
+      if (parsedTab) {
+        // Start of a tab group under current H2 section
+        const tabs = []
+        let currentTab = {
+          tabNum: parsedTab.tabNum,
+          title: parsedTab.title,
+          id: slug(parsedTab.title),
+          contentLines: []
+        }
+        i++
+
+        while (i < lines.length) {
+          const currLine = lines[i]
+
+          // Check if this is another H3 tab heading
+          const nextTab = parseTabHeading(currLine)
+          if (nextTab) {
+            tabs.push({
+              tabNum: currentTab.tabNum,
+              title: currentTab.title,
+              id: currentTab.id,
+              content: currentTab.contentLines.join('\n').trim()
+            })
+            currentTab = {
+              tabNum: nextTab.tabNum,
+              title: nextTab.title,
+              id: slug(nextTab.title),
+              contentLines: []
+            }
+            i++
+            continue
+          }
+
+          // Check if we hit a boundary: H1, H2, or non-tab H3/H4/H5/H6
+          const isHigherOrEqualHeading = /^(?:#{1,2}\s+|#{3,6}\s+(?!-?\s*tab(?:::|:)))/i.test(currLine)
+          if (isHigherOrEqualHeading) {
+            break
+          }
+
+          currentTab.contentLines.push(currLine)
+          i++
+        }
+
+        // Push final tab
+        tabs.push({
+          tabNum: currentTab.tabNum,
+          title: currentTab.title,
+          id: currentTab.id,
+          content: currentTab.contentLines.join('\n').trim()
+        })
+
+        // Output as notes-tab-group code block
+        outputLines.push(`\n\n\`\`\`notes-tab-group\n${JSON.stringify({ tabs })}\n\`\`\`\n\n`)
+      } else {
+        outputLines.push(line)
+        i++
+      }
+    }
+
+    parts[p] = outputLines.join('\n')
+  }
+
+  return parts.join('')
+}
+
 function markdownWithMath(content = '') {
   if (!content || typeof content !== 'string') return content || ''
 
@@ -1355,7 +1460,10 @@ function PreviewOnThisPage({ note, headings, headingIdPrefix, scrollContainerRef
   React.useEffect(() => setQuery(''), [note?.path])
   const normalizedQuery = query.trim().toLowerCase()
   const visibleHeadingTree = filterHeadingTree(headingTree(headings), normalizedQuery)
-  const selectHeading = heading => document.getElementById(`${headingIdPrefix}${heading.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const selectHeading = heading => {
+    window.dispatchEvent(new CustomEvent('notes-navigate-tab', { detail: { targetId: heading.id } }))
+    document.getElementById(`${headingIdPrefix}${heading.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   return <aside className="notes-preview-outline" aria-label="On this page">
     <div className="notes-preview-outline-header"><span>On this page</span><strong>{note?.title || 'Note outline'}</strong></div>
     <label className="notes-outline-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a heading…" aria-label="Search headings in this preview"/></label>
@@ -1637,6 +1745,7 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
           const clean = decodeURIComponent(href).replace(/^#/, '').trim()
           const match = findTargetHeading(headings, clean)
           const targetId = match ? `${headingIdPrefix}${match.id}` : `${headingIdPrefix}${clean}`
+          window.dispatchEvent(new CustomEvent('notes-navigate-tab', { detail: { targetId: match ? match.id : clean } }))
           const el = document.getElementById(targetId) || document.getElementById(clean) || document.getElementById(slug(clean)) || document.querySelector(`[id*="${clean}"]`)
           if (el) {
             uncollapseTargetIfNeeded(el)
@@ -1703,6 +1812,24 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
     pre: ({ children, ...props }) => {
       const codeElement = React.Children.count(children) === 1 ? React.Children.only(children) : null
       const language = /language-([^\s]+)/.exec(codeElement?.props?.className || '')?.[1]?.toLowerCase()
+      if (language === 'notes-tab-group') {
+        try {
+          const tabData = JSON.parse(String(codeElement.props.children).trim())
+          return (
+            <NotesTabGroup
+              tabs={tabData.tabs}
+              note={note}
+              headings={headings}
+              headingIdPrefix={headingIdPrefix}
+              index={index}
+              onOpenLink={onOpenLink}
+              onOpenCodeModal={onOpenCodeModal}
+            />
+          )
+        } catch {
+          return null
+        }
+      }
       if (language === 'notes-code-embed') {
         try {
           const embedData = JSON.parse(String(codeElement.props.children).trim())
@@ -1748,9 +1875,77 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
       return <CodeBlock language={language} code={codeContent} />
     },
   }
-  const transformed = markdownWithMath(markdownWithCodeEmbeds(markdownWithReferences(markdownWithTrustedIframes(note.content), note, index)))
+  const transformed = markdownWithMath(markdownWithCodeEmbeds(markdownWithTabGroups(markdownWithReferences(markdownWithTrustedIframes(note.content), note, index))))
   return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{transformed}</ReactMarkdown>
 })
+
+function NotesTabGroup({ tabs = [], note, headings, headingIdPrefix = '', index, onOpenLink, onOpenCodeModal }) {
+  const [activeIdx, setActiveIdx] = React.useState(0)
+  const containerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    const handleTabNav = (event) => {
+      const { targetId } = event.detail || {}
+      if (!targetId) return
+      const cleanTarget = slug(targetId)
+      const foundIdx = tabs.findIndex(tab => {
+        if (slug(tab.id) === cleanTarget || slug(tab.title) === cleanTarget) return true
+        const tabHeadings = extractHeadings(tab.content)
+        return tabHeadings.some(h => slug(h.id) === cleanTarget || slug(h.title) === cleanTarget)
+      })
+      if (foundIdx !== -1) {
+        setActiveIdx(foundIdx)
+        setTimeout(() => {
+          containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 50)
+      }
+    }
+    window.addEventListener('notes-navigate-tab', handleTabNav)
+    return () => window.removeEventListener('notes-navigate-tab', handleTabNav)
+  }, [tabs])
+
+  if (!tabs.length) return null
+  const activeTab = tabs[Math.max(0, Math.min(activeIdx, tabs.length - 1))]
+
+  return (
+    <div className="notes-tab-group-container" ref={containerRef}>
+      <div className="notes-tab-group-header" role="tablist" aria-label="Tabbed Content">
+        {tabs.map((tab, idx) => {
+          const isActive = idx === activeIdx
+          return (
+            <button
+              key={idx}
+              id={`${headingIdPrefix}${tab.id}`}
+              role="tab"
+              type="button"
+              className={`notes-tab-btn ${isActive ? 'is-active' : ''}`}
+              aria-selected={isActive}
+              aria-controls={`tabpanel-${tab.id}-${idx}`}
+              onClick={() => setActiveIdx(idx)}
+            >
+              <span className="notes-tab-title">{tab.title}</span>
+            </button>
+          )
+        })}
+      </div>
+      <div
+        id={`tabpanel-${activeTab.id}-${activeIdx}`}
+        role="tabpanel"
+        aria-labelledby={`${headingIdPrefix}${activeTab.id}`}
+        className="notes-tab-body"
+      >
+        <MarkdownContent
+          note={{ ...note, content: activeTab.content }}
+          headings={headings}
+          headingIdPrefix={headingIdPrefix}
+          index={index}
+          onOpenLink={onOpenLink}
+          onOpenCodeModal={onOpenCodeModal}
+        />
+      </div>
+    </div>
+  )
+}
 
 function NotePageNavigation({ previousNote, nextNote, rootPath, onNavigate }) {
   const context = item => {
@@ -1864,6 +2059,7 @@ function OutlineHeadingTree({ nodes, depth = 0, onNavigate, onSelectHeading, act
               setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
             }
           }
+          window.dispatchEvent(new CustomEvent('notes-navigate-tab', { detail: { targetId: node.id } }))
           onNavigate?.()
         }}
         title={node.title}
@@ -2011,7 +2207,8 @@ function extractTabsFromSlideContent(slideLines) {
         tabs.push(currentTab)
       }
 
-      const rawTitle = cleanHeading(h3Match[1])
+      const parsedTab = parseTabHeading(line)
+      const rawTitle = parsedTab ? parsedTab.title : cleanHeading(h3Match[1])
       currentTab = {
         id: `tab-${tabs.length + 1}-${slug(rawTitle)}`,
         label: rawTitle,
