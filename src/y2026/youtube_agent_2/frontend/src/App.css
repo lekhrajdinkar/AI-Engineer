@@ -2101,6 +2101,90 @@ body.notes-reader-open { overflow: hidden; }
   min-width: 0;
 }
 
+.notes-excalidraw-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.notes-excalidraw-tabs-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.notes-excalidraw-nav-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: color-mix(in srgb, var(--card-bg, #fff) 60%, var(--border-color, #e2e8f0));
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #6965db 18%, var(--border-color, #e2e8f0));
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .notes-excalidraw-nav-group {
+  background: color-mix(in srgb, var(--card-bg, #1e293b) 60%, var(--border-color, #334155));
+  border-color: color-mix(in srgb, #6965db 25%, var(--border-color, #334155));
+}
+
+.notes-excalidraw-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.notes-excalidraw-nav-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: color-mix(in srgb, #6965db 15%, transparent);
+}
+
+.notes-excalidraw-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.notes-excalidraw-current-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.notes-excalidraw-tab-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: color-mix(in srgb, #6965db 20%, transparent);
+  color: #6965db;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .notes-excalidraw-tab-num {
+  background: color-mix(in srgb, #6965db 30%, transparent);
+  color: #a5b4fc;
+}
+
 .notes-excalidraw-logo-badge {
   display: inline-flex;
   align-items: center;

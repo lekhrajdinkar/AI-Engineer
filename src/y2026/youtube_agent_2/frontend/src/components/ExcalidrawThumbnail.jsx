@@ -28,16 +28,35 @@ function getAppTheme() {
   return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
 }
 
-function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
+function ExcalidrawThumbnail({ url: propUrl, descriptor: propDescriptor, label: propLabel, onOpen, drawings = [] }) {
+  const isMulti = Array.isArray(drawings) && drawings.length > 1
+  const [activeIdx, setActiveIdx] = React.useState(0)
+
+  const activeDrawing = isMulti ? (drawings[activeIdx] || drawings[0]) : null
+  const url = activeDrawing ? activeDrawing.url : propUrl
+  const descriptor = activeDrawing ? activeDrawing.descriptor : propDescriptor
+  const label = activeDrawing ? activeDrawing.label : propLabel
+
+  const title = label || descriptor?.title || (url ? decodeURIComponent(url.split('/').at(-1)) : 'Excalidraw Drawing')
+  const fileName = url ? decodeURIComponent(url.split('/').at(-1) || '') : ''
+
+  // Pre-fetch all drawing JSONs in the background for instant tab switching
+  React.useEffect(() => {
+    if (isMulti) {
+      drawings.forEach(d => {
+        if (d.url && !excalidrawCache.has(d.url)) {
+          fetchExcalidrawJson(d.url).catch(() => {})
+        }
+      })
+    }
+  }, [isMulti, drawings])
+
   const [sceneData, setSceneData] = React.useState(() => excalidrawCache.get(url) || null)
   const [loading, setLoading] = React.useState(() => !excalidrawCache.has(url))
   const [error, setError] = React.useState(false)
   const [excalidrawAPI, setExcalidrawAPI] = React.useState(null)
   const [zoomPercent, setZoomPercent] = React.useState(100)
   const [theme, setTheme] = React.useState(() => getAppTheme())
-
-  const title = label || descriptor?.title || (url ? url.split('/').at(-1) : 'Excalidraw Drawing')
-  const fileName = url ? decodeURIComponent(url.split('/').at(-1) || '') : ''
 
   // Sync theme automatically when the app theme (System / Light / Dark) changes
   React.useEffect(() => {
@@ -64,6 +83,7 @@ function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
     if (excalidrawCache.has(url)) {
       setSceneData(excalidrawCache.get(url))
       setLoading(false)
+      setError(false)
       return
     }
 
@@ -91,25 +111,12 @@ function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
 
   const safeScrollToContent = React.useCallback((targetElements, options = { fitToViewport: true, animate: false }) => {
     if (!excalidrawAPI) return
-    const elementsToFit = (targetElements && targetElements.length > 0)
-      ? targetElements
-      : (sceneData?.elements || []).filter(el => el && !el.isDeleted)
-
-    if (!elementsToFit || elementsToFit.length === 0) return
-
     try {
-      const currentZoom = excalidrawAPI.getAppState()?.zoom?.value
-      if (typeof currentZoom !== 'number' || isNaN(currentZoom) || currentZoom <= 0) {
-        excalidrawAPI.updateScene({
-          appState: { zoom: { value: 1 }, scrollX: 0, scrollY: 0 },
-          commitToHistory: false,
-        })
-      }
-      excalidrawAPI.scrollToContent(elementsToFit, options)
+      excalidrawAPI.scrollToContent(targetElements || undefined, options)
     } catch (err) {
       console.warn('[ExcalidrawThumbnail] safeScrollToContent error:', err)
     }
-  }, [excalidrawAPI, sceneData?.elements])
+  }, [excalidrawAPI])
 
   // Automatically fit drawing to viewport on initial load
   React.useEffect(() => {
@@ -119,9 +126,9 @@ function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
       const currentZoom = excalidrawAPI.getAppState()?.zoom?.value
       const safeZ = (typeof currentZoom === 'number' && !isNaN(currentZoom) && currentZoom > 0) ? currentZoom : 1
       setZoomPercent(Math.round(safeZ * 100))
-    }, 80)
+    }, 60)
     return () => clearTimeout(timer)
-  }, [excalidrawAPI, sceneData?.elements, safeScrollToContent])
+  }, [excalidrawAPI, sceneData, safeScrollToContent])
 
   // Track zoom level changes from wheel/trackpad/drag
   const handlePointerUpdate = React.useCallback(() => {
@@ -196,17 +203,12 @@ function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
         zenModeEnabled: false,
         theme: theme,
         viewBackgroundColor: sceneData.appState?.viewBackgroundColor || (theme === 'dark' ? '#121212' : '#ffffff'),
-        zoom: { value: 1 },
-        scrollX: 0,
-        scrollY: 0,
         isLoading: false,
       },
       files: sceneData.files || {},
-      scrollToContent: false,
+      scrollToContent: true,
     }
   }, [sceneData, theme])
-
-  const elementCount = (sceneData?.elements || []).filter(el => !el.isDeleted).length
 
   if (error || (!loading && !sceneData)) {
     return (
@@ -230,17 +232,60 @@ function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
       aria-label={`Excalidraw drawing: ${title}`}
     >
       <div className="notes-excalidraw-thumbnail-header">
-        <div className="notes-excalidraw-thumbnail-title-group">
-          <span className="notes-excalidraw-logo-badge" aria-hidden="true">
-            <svg viewBox="0 0 48 48">
-              <rect x="3" y="12" width="32" height="23" rx="4" fill="currentColor" opacity="0.15"/>
-              <rect x="3" y="12" width="32" height="23" rx="4" stroke="currentColor" strokeWidth="2.5" fill="none"/>
-              <path d="M8 28l5-10 5 6 5-8 5 12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M36 4l8 8-12 12-5 1 1-5z" fill="currentColor"/>
-            </svg>
-          </span>
-          <strong className="notes-excalidraw-thumbnail-title" title={title}>{title}</strong>
-        </div>
+        {isMulti ? (
+          <div className="notes-excalidraw-tabs-bar" role="tablist" aria-label="Excalidraw drawings">
+            <span className="notes-excalidraw-logo-badge" aria-hidden="true">
+              <svg viewBox="0 0 48 48">
+                <rect x="3" y="12" width="32" height="23" rx="4" fill="currentColor" opacity="0.15"/>
+                <rect x="3" y="12" width="32" height="23" rx="4" stroke="currentColor" strokeWidth="2.5" fill="none"/>
+                <path d="M8 28l5-10 5 6 5-8 5 12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M36 4l8 8-12 12-5 1 1-5z" fill="currentColor"/>
+              </svg>
+            </span>
+            <div className="notes-excalidraw-nav-group" role="group" aria-label="Drawing navigation">
+              <button
+                type="button"
+                className="notes-excalidraw-nav-btn"
+                disabled={activeIdx === 0}
+                onClick={() => setActiveIdx(prev => Math.max(0, prev - 1))}
+                title="Previous drawing"
+                aria-label="Previous drawing"
+              >
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m15 18-6-6 6-6"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="notes-excalidraw-nav-btn"
+                disabled={activeIdx === drawings.length - 1}
+                onClick={() => setActiveIdx(prev => Math.min(drawings.length - 1, prev + 1))}
+                title="Next drawing"
+                aria-label="Next drawing"
+              >
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+            <div className="notes-excalidraw-current-tab" title={title}>
+              <span className="notes-excalidraw-tab-num">{activeIdx + 1}/{drawings.length}</span>
+              <strong className="notes-excalidraw-thumbnail-title">{title}</strong>
+            </div>
+          </div>
+        ) : (
+          <div className="notes-excalidraw-thumbnail-title-group">
+            <span className="notes-excalidraw-logo-badge" aria-hidden="true">
+              <svg viewBox="0 0 48 48">
+                <rect x="3" y="12" width="32" height="23" rx="4" fill="currentColor" opacity="0.15"/>
+                <rect x="3" y="12" width="32" height="23" rx="4" stroke="currentColor" strokeWidth="2.5" fill="none"/>
+                <path d="M8 28l5-10 5 6 5-8 5 12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M36 4l8 8-12 12-5 1 1-5z" fill="currentColor"/>
+              </svg>
+            </span>
+            <strong className="notes-excalidraw-thumbnail-title" title={title}>{title}</strong>
+          </div>
+        )}
 
         <div className="notes-excalidraw-thumbnail-meta">
           <div className="notes-excalidraw-zoom-toolbar" role="toolbar" aria-label="Drawing zoom controls">
@@ -323,7 +368,7 @@ function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
         </div>
       </div>
 
-      <div className="notes-excalidraw-thumbnail-stage" data-canvas-theme={theme}>
+      <div className="notes-excalidraw-thumbnail-stage" data-canvas-theme={theme} key={`${url}-${theme}`}>
         {loading || !initialData ? (
           <div className="notes-excalidraw-thumbnail-loading">
             <span className="spinner" />

@@ -934,6 +934,55 @@ function parseSingleCodeSpec(rawSpec, srcPath) {
   }
 }
 
+function markdownWithExcalidrawEmbeds(content = '', note, index) {
+  if (!content || typeof content !== 'string') return content || ''
+
+  // Split by code blocks (```...```) and inline code (`...`) to preserve verbatim code
+  const tokenRegex = /(```[\s\S]*?```|`[^`\n]+`)/g
+  const parts = content.split(tokenRegex)
+
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 1) continue // Skip code segments
+
+    let text = parts[i]
+
+    // Matches clusters of 2 or more excalidraw markdown links/images separated by commas/whitespace/newlines
+    // e.g.: [02_bfs_graph.excalidraw](../../draw/03/08_BFS/02_bfs_graph.excalidraw),
+    //       [03_problems-bfs-graph.excalidraw](../../draw/03/08_BFS/03_problems-bfs-graph.excalidraw)
+    const clusterRegex = /(?:!?\[[^\]]*\]\([^()\s]+\.excalidraw(?:\?[^()\s]*)?(?:#[^()\s]*)?\)[\s,]*){2,}/gi
+
+    text = text.replace(clusterRegex, (clusterMatch) => {
+      const itemRegex = /!?\[([^\]]*)\]\(([^()\s]+\.excalidraw(?:\?[^()\s]*)?(?:#[^()\s]*)?)\)/gi
+      const drawings = []
+      let item
+
+      while ((item = itemRegex.exec(clusterMatch)) !== null) {
+        const rawLabel = item[1]?.trim() || ''
+        const rawHref = item[2]?.trim() || ''
+        const resolved = relativeUrl(rawHref, note?.raw_url)
+        const descriptor = linkDescriptor(rawHref, note, index, rawLabel)
+        const cleanLabel = rawLabel.replace(/\.excalidraw$/i, '')
+        const title = cleanLabel || descriptor?.title || (resolved ? decodeURIComponent(resolved.split('/').at(-1).replace(/\.excalidraw$/i, '')) : `Drawing ${drawings.length + 1}`)
+
+        drawings.push({
+          label: title,
+          rawHref,
+          url: resolved,
+          descriptor,
+        })
+      }
+
+      if (drawings.length <= 1) return clusterMatch
+
+      return `\n\n\`\`\`notes-excalidraw-embed\n${JSON.stringify({ drawings })}\n\`\`\`\n\n`
+    })
+
+    parts[i] = text
+  }
+
+  return parts.join('')
+}
+
 function markdownWithCodeEmbeds(content = '') {
   if (!content || typeof content !== 'string') return content || ''
 
@@ -1868,6 +1917,21 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
           return null
         }
       }
+      if (language === 'notes-excalidraw-embed') {
+        try {
+          const embedData = JSON.parse(String(codeElement.props.children).trim())
+          return (
+            <React.Suspense fallback={<div className="notes-excalidraw-fallback-link"><span className="spinner"/> Loading drawings…</div>}>
+              <ExcalidrawThumbnail
+                drawings={embedData.drawings}
+                onOpen={onOpenLink}
+              />
+            </React.Suspense>
+          )
+        } catch {
+          return null
+        }
+      }
       if (language === 'notes-math-block') {
         const codeContent = codeElement ? codeElement.props.children : children
         return <MathBlock math={String(codeContent).trim()} />
@@ -1894,7 +1958,7 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
       return <CodeBlock language={language} code={codeContent} />
     },
   }
-  const transformed = markdownWithMath(markdownWithCodeEmbeds(markdownWithTabGroups(markdownWithReferences(markdownWithTrustedIframes(note.content), note, index))))
+  const transformed = markdownWithMath(markdownWithCodeEmbeds(markdownWithExcalidrawEmbeds(markdownWithTabGroups(markdownWithReferences(markdownWithTrustedIframes(note.content), note, index)), note, index)))
   return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{transformed}</ReactMarkdown>
 })
 
