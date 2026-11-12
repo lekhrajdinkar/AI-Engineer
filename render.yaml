@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: lic-surrender-value-calculator
+    runtime: static
+    buildCommand: npm ci && npm run build:lic2
+    staticPublishPath: src/y2026/lic2/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -9,6 +9,12 @@
     "react-router-dom": "^6.30.4",
     "remark-gfm": "^4.0.1"
   },
+  "scripts": {
+    "dev:lic": "vite --config src/y2026/lic/vite.config.js",
+    "build:lic": "vite build --config src/y2026/lic/vite.config.js",
+    "dev:lic2": "vite --config src/y2026/lic2/vite.config.js src/y2026/lic2",
+    "build:lic2": "vite build --config src/y2026/lic2/vite.config.js src/y2026/lic2"
+  },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.7.0",
     "vite": "^5.0.0"
